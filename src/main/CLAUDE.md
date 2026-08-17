@@ -11,6 +11,7 @@ Referência completa: [docs/architecture.md](../../docs/architecture.md).
 src/main/
 ├── index.ts       bootstrap, janela, ciclo de vida do app
 ├── ipc/           um arquivo por domínio; só valida payload e delega
+├── config/        JSON de config do app — ui-state, settings (EP-02); nunca o workspace
 ├── http/          engine de requisição, timing, cancelamento (EP-03)
 ├── storage/       parser + serializer YAML, watcher, resolução de caminhos (EP-04)
 ├── scripts/       spawn e protocolo do utility process (EP-09)
@@ -18,7 +19,13 @@ src/main/
 └── secrets/       keychain do SO (EP-07)
 ```
 
-Só `ipc/` existe hoje — as demais chegam junto do épico que as introduz.
+`ipc/` e `config/` existem hoje — as demais chegam junto do épico que as introduz.
+
+`config/` guarda preferências do app em `app.getPath("userData")` (tema, tamanhos de
+painel) — nunca o workspace do usuário, que é `storage/` (EP-04). A leitura/escrita de
+JSON (`jsonFile.ts`) recebe o diretório como parâmetro em vez de chamar `app.getPath`
+internamente, para ficar testável sem subir o Electron; `appDataDir.ts` é o único ponto
+que de fato chama `app.getPath`.
 
 ## `ipc/` é fino
 

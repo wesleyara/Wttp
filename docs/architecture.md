@@ -59,6 +59,10 @@ Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos t
 | Canal               | Tipo    | Payload → Retorno                                  |
 | ------------------- | ------- | -------------------------------------------------- |
 | `app:ping`          | invoke  | `void` → `{ version, platform }`                   |
+| `ui:getState`       | invoke  | `void` → `UiState`                                 |
+| `ui:setState`       | invoke  | `Partial<UiState>` → `UiState`                     |
+| `settings:get`      | invoke  | `void` → `AppSettings`                             |
+| `settings:set`      | invoke  | `Partial<AppSettings>` → `AppSettings`             |
 | `http:send`         | invoke  | `HttpRequestSpec` → `HttpResponseResult`           |
 | `http:cancel`       | invoke  | `{ requestId }` → `void`                           |
 | `http:progress`     | event ↓ | `{ requestId, phase, bytes }`                      |
@@ -77,8 +81,14 @@ Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos t
 | `script:run`        | invoke  | `ScriptRunSpec` → `ScriptResult`                   |
 | `import:detect`     | invoke  | `{ payload }` → `ImportFormat \| null`             |
 | `import:run`        | invoke  | `{ format, payload, targetPath }` → `ImportReport` |
+| `menu:action`       | event ↓ | `MenuAction`                                       |
 
 `event ↓` = emitido do main para o renderer.
+
+`menu:action` (EP-02-T06) é o primeiro `event ↓` implementado — atalho do menu nativo
+clicado → `webContents.send` → `window.wttp.menu.onAction(callback)` no preload. Como
+não tem payload de invocação nem retorno, fica fora do `IpcContract` tipado por
+`payload`/`result`; `MenuAction` é só um `type` em `@shared`.
 
 ### Formato de erro
 
@@ -101,6 +111,7 @@ export interface WttpError {
 src/main/
 ├── index.ts          bootstrap, janela, ciclo de vida do app
 ├── ipc/              um arquivo por domínio; só valida payload e delega
+├── config/           JSON de config do app em userData — ui-state, settings
 ├── http/             engine de requisição, timing, cancelamento
 ├── storage/          parser + serializer YAML, watcher, resolução de caminhos
 ├── scripts/          spawn e protocolo do utility process

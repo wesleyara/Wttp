@@ -11,7 +11,7 @@ Para executar uma task, use a skill `wttp-task`.
 | Épico                                    | Título                            | Status    |
 | ---------------------------------------- | --------------------------------- | --------- |
 | [EP-01](EP-01-fundacao.md)               | Fundação electron-vite            | Concluída |
-| [EP-02](EP-02-design-system.md)          | Design system e shell de layout   | Pendente  |
+| [EP-02](EP-02-design-system.md)          | Design system e shell de layout   | Concluída (verificação visual pendente) |
 | [EP-03](EP-03-nucleo-http.md)            | Núcleo HTTP                       | Pendente  |
 | [EP-04](EP-04-persistencia.md)           | Formato de arquivo e persistência | Pendente  |
 | [EP-05](EP-05-workspaces-collections.md) | Workspaces, collections e tabs    | Pendente  |

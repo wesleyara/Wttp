@@ -8,9 +8,16 @@ Visão do produto: [docs/overview.md](docs/overview.md).
 
 ## Estado do projeto
 
-**Pré-MVP.** A fundação (**EP-01**) está pronta: electron-vite com os três processos comunicando, IPC tipado, Tailwind com a paleta preservada, Pinia, vue-router e o ferramental de qualidade ligado. Nenhuma funcionalidade de produto existe ainda — o app abre uma janela vazia.
+**Pré-MVP.** A fundação (**EP-01**) e o design system/shell (**EP-02**) estão prontos:
+electron-vite com os três processos comunicando, IPC tipado, tokens semânticos com dark
+mode, os componentes base `W*`, o shell de três painéis (`WSplitPane`) com tamanhos
+persistidos, tema com `useSettingsStore` e menu nativo com atalhos. A verificação visual
+do EP-02 (dois temas, arrastar divisores, ciclo de restart) ainda não foi feita numa
+janela real — pendente antes de considerá-lo fechado de fato; ver nota no topo de
+[EP-02](docs/backlog/EP-02-design-system.md). Nenhuma funcionalidade de produto (requests,
+collections, environments) existe ainda — o shell está todo em estado vazio.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-02**.
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-03**.
 
 ---
 
