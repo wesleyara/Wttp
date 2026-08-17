@@ -69,6 +69,8 @@ export function registerWorkspaceHandlers(): void {
 
   registerHandler("workspace:removeRecent", payload => removeRecentWorkspace(payload.path));
 
+  registerHandler("workspace:rescan", payload => scanWorkspace(payload.root));
+
   registerHandler("workspace:getUiState", payload => readWorkspaceUiState(payload.root));
 
   registerHandler("workspace:setUiState", payload =>

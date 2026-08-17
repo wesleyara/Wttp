@@ -1,6 +1,7 @@
 import type {
   AppInfo,
   AppSettings,
+  CreateNodePayload,
   CreateWorkspacePayload,
   FolderNode,
   HttpProgressEvent,
@@ -13,6 +14,7 @@ import type {
   PickFolderResult,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
+  RenameNodePayload,
   RequestNode,
   SaveFilePayload,
   SaveFileResult,
@@ -70,6 +72,8 @@ const wttp = {
     recent: (): Promise<RecentWorkspace[]> => invoke("workspace:recent"),
     removeRecent: (payload: RemoveRecentWorkspacePayload): Promise<RecentWorkspace[]> =>
       invoke("workspace:removeRecent", payload),
+    rescan: (payload: WorkspaceRootPayload): Promise<WorkspaceTree> =>
+      invoke("workspace:rescan", payload),
     getUiState: (payload: WorkspaceRootPayload): Promise<WorkspaceUiState> =>
       invoke("workspace:getUiState", payload),
     setUiState: (payload: SetWorkspaceUiStatePayload): Promise<void> =>
@@ -88,6 +92,14 @@ const wttp = {
     write: (payload: WriteNodePayload): Promise<void> => invoke("node:write", payload),
     move: (payload: MoveNodePayload): Promise<void> => invoke("node:move", payload),
     delete: (payload: NodePathPayload): Promise<void> => invoke("node:delete", payload),
+    create: (payload: CreateNodePayload): Promise<FolderNode | RequestNode> =>
+      invoke("node:create", payload),
+    rename: (payload: RenameNodePayload): Promise<FolderNode | RequestNode> =>
+      invoke("node:rename", payload),
+    duplicate: (payload: NodePathPayload): Promise<FolderNode | RequestNode> =>
+      invoke("node:duplicate", payload),
+    reveal: (payload: NodePathPayload): Promise<void> => invoke("node:reveal", payload),
+    trash: (payload: NodePathPayload): Promise<void> => invoke("node:trash", payload),
   },
   secret: {
     get: (key: string): Promise<string | null> => invoke("secret:get", { key }),

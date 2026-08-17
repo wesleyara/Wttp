@@ -5,6 +5,36 @@
  * numérico, nunca sobrescrevendo o que já existe.
  */
 
+/**
+ * Nomes de dispositivo reservados do Windows (case-insensitive, com ou sem extensao) -
+ * um slug igual a um destes quebraria a criacao do arquivo/pasta la, entao tratamos
+ * como colisao mesmo sem nenhum outro irmao usando o nome (EP-05-T03).
+ */
+const WINDOWS_RESERVED_NAMES = new Set([
+  "con",
+  "prn",
+  "aux",
+  "nul",
+  "com1",
+  "com2",
+  "com3",
+  "com4",
+  "com5",
+  "com6",
+  "com7",
+  "com8",
+  "com9",
+  "lpt1",
+  "lpt2",
+  "lpt3",
+  "lpt4",
+  "lpt5",
+  "lpt6",
+  "lpt7",
+  "lpt8",
+  "lpt9",
+]);
+
 /** "Login de usuário" → "login-de-usuario". Nunca vazio — cai em "untitled". */
 export function slugify(name: string): string {
   const slug = name
@@ -29,8 +59,10 @@ export function uniqueSlugName(
   exists: (candidate: string) => boolean,
 ): string {
   const base = slugify(name);
-  let candidate = `${base}${suffix}`;
-  for (let n = 2; exists(candidate); n++) {
+  // Um slug reservado do Windows nunca é o candidato final, mesmo sem nenhum irmão
+  // ocupando o nome — cai direto no mesmo caminho de sufixo numérico de uma colisão.
+  let candidate = WINDOWS_RESERVED_NAMES.has(base) ? `${base}-2${suffix}` : `${base}${suffix}`;
+  for (let n = WINDOWS_RESERVED_NAMES.has(base) ? 3 : 2; exists(candidate); n++) {
     candidate = `${base}-${n}${suffix}`;
   }
   return candidate;

@@ -3,8 +3,10 @@ import type { WorkspaceNode } from "@shared";
 
 import StatusBar from "@renderer/components/StatusBar.vue";
 import WButton from "@renderer/components/WButton.vue";
+import WContextMenu, { type ContextMenuItem } from "@renderer/components/WContextMenu.vue";
 import WEmptyState from "@renderer/components/WEmptyState.vue";
 import WInput from "@renderer/components/WInput.vue";
+import WModal from "@renderer/components/WModal.vue";
 import WorkspaceLanding from "@renderer/components/WorkspaceLanding.vue";
 import WSplitPane from "@renderer/components/WSplitPane.vue";
 import WTree from "@renderer/components/WTree.vue";
@@ -12,7 +14,7 @@ import { useMenuStore } from "@renderer/stores/menu";
 import { useTreeStore } from "@renderer/stores/tree";
 import { useUiStore } from "@renderer/stores/ui";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
-import { onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 
 // Esqueleto definitivo do app (EP-02-T04): sidebar de collections, área central de
 // abas de request e painel de resposta. As abas chegam em EP-05-T05 — por ora o
@@ -27,12 +29,40 @@ function onActivate(node: WorkspaceNode): void {
   void node;
 }
 
+const contextMenuItems = computed<ContextMenuItem[]>(() => {
+  const target = tree.contextMenuTarget;
+  if (!target) return [];
+  const { node } = target;
+  const items: ContextMenuItem[] = [];
+
+  if (node.kind === "folder") {
+    items.push(
+      { label: "New request", action: () => void tree.createRequest(node.path) },
+      { label: "New folder", action: () => void tree.createFolder(node.path) },
+    );
+  }
+  items.push(
+    { label: "Rename", action: () => tree.startRename(node.path) },
+    { label: "Duplicate", action: () => void tree.duplicate(node.path) },
+    { label: "Reveal in file explorer", action: () => void tree.reveal(node.path) },
+    {
+      label: "Delete",
+      danger: true,
+      separatorBefore: true,
+      action: () => tree.requestDelete(node),
+    },
+  );
+  return items;
+});
+
 let stopListeningToMenu: (() => void) | null = null;
 
 onMounted(() => {
   void ui.load();
   void workspace.init();
-  stopListeningToMenu = menu.listen();
+  stopListeningToMenu = menu.listen({
+    "request:new": () => void tree.createRequest(),
+  });
 });
 
 onUnmounted(() => stopListeningToMenu?.());
@@ -57,24 +87,41 @@ onUnmounted(() => stopListeningToMenu?.());
       >
         <template #first>
           <aside class="flex h-full flex-col bg-surface-2">
-            <div class="shrink-0 border-b border-subtle p-2">
-              <WInput v-model="tree.filterText" placeholder="Filter…" />
+            <div class="flex shrink-0 items-center gap-1 border-b border-subtle p-2">
+              <WInput v-model="tree.filterText" placeholder="Filter…" class="flex-1" />
+              <WButton size="sm" variant="ghost" title="New request" @click="tree.createRequest()">
+                +Req
+              </WButton>
+              <WButton size="sm" variant="ghost" title="New folder" @click="tree.createFolder()">
+                +Dir
+              </WButton>
             </div>
             <div class="min-h-0 flex-1">
               <WEmptyState
                 v-if="!workspace.tree || workspace.tree.children.length === 0"
                 title="No collections yet"
                 description="Create your first request."
-              />
+              >
+                <template #action>
+                  <WButton variant="primary" size="sm" @click="tree.createRequest()">
+                    New request
+                  </WButton>
+                </template>
+              </WEmptyState>
               <WTree
                 v-else
                 :nodes="workspace.tree.children"
                 :expanded-paths="tree.expandedPaths"
                 :selected-path="tree.selectedPath"
                 :filter-text="tree.filterText"
+                :editing-path="tree.editingPath"
                 @update:expanded-paths="tree.setExpandedPaths"
                 @update:selected-path="tree.selectedPath = $event"
                 @activate="onActivate"
+                @contextmenu="tree.openContextMenu"
+                @rename="tree.confirmRename"
+                @cancel-rename="tree.cancelRename"
+                @shortcut="tree.onShortcut"
               />
             </div>
           </aside>
@@ -106,5 +153,28 @@ onUnmounted(() => stopListeningToMenu?.());
       </WSplitPane>
     </div>
     <StatusBar />
+
+    <WContextMenu
+      :open="tree.contextMenuTarget !== null"
+      :x="tree.contextMenuTarget?.x ?? 0"
+      :y="tree.contextMenuTarget?.y ?? 0"
+      :items="contextMenuItems"
+      @close="tree.closeContextMenu"
+    />
+
+    <WModal :open="tree.deleteTarget !== null" title="Delete" @close="tree.cancelDelete">
+      <p v-if="tree.deleteTarget" class="font-inter text-sm text-1">
+        Delete "{{ tree.deleteTarget.node.name }}"?
+        <template v-if="tree.deleteTarget.descendantCount > 0">
+          This also removes {{ tree.deleteTarget.descendantCount }}
+          {{ tree.deleteTarget.descendantCount === 1 ? "item" : "items" }} inside it.
+        </template>
+        It moves to the system trash.
+      </p>
+      <template #footer>
+        <WButton variant="ghost" @click="tree.cancelDelete">Cancel</WButton>
+        <WButton variant="danger" @click="tree.confirmDelete">Delete</WButton>
+      </template>
+    </WModal>
   </div>
 </template>

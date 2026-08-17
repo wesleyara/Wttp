@@ -91,6 +91,22 @@ export interface MoveNodePayload {
   seq: number;
 }
 
+/** Payload de `node:create` (EP-05-T03). */
+export interface CreateNodePayload {
+  root: string;
+  /** Caminho da pasta onde criar — `""` para a raiz do workspace. */
+  parentPath: string;
+  kind: "folder" | "request";
+  name: string;
+}
+
+/** Payload de `node:rename` (EP-05-T03). */
+export interface RenameNodePayload {
+  root: string;
+  path: string;
+  name: string;
+}
+
 /** Resultado de `dialog:pickFolder` (EP-05-T01) — escolher a pasta onde criar um workspace. */
 export interface PickFolderResult {
   canceled: boolean;
@@ -160,10 +176,17 @@ export interface IpcContract {
   "workspace:removeRecent": { payload: RemoveRecentWorkspacePayload; result: RecentWorkspace[] };
   "workspace:getUiState": { payload: WorkspaceRootPayload; result: WorkspaceUiState };
   "workspace:setUiState": { payload: SetWorkspaceUiStatePayload; result: void };
+  /** Rescan sem efeitos colaterais (não toca recentes nem reinicia o watcher) — usado depois de um `node:*` que a store já sabe que aconteceu. */
+  "workspace:rescan": { payload: WorkspaceRootPayload; result: WorkspaceTree };
   "node:read": { payload: NodePathPayload; result: FolderNode | RequestNode };
   "node:write": { payload: WriteNodePayload; result: void };
   "node:move": { payload: MoveNodePayload; result: void };
   "node:delete": { payload: NodePathPayload; result: void };
+  "node:create": { payload: CreateNodePayload; result: FolderNode | RequestNode };
+  "node:rename": { payload: RenameNodePayload; result: FolderNode | RequestNode };
+  "node:duplicate": { payload: NodePathPayload; result: FolderNode | RequestNode };
+  "node:reveal": { payload: NodePathPayload; result: void };
+  "node:trash": { payload: NodePathPayload; result: void };
   "secret:get": { payload: SecretKeyPayload; result: string | null };
   "secret:set": { payload: SetSecretPayload; result: void };
   "secret:delete": { payload: SecretKeyPayload; result: void };

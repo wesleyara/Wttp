@@ -143,6 +143,7 @@ Construídos no **EP-02**, antes de qualquer tela de produto. Todos aceitam `cla
 | `WStatusBadge`   | Código de status + faixa de cor                                                         |
 | `WEmptyState`    | Ícone, título, descrição e ação — para árvore vazia, sem resposta, sem workspace        |
 | `WModal`         | Overlay com painel focado, `Esc` fecha, foco preso e devolvido ao fechar (EP-05-T01)    |
+| `WContextMenu`   | Menu de contexto posicionado por coordenadas, fecha em `Esc`/clique fora (EP-05-T03)    |
 
 ### Editor de código
 
