@@ -1,6 +1,7 @@
 import type {
   AppInfo,
   AppSettings,
+  HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
   MenuAction,
@@ -30,6 +31,13 @@ const wttp = {
   http: {
     send: (spec: HttpRequestSpec): Promise<HttpResponseResult> => invoke("http:send", spec),
     cancel: (requestId: string): Promise<void> => invoke("http:cancel", requestId),
+    // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
+    onProgress: (callback: (event: HttpProgressEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, progress: HttpProgressEvent): void =>
+        callback(progress);
+      ipcRenderer.on("http:progress", listener);
+      return () => ipcRenderer.off("http:progress", listener);
+    },
   },
   menu: {
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).

@@ -2,6 +2,7 @@ import type { ElectronAPI } from "@electron-toolkit/preload";
 import type {
   AppInfo,
   AppSettings,
+  HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
   MenuAction,
@@ -23,6 +24,7 @@ interface WttpApi {
   http: {
     send: (spec: HttpRequestSpec) => Promise<HttpResponseResult>;
     cancel: (requestId: string) => Promise<void>;
+    onProgress: (callback: (event: HttpProgressEvent) => void) => () => void;
   };
   menu: {
     onAction: (callback: (action: MenuAction) => void) => () => void;

@@ -56,7 +56,7 @@ Referência: [architecture.md §4](../architecture.md)
 
 ### EP-03-T03 — Métricas de timing e tamanho
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-03-T02
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-03-T02
 
 **Objetivo.** O usuário vê onde o tempo foi gasto.
 
@@ -67,9 +67,9 @@ Referência: [architecture.md §4](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] As fases somam o total, sem lacuna nem sobreposição
-- [ ] Tamanho bate com o `Content-Length` quando presente
-- [ ] Requisição reaproveitando conexão reporta DNS e TLS como zero, não como erro
+- [x] As fases somam o total, sem lacuna nem sobreposição
+- [x] Tamanho bate com o `Content-Length` quando presente
+- [x] Requisição reaproveitando conexão reporta DNS e TLS como zero, não como erro
 
 ---
 

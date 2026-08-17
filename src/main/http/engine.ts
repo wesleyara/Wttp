@@ -1,5 +1,6 @@
 import type {
   HttpMethod,
+  HttpProgressEvent,
   HttpRequestSettings,
   HttpRequestSpec,
   HttpResponseResult,
@@ -55,8 +56,14 @@ export function cancelHttpRequest(requestId: string): boolean {
  * `spec.auth` não é aplicado aqui: por ora a engine recebe headers/query já prontos
  * — a resolução de auth é EP-07 e vai injetar nesses mesmos campos antes de chamar
  * esta função, do jeito que já faz com variáveis (EP-06).
+ *
+ * `onProgress`, quando informado, é chamado a cada chunk recebido — quem chama decide
+ * se emite isso como `http:progress` no IPC (EP-03-T03) ou ignora.
  */
-export async function sendHttpRequest(spec: HttpRequestSpec): Promise<HttpResponseResult> {
+export async function sendHttpRequest(
+  spec: HttpRequestSpec,
+  onProgress?: (event: HttpProgressEvent) => void,
+): Promise<HttpResponseResult> {
   const controller = new AbortController();
   inFlight.set(spec.requestId, controller);
 
@@ -73,7 +80,7 @@ export async function sendHttpRequest(spec: HttpRequestSpec): Promise<HttpRespon
     for (let redirectCount = 0; ; redirectCount++) {
       let hop: HopOutcome;
       try {
-        hop = await performHop(spec, url, method, body, controller.signal, settings);
+        hop = await performHop(spec, url, method, body, controller.signal, settings, onProgress);
       } catch (error) {
         return {
           ok: false,
@@ -155,6 +162,7 @@ async function performHop(
   body: RequestBody,
   signal: AbortSignal,
   settings: HttpRequestSettings | undefined,
+  onProgress?: (event: HttpProgressEvent) => void,
 ): Promise<HopOutcome> {
   const url = applyQuery(urlString, spec.query);
   const built = await buildRequestBody(body);
@@ -172,9 +180,16 @@ async function performHop(
 
     const onResponse = (response: IncomingMessage): void => {
       const chunks: Buffer[] = [];
+      let bytesReceived = 0;
+      const contentLength = Number(response.headers["content-length"]);
+      const totalBytes =
+        Number.isFinite(contentLength) && contentLength >= 0 ? contentLength : undefined;
+
       response.on("data", (chunk: Buffer) => {
         firstByteAt ??= process.hrtime.bigint();
         chunks.push(chunk);
+        bytesReceived += chunk.byteLength;
+        onProgress?.({ requestId: spec.requestId, bytesReceived, totalBytes });
       });
       response.on("error", reject);
       response.on("end", () => {

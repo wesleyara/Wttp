@@ -48,6 +48,26 @@ beforeAll(async () => {
       return;
     }
 
+    if (url.pathname === "/sized") {
+      const payload = "x".repeat(1234);
+      res.writeHead(200, {
+        "Content-Type": "text/plain",
+        "Content-Length": Buffer.byteLength(payload),
+      });
+      res.end(payload);
+      return;
+    }
+
+    if (url.pathname === "/chunked") {
+      res.writeHead(200, { "Content-Type": "text/plain", "Content-Length": "30" });
+      res.write("x".repeat(10));
+      setTimeout(() => {
+        res.write("x".repeat(10));
+        setTimeout(() => res.end("x".repeat(10)), 5);
+      }, 5);
+      return;
+    }
+
     if (url.pathname === "/never") {
       // Nunca responde — usado para o teste de cancelamento.
       return;
@@ -340,5 +360,59 @@ describe("sendHttpRequest — cancellation and failure modes", () => {
     const result = await sendHttpRequest(baseSpec({ url: "http://127.0.0.1:1/" }));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("CONNECTION_REFUSED");
+  });
+});
+
+describe("sendHttpRequest — timing and size (EP-03-T03)", () => {
+  it("sums the phases into total, with no gap or overlap", async () => {
+    const result = await sendHttpRequest(baseSpec({ url: `${baseUrl}/sized` }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const { dns, connect, tls, ttfb, download, total } = result.timing;
+    for (const phase of [dns, connect, tls, ttfb, download, total]) {
+      expect(phase).toBeGreaterThanOrEqual(0);
+    }
+    expect(total).toBeCloseTo(dns + connect + tls + ttfb + download, 6);
+  });
+
+  it("matches the received size against Content-Length", async () => {
+    const result = await sendHttpRequest(baseSpec({ url: `${baseUrl}/sized` }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const contentLength = Number(
+      result.headers.find(h => h.name.toLowerCase() === "content-length")?.value,
+    );
+    expect(result.size.bodyReceived).toBe(contentLength);
+    expect(result.size.bodyReceived).toBe(1234);
+  });
+
+  it("reports dns and tls as zero, not an error, when the connection is reused", async () => {
+    const first = await sendHttpRequest(baseSpec({ url: `${baseUrl}/sized` }));
+    const second = await sendHttpRequest(baseSpec({ url: `${baseUrl}/sized` }));
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.timing.dns).toBe(0);
+    expect(second.timing.connect).toBe(0);
+    expect(second.timing.tls).toBe(0);
+  });
+});
+
+describe("sendHttpRequest — download progress (EP-03-T03)", () => {
+  it("emits http:progress-style events as chunks arrive, ending at the full size", async () => {
+    const events: { bytesReceived: number; totalBytes: number | undefined }[] = [];
+    const spec = baseSpec({ url: `${baseUrl}/chunked` });
+    const result = await sendHttpRequest(spec, event => {
+      expect(event.requestId).toBe(spec.requestId);
+      events.push({ bytesReceived: event.bytesReceived, totalBytes: event.totalBytes });
+    });
+    expect(result.ok).toBe(true);
+    expect(events.length).toBeGreaterThanOrEqual(3);
+    expect(events.every(e => e.totalBytes === 30)).toBe(true);
+    expect(events.at(-1)?.bytesReceived).toBe(30);
+    const isMonotonic = events.every(
+      (e, i) => i === 0 || e.bytesReceived > events[i - 1].bytesReceived,
+    );
+    expect(isMonotonic).toBe(true);
   });
 });
