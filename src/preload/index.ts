@@ -8,6 +8,7 @@ import type {
   HttpRequestSpec,
   HttpResponseResult,
   MenuAction,
+  MoveNodeIntoPayload,
   MoveNodePayload,
   NodePathPayload,
   OpenWorkspacePayload,
@@ -100,6 +101,8 @@ const wttp = {
       invoke("node:duplicate", payload),
     reveal: (payload: NodePathPayload): Promise<void> => invoke("node:reveal", payload),
     trash: (payload: NodePathPayload): Promise<void> => invoke("node:trash", payload),
+    moveInto: (payload: MoveNodeIntoPayload): Promise<FolderNode | RequestNode> =>
+      invoke("node:moveInto", payload),
   },
   secret: {
     get: (key: string): Promise<string | null> => invoke("secret:get", { key }),

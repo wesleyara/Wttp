@@ -6,6 +6,7 @@ import {
   deleteNode,
   duplicateNode,
   moveNode,
+  moveNodeInto,
   readNode,
   renameNode,
   writeNode,
@@ -25,6 +26,9 @@ export function registerNodeHandlers(): void {
   );
   registerHandler("node:rename", payload => renameNode(payload.root, payload.path, payload.name));
   registerHandler("node:duplicate", payload => duplicateNode(payload.root, payload.path));
+  registerHandler("node:moveInto", payload =>
+    moveNodeInto(payload.root, payload.from, payload.targetDir, payload.index),
+  );
 
   registerHandler("node:reveal", payload => {
     shell.showItemInFolder(resolveWorkspacePath(payload.root, payload.path));

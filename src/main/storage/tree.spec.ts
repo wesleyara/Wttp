@@ -14,6 +14,7 @@ import {
   duplicateNode,
   initWorkspace,
   moveNode,
+  moveNodeInto,
   readNode,
   renameNode,
   scanWorkspace,
@@ -219,6 +220,53 @@ describe("moveNode", () => {
     expect(auth.children.map(node => node.name)).toEqual(["Logout"]);
     expect((auth.children[0] as RequestNode).data?.seq).toBe(1);
     expect(users.children.map(node => node.name)).toEqual(["Login", "List"]);
+  });
+
+  it("recusa mover uma pasta para dentro dela mesma ou de um descendente", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml("auth/nested/folder.yaml", folderYaml("Nested", 1));
+
+    await expect(moveNode(root, "auth", "auth/nested/auth", 1)).rejects.toThrow(/descendant/);
+    await expect(moveNode(root, "auth", "auth/again", 1)).rejects.toThrow(/descendant/);
+  });
+});
+
+describe("moveNodeInto", () => {
+  it("mantém o nome de arquivo no destino quando não há colisão", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml("users/folder.yaml", folderYaml("Users", 2));
+    await writeYaml("auth/login.req.yaml", requestYaml("Login", 1));
+
+    const moved = await moveNodeInto(root, "auth/login.req.yaml", "users", 1);
+
+    expect(moved.path).toBe("users/login.req.yaml");
+  });
+
+  it("resolve colisão de nome no destino como duplicateNode resolveria", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml("users/folder.yaml", folderYaml("Users", 2));
+    await writeYaml("auth/login.req.yaml", requestYaml("Login", 1));
+    await writeYaml("users/login.req.yaml", requestYaml("Login", 1));
+
+    const moved = await moveNodeInto(root, "auth/login.req.yaml", "users", 1);
+
+    expect(moved.path).not.toBe("users/login.req.yaml");
+    await expect(fs.access(join(root, "users", "login.req.yaml"))).resolves.toBeUndefined();
+  });
+
+  it("reordena dentro da mesma pasta sem duplicar o nome consigo mesmo", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("a.req.yaml", requestYaml("A", 1));
+    await writeYaml("b.req.yaml", requestYaml("B", 2));
+
+    const moved = await moveNodeInto(root, "b.req.yaml", "", 1);
+
+    expect(moved.path).toBe("b.req.yaml");
+    const tree = await scanWorkspace(root);
+    expect(tree.children.map(node => node.name)).toEqual(["B", "A"]);
   });
 });
 

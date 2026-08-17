@@ -107,6 +107,15 @@ export interface RenameNodePayload {
   name: string;
 }
 
+/** Payload de `node:moveInto` (EP-05-T04) — drag & drop. */
+export interface MoveNodeIntoPayload {
+  root: string;
+  from: string;
+  targetDir: string;
+  /** Posição (1-indexed) entre os irmãos de `targetDir`. */
+  index: number;
+}
+
 /** Resultado de `dialog:pickFolder` (EP-05-T01) — escolher a pasta onde criar um workspace. */
 export interface PickFolderResult {
   canceled: boolean;
@@ -187,6 +196,7 @@ export interface IpcContract {
   "node:duplicate": { payload: NodePathPayload; result: FolderNode | RequestNode };
   "node:reveal": { payload: NodePathPayload; result: void };
   "node:trash": { payload: NodePathPayload; result: void };
+  "node:moveInto": { payload: MoveNodeIntoPayload; result: FolderNode | RequestNode };
   "secret:get": { payload: SecretKeyPayload; result: string | null };
   "secret:set": { payload: SetSecretPayload; result: void };
   "secret:delete": { payload: SecretKeyPayload; result: void };

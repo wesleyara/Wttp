@@ -157,6 +157,14 @@ export const useTreeStore = defineStore("tree", () => {
     await workspace.refreshTree();
   }
 
+  /** Drag & drop soltou `from` dentro de `targetDir`, na posição `index` (EP-05-T04). */
+  async function moveInto(from: string, targetDir: string, index: number): Promise<void> {
+    if (!workspace.root) return;
+    const node = await window.wttp.node.moveInto({ root: workspace.root, from, targetDir, index });
+    await workspace.refreshTree();
+    selectedPath.value = node.path;
+  }
+
   async function reveal(path: string): Promise<void> {
     if (!workspace.root) return;
     await window.wttp.node.reveal({ root: workspace.root, path });
@@ -201,6 +209,7 @@ export const useTreeStore = defineStore("tree", () => {
     requestDelete,
     cancelDelete,
     confirmDelete,
+    moveInto,
     reveal,
     onShortcut,
   };
