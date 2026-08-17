@@ -74,7 +74,7 @@ nunca derruba o processo. `formatSchemaIssue` produz o layout de docs/file-forma
 
 ### EP-04-T03 — Versão de schema e migração
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-04-T02
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-04-T02
 
 **Objetivo.** O formato pode evoluir sem quebrar workspaces existentes.
 
@@ -86,9 +86,28 @@ nunca derruba o processo. `formatSchemaIssue` produz o layout de docs/file-forma
 
 **Critérios de aceite.**
 
-- [ ] Arquivo sem `wttp:` é tratado como versão 1 com aviso
-- [ ] Versão futura recusa abrir, com mensagem explícita
-- [ ] Um migrador de exemplo (1 → 2) tem teste, ainda que não seja usado
+- [x] Arquivo sem `wttp:` é tratado como versão 1 com aviso
+- [x] Versão futura recusa abrir, com mensagem explícita
+- [x] Um migrador de exemplo (1 → 2) tem teste, ainda que não seja usado
+
+**Notas.** `src/main/storage/migrations/registry.ts` centraliza `CURRENT_SCHEMA_VERSION`,
+`resolveSchemaVersion` (decide a versão de um objeto já parseado — `wttp` ausente vira
+versão 1 e devolve um `warning`, nunca lança) e `migrateToCurrent` (encadeia
+`MIGRATIONS` até a versão atual; versão maior que a suportada, ou sem migrador
+registrado para algum salto do caminho, lança `DomainError("SCHEMA_VERSION_UNSUPPORTED", …)`).
+`MIGRATIONS` está vazio de propósito — só existe a versão 1 do formato hoje;
+`001-to-2.example.ts` mostra a forma de um migrador real (1 → 2, renomeando um campo)
+sem estar registrado, com teste próprio. `parser.ts` normaliza a versão antes de
+`splitKnownFields`, então todo `*File` que sai daqui sempre tem `wttp` presente, mesmo
+quando o arquivo em disco não tinha. `validate.ts` ganhou `warnings?: string[]` no
+resultado válido (carrega o aviso de versão ausente) e passou a marcar `wttp` como
+issue quando a versão é maior que a suportada, reaproveitando a mesma mensagem de
+`unsupportedVersionMessage` — mantém o contrato "nunca lança" da validação. O item de
+escopo "migração pergunta antes de reescrever e sugere commit prévio" é interação de
+UI/IPC que depende da camada de filesystem (EP-04-T04, ainda pendente) para ter onde
+disparar um diálogo; o que está pronto aqui é a lógica pura — resolução de versão e
+migração — que essa camada vai chamar. Nenhum migrador real roda hoje porque só existe
+uma versão de schema; o registro existe para o dia em que existir uma segunda.
 
 ---
 

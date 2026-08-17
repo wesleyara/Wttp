@@ -5,15 +5,20 @@
  * e linha. Quem chama (a camada de filesystem, EP-04-T04) decide o que fazer com um
  * nó inválido — o resto do workspace continua utilizável.
  *
- * `wttp` ausente não é erro de schema aqui: tratar a ausência como versão 1, com
- * aviso, é responsabilidade do migrador (EP-04-T03). Este módulo só valida o tipo do
- * campo quando ele está presente.
+ * `wttp` ausente não é erro de schema: vira versão 1 com aviso em `warnings`
+ * (`resolveSchemaVersion`, EP-04-T03). Uma versão maior que a suportada é a única
+ * situação de versão que vira issue — recusa abrir em vez de adivinhar o formato.
  */
 
 import type { EnvironmentFile, FolderFile, RequestFile, WorkspaceFile } from "@shared";
 
 import { type Document, isNode, LineCounter, parseDocument } from "yaml";
 
+import {
+  CURRENT_SCHEMA_VERSION,
+  resolveSchemaVersion,
+  unsupportedVersionMessage,
+} from "./migrations/registry";
 import { parseEnvironment, parseFolder, parseRequest, parseWorkspace } from "./parser";
 
 export interface SchemaIssue {
@@ -25,7 +30,7 @@ export interface SchemaIssue {
 }
 
 export type ValidationResult<T> =
-  { valid: true; value: T } | { valid: false; issues: SchemaIssue[] };
+  { valid: true; value: T; warnings?: string[] } | { valid: false; issues: SchemaIssue[] };
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const;
 const BODY_TYPES = ["none", "json", "urlencoded", "raw", "multipart", "binary"] as const;
@@ -67,7 +72,7 @@ class Checker {
     return undefined;
   }
 
-  private fail(path: Path, message: string): void {
+  fail(path: Path, message: string): void {
     this.issues.push({ path: path.join("."), message, line: this.lineFor(path) });
   }
 
@@ -243,14 +248,21 @@ function validateFile<T>(
   const { doc, lineCounter, syntaxIssues } = parseYamlSafe(raw);
   if (syntaxIssues.length > 0) return { valid: false, issues: syntaxIssues };
 
-  if (!isPlainObject(doc.toJS())) return { valid: false, issues: [ROOT_NOT_MAP_ISSUE] };
+  const rootValue = doc.toJS();
+  if (!isPlainObject(rootValue)) return { valid: false, issues: [ROOT_NOT_MAP_ISSUE] };
 
   const checker = new Checker(doc, lineCounter);
   checker.optional(["wttp"], "number");
+
+  const { version, warning } = resolveSchemaVersion(rootValue);
+  if (Number.isFinite(version) && version > CURRENT_SCHEMA_VERSION) {
+    checker.fail(["wttp"], unsupportedVersionMessage(version));
+  }
+
   check(checker);
 
   if (checker.issues.length > 0) return { valid: false, issues: checker.issues };
-  return { valid: true, value: reparse(raw) };
+  return { valid: true, value: reparse(raw), warnings: warning ? [warning] : undefined };
 }
 
 export function validateWorkspace(raw: string): ValidationResult<WorkspaceFile> {
