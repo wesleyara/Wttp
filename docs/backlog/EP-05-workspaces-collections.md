@@ -124,7 +124,7 @@ possível neste ambiente sem `xvfb`/`sudo` — mesma ressalva das tasks anterior
 
 ### EP-05-T05 — Abas de request
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-05-T02, EP-03-T06
+**Status:** Concluída · **Tamanho:** G · **Depende de:** EP-05-T02, EP-03-T06
 
 **Objetivo.** Trabalhar com várias requests ao mesmo tempo.
 
@@ -137,10 +137,26 @@ possível neste ambiente sem `xvfb`/`sudo` — mesma ressalva das tasks anterior
 
 **Critérios de aceite.**
 
-- [ ] Alterações não salvas nunca são perdidas sem confirmação explícita
-- [ ] Sessão restaura abas, aba ativa e ordem
-- [ ] Excluir uma request com aba aberta fecha a aba de forma limpa
-- [ ] Cada aba mantém sua própria resposta
+- [x] Alterações não salvas nunca são perdidas sem confirmação explícita
+- [x] Sessão restaura abas, aba ativa e ordem
+- [x] Excluir uma request com aba aberta fecha a aba de forma limpa
+- [x] Cada aba mantém sua própria resposta
+
+**Nota de fechamento.** `useRequestStore` virou uma fachada sobre a aba ativa de
+`useRequestTabsStore` — `RequestConfigTabs`/`RequestUrlBar`/`ResponsePanel` não
+mudaram uma linha. Toda aba corresponde a uma request já existente em disco (criar
+uma request nova, EP-05-T03, já grava o arquivo na hora) — não existe o caso "aba sem
+arquivo", o que simplificou bastante o modelo. Primeiro teste de store Pinia do
+projeto (`stores/requestTabs.spec.ts`); precisou de um `vitest.config.ts` novo na raiz
+espelhando os aliases `@renderer`/`@shared` de `electron.vite.config.ts` — sem ele o
+`vitest` roda fora do `electron-vite` e não os resolve (nenhum teste tinha feito um
+import de runtime por esses aliases até agora, só `import type`, que é apagado antes
+de precisar resolver nada). **Limitação conhecida, registrada em vez de corrigida em
+silêncio**: mover uma pasta (drag & drop, EP-05-T04) com requests abertas em abas mais
+fundo dentro dela não reatribui o path dessas abas — só o próprio nó movido é
+resincronizado; a próxima leitura/gravação de uma aba nessa situação falharia.
+Verificação visual (abas, itálico de preview, modal de fechar suja) nos dois temas não
+foi possível neste ambiente sem `xvfb`/`sudo` — mesma ressalva das tasks anteriores.
 
 ---
 

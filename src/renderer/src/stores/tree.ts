@@ -1,5 +1,6 @@
 import type { WorkspaceNode } from "@shared";
 
+import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
@@ -45,6 +46,7 @@ export interface DeleteTarget {
  */
 export const useTreeStore = defineStore("tree", () => {
   const workspace = useWorkspaceStore();
+  const requestTabs = useRequestTabsStore();
 
   const selectedPath = ref<string | null>(null);
   const filterText = ref("");
@@ -122,6 +124,7 @@ export const useTreeStore = defineStore("tree", () => {
     const node = await window.wttp.node.rename({ root: workspace.root, path, name });
     await workspace.refreshTree();
     selectedPath.value = node.path;
+    if (node.kind === "request") requestTabs.renamePath(path, node.path, node.name);
   }
 
   async function duplicate(path: string): Promise<void> {
@@ -154,15 +157,23 @@ export const useTreeStore = defineStore("tree", () => {
     await window.wttp.node.trash({ root: workspace.root, path });
     deleteTarget.value = null;
     if (selectedPath.value === path) selectedPath.value = null;
+    requestTabs.closeUnderPath(path);
     await workspace.refreshTree();
   }
 
-  /** Drag & drop soltou `from` dentro de `targetDir`, na posição `index` (EP-05-T04). */
+  /**
+   * Drag & drop soltou `from` dentro de `targetDir`, na posição `index` (EP-05-T04).
+   * Só a aba do próprio nó movido é resincronizada — mover uma pasta com abas abertas
+   * em requests aninhadas mais fundo não reatribui o path delas (limitação conhecida,
+   * a próxima leitura/gravação dessas abas específicas falharia; registrado ao fechar
+   * a task em vez de corrigido em silêncio).
+   */
   async function moveInto(from: string, targetDir: string, index: number): Promise<void> {
     if (!workspace.root) return;
     const node = await window.wttp.node.moveInto({ root: workspace.root, from, targetDir, index });
     await workspace.refreshTree();
     selectedPath.value = node.path;
+    if (node.kind === "request") requestTabs.renamePath(from, node.path, node.name);
   }
 
   async function reveal(path: string): Promise<void> {

@@ -46,7 +46,8 @@ export interface AppSettings {
  * `window.wttp.menu.onAction`. Não é `invoke`/`result` como o resto do `IpcContract` —
  * é um evento main → renderer sem resposta, então fica fora dele.
  */
-export type MenuAction = "request:new" | "request:save" | "request:send" | "search:focus";
+export type MenuAction =
+  "request:new" | "request:save" | "request:send" | "search:focus" | "tab:close" | "tab:next";
 
 /** Payload de `dialog:saveFile` (EP-03-T07) — salvar o body de uma resposta em disco. */
 export interface SaveFilePayload {

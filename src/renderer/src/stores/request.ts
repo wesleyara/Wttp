@@ -1,75 +1,103 @@
 import type {
   AuthConfig,
   HttpMethod,
-  HttpRequestSpec,
   HttpResponseResult,
   KeyValueEntry,
   RequestBody,
   SaveFileResult,
 } from "@shared";
 
-import { suggestedFileName } from "@renderer/lib/content-type";
+import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed } from "vue";
 
 /**
- * A request sendo montada na UI (EP-03-T05). `headers`/`body`/`auth` já existem aqui
- * como campos editáveis — mesmo antes de T06 dar UI a eles — porque `HttpRequestSpec`
- * exige todos para disparar `http:send`; T06 só adiciona as abas que os editam.
+ * Fachada sobre a aba ativa de `useRequestTabsStore` (EP-05-T05) — cada campo é um
+ * `computed({get,set})` que lê/escreve o estado da aba selecionada, e toda escrita
+ * marca a aba suja (e promove de preview a fixa, se for o caso). Existe só para
+ * `RequestConfigTabs`/`RequestUrlBar`/`ResponsePanel` continuarem chamando
+ * `useRequestStore()` sem saber que "a" request virou "uma entre N abas" — nenhum dos
+ * três precisou mudar uma linha quando as abas chegaram.
  */
 export const useRequestStore = defineStore("request", () => {
-  const method = ref<HttpMethod>("GET");
-  const url = ref("");
-  const query = ref<KeyValueEntry[]>([]);
-  const headers = ref<KeyValueEntry[]>([]);
-  const body = ref<RequestBody>({ type: "none" });
-  const auth = ref<AuthConfig>({ type: "none" });
-  /** Anotação livre da request (docs/file-format.md §4) — não atravessa `http:send`. */
-  const docs = ref("");
+  const tabs = useRequestTabsStore();
 
-  const sending = ref(false);
-  const requestId = ref<string | null>(null);
-  const lastResult = ref<HttpResponseResult | null>(null);
+  const method = computed<HttpMethod>({
+    get: () => tabs.active?.method ?? "GET",
+    set: value => {
+      if (!tabs.active) return;
+      tabs.active.method = value;
+      tabs.markActiveDirty();
+    },
+  });
 
-  async function send(): Promise<void> {
-    if (sending.value) return;
+  const url = computed<string>({
+    get: () => tabs.active?.url ?? "",
+    set: value => {
+      if (!tabs.active) return;
+      tabs.active.url = value;
+      tabs.markActiveDirty();
+    },
+  });
 
-    const id = crypto.randomUUID();
-    requestId.value = id;
-    sending.value = true;
+  const query = computed<KeyValueEntry[]>({
+    get: () => tabs.active?.query ?? [],
+    set: value => {
+      if (!tabs.active) return;
+      tabs.active.query = value;
+      tabs.markActiveDirty();
+    },
+  });
 
-    try {
-      const spec: HttpRequestSpec = {
-        requestId: id,
-        method: method.value,
-        url: url.value,
-        query: query.value,
-        headers: headers.value,
-        auth: auth.value,
-        body: body.value,
-      };
-      lastResult.value = await window.wttp.http.send(spec);
-    } finally {
-      sending.value = false;
-      requestId.value = null;
-    }
+  const headers = computed<KeyValueEntry[]>({
+    get: () => tabs.active?.headers ?? [],
+    set: value => {
+      if (!tabs.active) return;
+      tabs.active.headers = value;
+      tabs.markActiveDirty();
+    },
+  });
+
+  const body = computed<RequestBody>({
+    get: () => tabs.active?.body ?? { type: "none" },
+    set: value => {
+      if (!tabs.active) return;
+      tabs.active.body = value;
+      tabs.markActiveDirty();
+    },
+  });
+
+  const auth = computed<AuthConfig>({
+    get: () => tabs.active?.auth ?? { type: "none" },
+    set: value => {
+      if (!tabs.active) return;
+      tabs.active.auth = value;
+      tabs.markActiveDirty();
+    },
+  });
+
+  const docs = computed<string>({
+    get: () => tabs.active?.docs ?? "",
+    set: value => {
+      if (!tabs.active) return;
+      tabs.active.docs = value;
+      tabs.markActiveDirty();
+    },
+  });
+
+  const sending = computed(() => tabs.active?.sending ?? false);
+  const lastResult = computed<HttpResponseResult | null>(() => tabs.active?.lastResult ?? null);
+
+  function send(): Promise<void> {
+    return tabs.send();
   }
 
   function cancel(): void {
-    if (!sending.value || !requestId.value) return;
-    void window.wttp.http.cancel(requestId.value);
+    tabs.cancel();
   }
 
-  /** Salva o body da última resposta em disco, byte a byte (EP-03-T07). */
-  async function saveResponseToFile(): Promise<SaveFileResult | null> {
-    const result = lastResult.value;
-    if (!result?.ok) return null;
-    const contentType =
-      result.headers.find(h => h.name.toLowerCase() === "content-type")?.value ?? "";
-    return window.wttp.dialog.saveFile({
-      data: result.body,
-      suggestedName: suggestedFileName(contentType),
-    });
+  function saveResponseToFile(): Promise<SaveFileResult | null> {
+    return tabs.saveResponseToFile();
   }
 
   return {

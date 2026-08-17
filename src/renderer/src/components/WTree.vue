@@ -34,7 +34,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   "update:expandedPaths": [paths: Set<string>];
   "update:selectedPath": [path: string | null];
-  activate: [node: WorkspaceNode];
+  activate: [node: WorkspaceNode, mode: "preview" | "pinned"];
   contextmenu: [node: WorkspaceNode, event: MouseEvent];
   rename: [path: string, name: string];
   "cancel-rename": [];
@@ -179,9 +179,15 @@ function select(path: string): void {
   emit("update:selectedPath", path);
 }
 
-function activate(node: WorkspaceNode): void {
+/** Pasta: sempre expande/recolhe. Request: preview no clique simples, fixa no duplo/Enter. */
+function activate(node: WorkspaceNode, mode: "preview" | "pinned"): void {
   if (node.kind === "folder") toggleExpanded(node.path);
-  else emit("activate", node);
+  else emit("activate", node, mode);
+}
+
+function onRowClick(node: WorkspaceNode): void {
+  select(node.path);
+  if (node.kind === "request") activate(node, "preview");
 }
 
 function scrollToIndex(index: number): void {
@@ -362,7 +368,7 @@ function onKeydown(event: KeyboardEvent): void {
   } else if (event.key === "Enter") {
     event.preventDefault();
     const row = rows.value[current];
-    if (row) activate(row.node);
+    if (row) activate(row.node, "pinned");
   } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
     onTypeahead(event.key);
   }
@@ -399,8 +405,8 @@ function onKeydown(event: KeyboardEvent): void {
               ? 'bg-accent/20'
               : '',
           ]"
-          @click="select(row.node.path)"
-          @dblclick="activate(row.node)"
+          @click="onRowClick(row.node)"
+          @dblclick="activate(row.node, 'pinned')"
           @contextmenu="onRowContextmenu(row.node, $event)"
           @pointerdown="onRowPointerDown(row.node, $event)"
         >
