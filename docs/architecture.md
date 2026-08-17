@@ -78,6 +78,8 @@ Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos t
 | `env:save`          | invoke  | `Environment` → `void`                             |
 | `secret:get`        | invoke  | `{ key }` → `string \| null`                       |
 | `secret:set`        | invoke  | `{ key, value }` → `void`                          |
+| `secret:delete`     | invoke  | `{ key }` → `void`                                 |
+| `secret:status`     | invoke  | `void` → `{ encrypted: boolean }`                  |
 | `script:run`        | invoke  | `ScriptRunSpec` → `ScriptResult`                   |
 | `import:detect`     | invoke  | `{ payload }` → `ImportFormat \| null`             |
 | `import:run`        | invoke  | `{ format, payload, targetPath }` → `ImportReport` |

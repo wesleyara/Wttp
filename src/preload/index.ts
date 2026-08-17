@@ -14,6 +14,7 @@ import type {
   RequestNode,
   SaveFilePayload,
   SaveFileResult,
+  SecretStorageStatus,
   UiState,
   WorkspaceChangedEvent,
   WorkspaceTree,
@@ -75,6 +76,12 @@ const wttp = {
     write: (payload: WriteNodePayload): Promise<void> => invoke("node:write", payload),
     move: (payload: MoveNodePayload): Promise<void> => invoke("node:move", payload),
     delete: (payload: NodePathPayload): Promise<void> => invoke("node:delete", payload),
+  },
+  secret: {
+    get: (key: string): Promise<string | null> => invoke("secret:get", { key }),
+    set: (key: string, value: string): Promise<void> => invoke("secret:set", { key, value }),
+    delete: (key: string): Promise<void> => invoke("secret:delete", { key }),
+    status: (): Promise<SecretStorageStatus> => invoke("secret:status"),
   },
   menu: {
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).

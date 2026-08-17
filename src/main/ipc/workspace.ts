@@ -3,6 +3,7 @@ import type { WorkspaceTree } from "@shared";
 import { BrowserWindow, dialog, type WebContents } from "electron";
 import { basename } from "node:path";
 
+import { setActiveWorkspaceRoot } from "../storage/activeWorkspace";
 import { listRecentWorkspaces, touchRecentWorkspace } from "../storage/recentWorkspaces";
 import { initWorkspace, scanWorkspace } from "../storage/tree";
 import { watchWorkspace, type WorkspaceWatcher } from "../storage/watcher";
@@ -46,6 +47,7 @@ export function registerWorkspaceHandlers(): void {
 
     const tree: WorkspaceTree = await scanWorkspace(path);
     await touchRecentWorkspace(path, tree.data?.name ?? basename(path));
+    setActiveWorkspaceRoot(path);
     startWatching(path, event.sender);
     return tree;
   });
@@ -53,6 +55,7 @@ export function registerWorkspaceHandlers(): void {
   registerHandler("workspace:create", async (payload, event) => {
     const tree = await initWorkspace(payload.path, payload.name);
     await touchRecentWorkspace(payload.path, payload.name);
+    setActiveWorkspaceRoot(payload.path);
     startWatching(payload.path, event.sender);
     return tree;
   });

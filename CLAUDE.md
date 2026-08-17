@@ -8,22 +8,29 @@ Visão do produto: [docs/overview.md](docs/overview.md).
 
 ## Estado do projeto
 
-**Pré-MVP.** A fundação (**EP-01**), o design system/shell (**EP-02**) e o núcleo HTTP
-(**EP-03**) estão prontos: electron-vite com os três processos comunicando, IPC tipado,
-tokens semânticos com dark mode, os componentes base `W*`, o shell de três painéis
-(`WSplitPane`) com tamanhos persistidos, tema com `useSettingsStore`, menu nativo com
-atalhos, a engine HTTP (`src/main/http`, todos os métodos e tipos de body, redirects,
-timing, cancelamento), `WCodeEditor` (CodeMirror 6), e a UI de montar/disparar/inspecionar
-uma request (`RequestUrlBar`, `RequestConfigTabs`, `ResponsePanel`) — tudo isso já dá
-para usar de ponta a ponta, só falta persistir em disco (EP-04). A verificação visual do
-EP-02 e de toda a UI nova do EP-03 (dois temas, resposta real de servidor, resposta de
-20MB) ainda não foi feita numa janela real — este ambiente de desenvolvimento não tem
-`xvfb`/`sudo` para abrir uma; pendente antes de considerar qualquer um dos dois épicos
-fechado de fato. Ver nota no topo de [EP-02](docs/backlog/EP-02-design-system.md) e as
-notas por task em [EP-03](docs/backlog/EP-03-nucleo-http.md). Environments, variáveis,
-auth e scripts ainda são placeholders — chegam nos épicos correspondentes.
+**Pré-MVP.** A fundação (**EP-01**), o design system/shell (**EP-02**), o núcleo HTTP
+(**EP-03**) e a persistência em disco (**EP-04**) estão prontos: electron-vite com os
+três processos comunicando, IPC tipado, tokens semânticos com dark mode, os componentes
+base `W*`, o shell de três painéis (`WSplitPane`) com tamanhos persistidos, tema com
+`useSettingsStore`, menu nativo com atalhos, a engine HTTP (`src/main/http`, todos os
+métodos e tipos de body, redirects, timing, cancelamento), `WCodeEditor` (CodeMirror 6),
+a UI de montar/disparar/inspecionar uma request (`RequestUrlBar`, `RequestConfigTabs`,
+`ResponsePanel`), e todo o storage do workspace (`src/main/storage`): parser/serializer
+YAML com round-trip byte-a-byte, validação de schema, versionamento e migração, leitura
+e escrita atômica da árvore inteira (`node:*`, `workspace:*`), watcher de filesystem que
+reflete edições externas na UI sem entrar em loop com o próprio save, e segredos de
+environment via `safeStorage` do SO com fallback em texto avisado (`src/main/secrets`).
+Tudo isso já dá para usar de ponta a ponta pelo IPC, mas o renderer ainda não tem UI de
+workspaces/collections/tabs (EP-05) nem environments (EP-06) para consumir boa parte
+disso. A verificação visual do EP-02 e de toda a UI nova do EP-03 (dois temas, resposta
+real de servidor, resposta de 20MB) ainda não foi feita numa janela real — este ambiente
+de desenvolvimento não tem `xvfb`/`sudo` para abrir uma; pendente antes de considerar
+qualquer um dos dois épicos fechado de fato. Ver nota no topo de
+[EP-02](docs/backlog/EP-02-design-system.md) e as notas por task em
+[EP-03](docs/backlog/EP-03-nucleo-http.md). Environments, variáveis, auth e scripts
+ainda são placeholders na UI — chegam nos épicos correspondentes.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-04**.
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-05**.
 
 ---
 

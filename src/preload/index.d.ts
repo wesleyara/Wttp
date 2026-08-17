@@ -15,6 +15,7 @@ import type {
   RequestNode,
   SaveFilePayload,
   SaveFileResult,
+  SecretStorageStatus,
   UiState,
   WorkspaceChangedEvent,
   WorkspaceTree,
@@ -52,6 +53,12 @@ interface WttpApi {
     write: (payload: WriteNodePayload) => Promise<void>;
     move: (payload: MoveNodePayload) => Promise<void>;
     delete: (payload: NodePathPayload) => Promise<void>;
+  };
+  secret: {
+    get: (key: string) => Promise<string | null>;
+    set: (key: string, value: string) => Promise<void>;
+    delete: (key: string) => Promise<void>;
+    status: () => Promise<SecretStorageStatus>;
   };
   menu: {
     onAction: (callback: (action: MenuAction) => void) => () => void;
