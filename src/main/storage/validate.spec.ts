@@ -90,10 +90,33 @@ describe("arquivo válido", () => {
     expect(result.value.method).toBe("GET");
   });
 
-  it("wttp ausente não é erro — fica a cargo da migração (EP-04-T03)", () => {
+  it("wttp ausente não é erro — vira versão 1 com aviso", () => {
     const raw = ["name: List users", "seq: 1", "method: GET", "url: /users", ""].join("\n");
     const result = validateRequest(raw);
     expect(result.valid).toBe(true);
+    if (!result.valid) return;
+    expect(result.warnings).toEqual([expect.stringContaining('"wttp" ausente')]);
+  });
+
+  it("wttp presente não gera aviso", () => {
+    const result = validateRequest(VALID_REQUEST);
+    expect(result.valid).toBe(true);
+    if (!result.valid) return;
+    expect(result.warnings).toBeUndefined();
+  });
+});
+
+describe("versão de schema", () => {
+  it("versão futura recusa abrir, com mensagem explícita", () => {
+    const raw = ["wttp: 99", "name: List users", "seq: 1", "method: GET", "url: /users", ""].join(
+      "\n",
+    );
+    const result = validateRequest(raw);
+    expect(result.valid).toBe(false);
+    if (result.valid) return;
+    const issue = result.issues.find(i => i.path === "wttp");
+    expect(issue?.message).toContain("versão 99");
+    expect(issue?.message.toLowerCase()).toContain("atualize o wttp");
   });
 });
 

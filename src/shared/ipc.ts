@@ -90,6 +90,7 @@ export type WttpErrorCode =
   | "EACCES"
   | "INVALID_PAYLOAD"
   | "SCHEMA_INVALID"
+  | "SCHEMA_VERSION_UNSUPPORTED"
   | "SCRIPT_TIMEOUT"
   | "REQUEST_FAILED"
   | "DNS_ERROR"
