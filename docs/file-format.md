@@ -85,7 +85,7 @@ auth:
   type: inherit # none | inherit | bearer | basic | apikey
 
 body:
-  type: json # none | json | form | urlencoded | raw | multipart | binary
+  type: json # none | json | urlencoded | raw | multipart | binary
   json: |
     {
       "email": "{{user_email}}",

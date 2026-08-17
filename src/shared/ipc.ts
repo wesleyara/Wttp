@@ -71,6 +71,11 @@ export type WttpErrorCode =
   | "SCHEMA_INVALID"
   | "SCRIPT_TIMEOUT"
   | "REQUEST_FAILED"
+  | "DNS_ERROR"
+  | "TLS_ERROR"
+  | "TIMEOUT"
+  | "CANCELLED"
+  | "CONNECTION_REFUSED"
   | "UNKNOWN";
 
 /**

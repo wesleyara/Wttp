@@ -10,7 +10,7 @@ Referência: [architecture.md §4](../architecture.md)
 
 ### EP-03-T01 — Modelo de request e response
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-01-T03
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-01-T03
 
 **Objetivo.** Os tipos que atravessam o IPC estão definidos e estáveis.
 
@@ -22,9 +22,9 @@ Referência: [architecture.md §4](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] Todo estado de uma request é representável sem `any`
-- [ ] `RequestBody` é uma union discriminada — `type: "json"` garante o campo `json`
-- [ ] Erro de rede é um resultado tipado, não uma exceção
+- [x] Todo estado de uma request é representável sem `any`
+- [x] `RequestBody` é uma union discriminada — `type: "json"` garante o campo `json`
+- [x] Erro de rede é um resultado tipado, não uma exceção
 
 ---
 
@@ -36,7 +36,7 @@ Referência: [architecture.md §4](../architecture.md)
 
 **Escopo.**
 
-- `src/main/http/engine.ts`: todos os métodos, headers, query, bodies (`json`, `form`, `urlencoded`, `raw`, `multipart`, `binary`).
+- `src/main/http/engine.ts`: todos os métodos, headers, query, bodies (`json`, `urlencoded`, `raw`, `multipart`, `binary`).
 - Redirects com limite configurável; timeout; `validateTls` desligável por workspace.
 - Resposta como buffer + charset detectado, nunca string presumida em UTF-8.
 - Cancelamento por `AbortController` indexado por `requestId`.
@@ -44,7 +44,7 @@ Referência: [architecture.md §4](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] Os seis tipos de body são enviados corretamente, verificado contra servidor de teste local
+- [ ] Os cinco tipos de body são enviados corretamente, verificado contra servidor de teste local
 - [ ] Resposta binária (imagem) chega íntegra, sem corrupção de encoding
 - [ ] Cancelar uma requisição em andamento a interrompe de fato e libera o socket
 - [ ] Timeout e erro de DNS retornam `WttpError` com código distinto
