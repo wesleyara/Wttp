@@ -8,16 +8,22 @@ Visão do produto: [docs/overview.md](docs/overview.md).
 
 ## Estado do projeto
 
-**Pré-MVP.** A fundação (**EP-01**) e o design system/shell (**EP-02**) estão prontos:
-electron-vite com os três processos comunicando, IPC tipado, tokens semânticos com dark
-mode, os componentes base `W*`, o shell de três painéis (`WSplitPane`) com tamanhos
-persistidos, tema com `useSettingsStore` e menu nativo com atalhos. A verificação visual
-do EP-02 (dois temas, arrastar divisores, ciclo de restart) ainda não foi feita numa
-janela real — pendente antes de considerá-lo fechado de fato; ver nota no topo de
-[EP-02](docs/backlog/EP-02-design-system.md). Nenhuma funcionalidade de produto (requests,
-collections, environments) existe ainda — o shell está todo em estado vazio.
+**Pré-MVP.** A fundação (**EP-01**), o design system/shell (**EP-02**) e o núcleo HTTP
+(**EP-03**) estão prontos: electron-vite com os três processos comunicando, IPC tipado,
+tokens semânticos com dark mode, os componentes base `W*`, o shell de três painéis
+(`WSplitPane`) com tamanhos persistidos, tema com `useSettingsStore`, menu nativo com
+atalhos, a engine HTTP (`src/main/http`, todos os métodos e tipos de body, redirects,
+timing, cancelamento), `WCodeEditor` (CodeMirror 6), e a UI de montar/disparar/inspecionar
+uma request (`RequestUrlBar`, `RequestConfigTabs`, `ResponsePanel`) — tudo isso já dá
+para usar de ponta a ponta, só falta persistir em disco (EP-04). A verificação visual do
+EP-02 e de toda a UI nova do EP-03 (dois temas, resposta real de servidor, resposta de
+20MB) ainda não foi feita numa janela real — este ambiente de desenvolvimento não tem
+`xvfb`/`sudo` para abrir uma; pendente antes de considerar qualquer um dos dois épicos
+fechado de fato. Ver nota no topo de [EP-02](docs/backlog/EP-02-design-system.md) e as
+notas por task em [EP-03](docs/backlog/EP-03-nucleo-http.md). Environments, variáveis,
+auth e scripts ainda são placeholders — chegam nos épicos correspondentes.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-03**.
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-04**.
 
 ---
 

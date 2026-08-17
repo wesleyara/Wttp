@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
+import ResponsePanel from "@renderer/components/ResponsePanel.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WCodeEditor from "@renderer/components/WCodeEditor.vue";
 import WEmptyState from "@renderer/components/WEmptyState.vue";
@@ -131,6 +132,13 @@ const kvRows = ref<KeyValueRow[]>([
       <div class="max-w-2xl rounded-md border border-subtle bg-surface-2 p-3">
         <RequestUrlBar />
         <RequestConfigTabs class="mt-3" />
+      </div>
+    </section>
+
+    <section class="mb-8 flex flex-col gap-3">
+      <h2 class="font-inter text-xs font-medium uppercase text-faint">ResponsePanel</h2>
+      <div class="h-96 max-w-2xl rounded-md border border-subtle bg-surface-2">
+        <ResponsePanel />
       </div>
     </section>
 

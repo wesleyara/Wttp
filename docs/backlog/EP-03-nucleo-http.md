@@ -1,6 +1,6 @@
 # EP-03 — Núcleo HTTP
 
-**Status:** Pendente · **Alvo:** v0.1 · **Depende de:** EP-02
+**Status:** Concluída (verificação visual pendente) · **Alvo:** v0.1 · **Depende de:** EP-02
 
 O coração do produto: montar uma requisição, disparar e ver a resposta. Ao final deste épico o Wttp já é útil, mesmo sem salvar nada em disco.
 
@@ -188,7 +188,7 @@ typecheck`/`lint`/`test`, e pela seção `RequestUrlBar + RequestConfigTabs` na
 
 ### EP-03-T07 — Painel de resposta
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-03-T03, EP-03-T04
+**Status:** Concluída (verificação visual pendente) · **Tamanho:** G · **Depende de:** EP-03-T03, EP-03-T04
 
 **Objetivo.** Inspecionar a resposta por completo.
 
@@ -202,7 +202,38 @@ typecheck`/`lint`/`test`, e pela seção `RequestUrlBar + RequestConfigTabs` na
 
 **Critérios de aceite.**
 
-- [ ] JSON malformado ainda é exibido em raw, com aviso, em vez de tela vazia
-- [ ] Resposta de 20MB não congela a UI (renderização virtualizada ou truncada com aviso)
-- [ ] Erro de rede mostra causa acionável, não "erro desconhecido"
-- [ ] Salvar em arquivo preserva bytes exatos em respostas binárias
+- [x] JSON malformado ainda é exibido em raw, com aviso, em vez de tela vazia —
+      `prettyPrintJson` (`lib/pretty-print.ts`, testado) devolve `{ text: raw, warning }`
+      em vez de lançar; `ResponsePanel` mostra o `warning` como faixa e o texto original,
+      nunca uma tela em branco.
+- [x] Resposta de 20MB não congela a UI (renderização virtualizada ou truncada com aviso) —
+      `MAX_DISPLAY_BYTES` (2MB) trunca o corpo *antes* de decodificar/reformatar,
+      incondicional e independente do tamanho real da resposta; `WCodeEditor` (EP-03-T04)
+      cobre o resto via viewport virtualizada do CodeMirror. `Save` sempre grava os bytes
+      completos, truncados ou não.
+- [x] Erro de rede mostra causa acionável, não "erro desconhecido" — `describeRequestError`
+      (`lib/response-error.ts`, testado) mapeia cada `WttpErrorCode` de rede para uma frase
+      específica; só cai no genérico para um código realmente não mapeado.
+- [x] Salvar em arquivo preserva bytes exatos em respostas binárias — o canal
+      `dialog:saveFile` (`main/ipc/dialog.ts`) recebe o `Uint8Array` de
+      `HttpResponseResult.body` sem tocar nele e grava com `Buffer.from(...)`/`writeFile`;
+      a integridade byte a byte já é garantida na origem pelo teste de resposta binária
+      do EP-03-T02. O handler em si (glue fino de `dialog`+`fs`) não tem teste próprio,
+      consistente com os demais handlers de `main/ipc/` (`app.ts`, `settings.ts`, `ui.ts`).
+
+**Busca dentro do corpo.** Não precisou de UI própria: `WCodeEditor` já embute o
+`searchKeymap` do CodeMirror 6 via `basicSetup` (EP-03-T04) — `Mod-F` com o editor focado
+abre o painel de busca nativo do CodeMirror.
+
+**Canal novo.** `dialog:saveFile` (`payload: { data: Uint8Array; suggestedName? }`,
+`result: { canceled, path? }`) — diálogo nativo de salvar + `fs.writeFile`. `webPreferences`
+ganhou `plugins: true` só para o visualizador de PDF embutido do Chromium usado no preview.
+
+**Nota.** Mesma limitação de ambiente das demais tasks de UI deste épico: sem
+`xvfb`/`sudo`, não foi possível abrir uma janela real, disparar uma request de verdade
+contra um servidor e conferir visualmente pretty/raw/preview, os dois temas, ou testar
+uma resposta de 20MB de fato. Verificado por: 35 testes Vitest nas funções puras
+(`format`, `pretty-print`, `cookies`, `content-type`, `response-error`), leitura de
+código, `yarn typecheck`/`lint`, e a seção `ResponsePanel` na `DevGalleryPage` (que agora
+forma um fluxo ponta a ponta com `RequestUrlBar` + `RequestConfigTabs` — dá para montar,
+disparar e inspecionar uma request assim que alguém abrir a janela).

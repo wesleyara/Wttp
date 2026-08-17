@@ -6,6 +6,8 @@ import type {
   HttpRequestSpec,
   HttpResponseResult,
   MenuAction,
+  SaveFilePayload,
+  SaveFileResult,
   UiState,
 } from "@shared";
 
@@ -25,6 +27,9 @@ interface WttpApi {
     send: (spec: HttpRequestSpec) => Promise<HttpResponseResult>;
     cancel: (requestId: string) => Promise<void>;
     onProgress: (callback: (event: HttpProgressEvent) => void) => () => void;
+  };
+  dialog: {
+    saveFile: (payload: SaveFilePayload) => Promise<SaveFileResult>;
   };
   menu: {
     onAction: (callback: (action: MenuAction) => void) => () => void;

@@ -5,6 +5,8 @@ import type {
   HttpRequestSpec,
   HttpResponseResult,
   MenuAction,
+  SaveFilePayload,
+  SaveFileResult,
   UiState,
 } from "@shared";
 
@@ -38,6 +40,10 @@ const wttp = {
       ipcRenderer.on("http:progress", listener);
       return () => ipcRenderer.off("http:progress", listener);
     },
+  },
+  dialog: {
+    saveFile: (payload: SaveFilePayload): Promise<SaveFileResult> =>
+      invoke("dialog:saveFile", payload),
   },
   menu: {
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
