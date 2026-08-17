@@ -15,6 +15,7 @@ Fecha a promessa do [overview](../overview.md): documentar a API junto do lugar 
 **Escopo.**
 
 - Campo `docs` já previsto no formato de arquivo; editor com preview lado a lado.
+- Editor: [md-editor-v3](https://github.com/imzbf/md-editor-v3), com tema sincronizado aos tokens do design system.
 - Suporte a markdown padrão, blocos de código e tabelas.
 - Referência a `{{variáveis}}` renderizada com o valor do environment ativo.
 

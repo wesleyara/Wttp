@@ -1,0 +1,31 @@
+wttp: 1
+name: Login
+seq: 1
+method: POST
+url: "{{base_url}}/auth/login"
+query:
+  - { name: verbose, value: "true", enabled: true }
+  - { name: debug, value: "1", enabled: false, description: só em dev }
+headers:
+  - { name: Content-Type, value: application/json, enabled: true }
+  - { name: X-Request-Id, value: "{{$uuid}}", enabled: true }
+auth:
+  type: inherit
+body:
+  type: json
+  json: |
+    {
+      "email": "{{user_email}}",
+      "password": "{{user_password}}"
+    }
+settings:
+  timeout: 10000
+scripts:
+  preRequest: |
+    wttp.setVar("ts", Date.now());
+  tests: |
+    test("status 200", () => expect(res.status).toBe(200));
+    test("retorna token", () => expect(res.json.token).toBeTruthy());
+    wttp.setVar("access_token", res.json.token);
+docs: |
+  Autentica o usuário e retorna um JWT válido por 1h.

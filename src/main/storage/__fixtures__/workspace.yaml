@@ -1,0 +1,12 @@
+wttp: 1
+name: My API
+description: Backend público da plataforma.
+defaultEnvironment: dev
+settings:
+  timeout: 30000
+  followRedirects: true
+  maxRedirects: 10
+  validateTls: true
+  scriptTimeout: 5000
+variables:
+  - { name: api_version, value: v2, enabled: true }
