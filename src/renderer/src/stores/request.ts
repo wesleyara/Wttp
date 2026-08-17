@@ -22,6 +22,8 @@ export const useRequestStore = defineStore("request", () => {
   const headers = ref<KeyValueEntry[]>([]);
   const body = ref<RequestBody>({ type: "none" });
   const auth = ref<AuthConfig>({ type: "none" });
+  /** Anotação livre da request (docs/file-format.md §4) — não atravessa `http:send`. */
+  const docs = ref("");
 
   const sending = ref(false);
   const requestId = ref<string | null>(null);
@@ -56,5 +58,5 @@ export const useRequestStore = defineStore("request", () => {
     void window.wttp.http.cancel(requestId.value);
   }
 
-  return { method, url, query, headers, body, auth, sending, lastResult, send, cancel };
+  return { method, url, query, headers, body, auth, docs, sending, lastResult, send, cancel };
 });

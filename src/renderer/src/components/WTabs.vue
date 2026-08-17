@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   modelValue: string;
-  tabs: { value: string; label: string }[];
+  tabs: { value: string; label: string; count?: number }[];
 }>();
 
 const emit = defineEmits<{
@@ -48,6 +48,12 @@ function onKeydown(event: KeyboardEvent): void {
       @click="select(tab.value)"
     >
       {{ tab.label }}
+      <span
+        v-if="tab.count"
+        class="ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-surface-1 px-1 font-mono text-[10px] text-muted"
+      >
+        {{ tab.count }}
+      </span>
       <span
         v-if="tab.value === modelValue"
         class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent"

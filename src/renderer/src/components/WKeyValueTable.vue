@@ -37,6 +37,32 @@ function removeRow(index: number): void {
   const next = props.modelValue.filter((_, i) => i !== index);
   emit("update:modelValue", next);
 }
+
+/**
+ * Colar em massa: cada linha vira uma row, aceitando `name: value`, `name=value` ou
+ * `name<tab>value` (headers copiados do DevTools, `.env`, `curl -H`). Colar uma única
+ * linha não intercepta — o browser cola normalmente no input.
+ */
+function parseBulkPaste(text: string): KeyValueRow[] {
+  return text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .flatMap(line => {
+      const match = /^([^:=\t]+)[:=\t]\s*(.*)$/.exec(line);
+      return match
+        ? [{ enabled: true, name: match[1].trim(), value: match[2].trim(), description: "" }]
+        : [];
+    });
+}
+
+function onPasteName(event: ClipboardEvent): void {
+  const text = event.clipboardData?.getData("text/plain") ?? "";
+  const parsedRows = parseBulkPaste(text);
+  if (parsedRows.length < 2) return;
+  event.preventDefault();
+  emit("update:modelValue", [...props.modelValue, ...parsedRows]);
+}
 </script>
 
 <template>
@@ -67,6 +93,7 @@ function removeRow(index: number): void {
         placeholder="Name"
         class="w-1/4 shrink-0 bg-transparent font-mono text-[13px] text-1 outline-none placeholder:text-faint"
         @input="updateRow(index, { name: ($event.target as HTMLInputElement).value })"
+        @paste="onPasteName"
       />
       <input
         :value="row.value"

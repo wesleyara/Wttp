@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WCodeEditor from "@renderer/components/WCodeEditor.vue";
@@ -124,9 +125,12 @@ const kvRows = ref<KeyValueRow[]>([
     </section>
 
     <section class="mb-8 flex flex-col gap-3">
-      <h2 class="font-inter text-xs font-medium uppercase text-faint">RequestUrlBar</h2>
+      <h2 class="font-inter text-xs font-medium uppercase text-faint">
+        RequestUrlBar + RequestConfigTabs
+      </h2>
       <div class="max-w-2xl rounded-md border border-subtle bg-surface-2 p-3">
         <RequestUrlBar />
+        <RequestConfigTabs class="mt-3" />
       </div>
     </section>
 

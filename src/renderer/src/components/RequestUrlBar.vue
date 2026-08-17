@@ -3,13 +3,10 @@ import { HTTP_METHODS, methodToken } from "@renderer/lib/http-tokens";
 import { parseQueryFromUrl, rewriteUrlQuery } from "@renderer/lib/url-query-sync";
 import { useRequestStore } from "@renderer/stores/request";
 import { storeToRefs } from "pinia";
-import { computed, watch } from "vue";
-
-import type { KeyValueRow } from "./WKeyValueTable.vue";
+import { watch } from "vue";
 
 import WButton from "./WButton.vue";
 import WInput from "./WInput.vue";
-import WKeyValueTable from "./WKeyValueTable.vue";
 import WSelect from "./WSelect.vue";
 
 const store = useRequestStore();
@@ -17,16 +14,10 @@ const { method, url, query, sending } = storeToRefs(store);
 
 const methodOptions = HTTP_METHODS.map(value => ({ value, label: value }));
 
-const queryRows = computed<KeyValueRow[]>({
-  get: () => query.value.map(row => ({ ...row, description: row.description ?? "" })),
-  set: rows => {
-    query.value = rows;
-  },
-});
-
-// Sincronização bidirecional URL ↔ tabela de query params (EP-03-T05). As duas flags
-// impedem que reescrever um lado dispare o watcher do outro de volta — sem elas, cada
-// edição viraria um loop entre os dois `watch`.
+// Sincronização bidirecional URL ↔ tabela de query params (EP-03-T05). A tabela em si
+// mora na aba Params (EP-03-T06) — aqui só a lógica, que independe de quem a renderiza.
+// As duas flags impedem que reescrever um lado dispare o watcher do outro de volta —
+// sem elas, cada edição viraria um loop entre os dois `watch`.
 let syncingFromUrl = false;
 let syncingFromQuery = false;
 
@@ -63,23 +54,20 @@ function onSend(): void {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
-    <div class="flex h-8 items-stretch gap-2">
-      <div class="w-28 shrink-0">
-        <WSelect v-model="method" :options="methodOptions" :value-class="methodToken" />
-      </div>
-      <div class="flex-1">
-        <WInput
-          v-model="url"
-          placeholder="https://api.example.com/users"
-          monospace
-          @keydown.enter="onSend"
-        />
-      </div>
-      <WButton :variant="sending ? 'danger' : 'primary'" class="w-24 shrink-0" @click="onSend">
-        {{ sending ? "Cancel" : "Send" }}
-      </WButton>
+  <div class="flex h-8 items-stretch gap-2">
+    <div class="w-28 shrink-0">
+      <WSelect v-model="method" :options="methodOptions" :value-class="methodToken" />
     </div>
-    <WKeyValueTable v-model="queryRows" />
+    <div class="flex-1">
+      <WInput
+        v-model="url"
+        placeholder="https://api.example.com/users"
+        monospace
+        @keydown.enter="onSend"
+      />
+    </div>
+    <WButton :variant="sending ? 'danger' : 'primary'" class="w-24 shrink-0" @click="onSend">
+      {{ sending ? "Cancel" : "Send" }}
+    </WButton>
   </div>
 </template>

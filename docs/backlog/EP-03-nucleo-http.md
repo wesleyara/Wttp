@@ -145,7 +145,7 @@ disparar — T06 só precisa adicionar as abas que os editam, reaproveitando a m
 
 ### EP-03-T06 — Abas de configuração da request
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-03-T05, EP-03-T04
+**Status:** Concluída (verificação visual pendente) · **Tamanho:** M · **Depende de:** EP-03-T05, EP-03-T04
 
 **Objetivo.** Montar qualquer requisição pela interface.
 
@@ -158,9 +158,31 @@ disparar — T06 só precisa adicionar as abas que os editam, reaproveitando a m
 
 **Critérios de aceite.**
 
-- [ ] Trocar o tipo de body preserva o conteúdo dos outros tipos
-- [ ] `Content-Type` definido à mão não é sobrescrito pelo automático
-- [ ] Headers desabilitados não são enviados, mas permanecem na tabela
+- [x] Trocar o tipo de body preserva o conteúdo dos outros tipos — `bodyDrafts`
+      (`RequestConfigTabs.vue`) guarda um rascunho por tipo, vivo enquanto o
+      componente existir; trocar `json → raw → json` devolve o texto exato.
+- [x] `Content-Type` definido à mão não é sobrescrito pelo automático — `contentTypeIsAuto`
+      vira `false` assim que o valor da linha `Content-Type` diverge do sugerido, e só
+      volta a `true` se a linha for apagada.
+- [x] Headers desabilitados não são enviados, mas permanecem na tabela — já garantido
+      pela engine (EP-03-T02, `buildHeaders` pula `enabled: false`) e por
+      `WKeyValueTable`, que nunca remove uma linha sozinha.
+
+**Ajuste de escopo.** A tabela de query params do EP-03-T05 estava embutida direto sob a
+barra de URL; como este EP-03-T06 formaliza uma aba **Params** própria para ela, mover
+as duas tabelas visíveis ao mesmo tempo seria redundante. A tabela saiu de
+`RequestUrlBar.vue` — que mantém só a sincronização URL↔query — e passou a viver na aba
+Params aqui. `useKeyValueRows` (novo composable) extrai o adaptador
+`KeyValueEntry[] → KeyValueRow[]` usado por Params, Headers e pelo body `urlencoded`.
+
+Também adicionados nesta task: colar em massa em `WKeyValueTable` (`name: value` /
+`name=value` / `name<tab>value`, uma linha vira uma row) e um `count` opcional em
+`WTabs` para o contador de itens ativos por aba.
+
+**Nota.** Mesma limitação de ambiente dos EP-03-T04/T05: sem `xvfb`/`sudo`, não foi
+possível abrir uma janela real. Critérios verificados por leitura de código, `yarn
+typecheck`/`lint`/`test`, e pela seção `RequestUrlBar + RequestConfigTabs` na
+`DevGalleryPage`.
 
 ---
 
