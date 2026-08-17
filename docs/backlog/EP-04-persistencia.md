@@ -113,7 +113,7 @@ uma versão de schema; o registro existe para o dia em que existir uma segunda.
 
 ### EP-04-T04 — Camada de filesystem do workspace
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-04-T02
+**Status:** Concluída · **Tamanho:** G · **Depende de:** EP-04-T02
 
 **Objetivo.** Ler e gravar a árvore inteira de um workspace.
 
@@ -126,10 +126,32 @@ uma versão de schema; o registro existe para o dia em que existir uma segunda.
 
 **Critérios de aceite.**
 
-- [ ] Workspace com 500 requests carrega em menos de 1s
-- [ ] Interromper o app durante um save nunca deixa arquivo truncado
-- [ ] Renomear reordena `seq` das linhas afetadas e só delas
-- [ ] `../` num caminho de body é recusado
+- [x] Workspace com 500 requests carrega em menos de 1s
+- [x] Interromper o app durante um save nunca deixa arquivo truncado
+- [x] Renomear reordena `seq` das linhas afetadas e só delas
+- [x] `../` num caminho de body é recusado
+
+**Notas.** `src/main/storage/tree.ts` concentra a varredura (`scanWorkspace`), leitura/escrita
+de um único nó (`readNode`/`writeNode`), `moveNode` e `deleteNode`. Cada arquivo é validado
+com `validate.ts` ao ser lido; um `folder.yaml`/`*.req.yaml` inválido vira `data: null` +
+`issues` no `WorkspaceNode` em vez de derrubar a árvore inteira (docs/file-format.md §7) —
+`FolderNode`/`RequestNode`/`WorkspaceTree`/`WorkspaceNodeIssue`/`RecentWorkspace` novos em
+`src/shared/storage.ts`. `moveNode` só reescreve os irmãos cujo `seq` de fato muda entre a
+posição antiga e a nova (testado em `tree.spec.ts`), e fecha o buraco na pasta de origem
+quando o destino é outra pasta. Escrita atômica é `fsAtomic.ts` (arquivo `.tmp-<hex>` +
+`rename`, que o filesystem garante atômico). `paths.ts` expõe `resolveWorkspacePath`,
+usada tanto pelos canais `node:*` quanto — futuramente, EP-06 — pela resolução de
+caminhos de `body.binary`/`multipart` antes de chegar na engine HTTP; body.ts já
+documentava esse contrato ("quem monta o `HttpRequestSpec` já resolveu para um caminho
+absoluto"), este task só entrega o resolvedor. `slug.ts` deriva o nome de arquivo a
+partir de `name` com colisão resolvida por sufixo numérico — exportado para quem for
+criar nós novos (EP-05), já que o `IpcContract` de `node:write` recebe o `path` pronto,
+não deriva sozinho. Canais expostos em `src/main/ipc/workspace.ts` (`workspace:open` com
+diálogo nativo quando `path` não vem no payload, `workspace:create`, `workspace:recent`
+persistido em `recent-workspaces.json` via `config/jsonFile.ts`) e `src/main/ipc/node.ts`,
+registrados em `ipc/index.ts`, expostos em `preload/index.ts`. `workspace:changed`
+(evento do watcher) fica fora daqui — é EP-04-T05, que também é quem vai decidir a
+UX de "confirmar antes de reescrever, sugerir commit" citada no EP-04-T03.
 
 ---
 

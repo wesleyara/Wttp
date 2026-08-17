@@ -8,6 +8,7 @@
  */
 
 import type { HttpRequestSpec, HttpResponseResult } from "./http";
+import type { FolderNode, RecentWorkspace, RequestNode, WorkspaceTree } from "./storage";
 
 export interface AppInfo {
   version: string;
@@ -53,6 +54,37 @@ export interface SaveFileResult {
   path?: string;
 }
 
+/** Payload de `workspace:open` (EP-04-T04) — sem `path`, abre um diálogo nativo de pasta. */
+export interface OpenWorkspacePayload {
+  path?: string;
+}
+
+export interface CreateWorkspacePayload {
+  /** Diretório onde o workspace é criado — precisa existir e estar vazio. */
+  path: string;
+  name: string;
+}
+
+/** Payload comum a `node:read`/`node:delete` — caminho relativo à raiz do workspace aberto. */
+export interface NodePathPayload {
+  root: string;
+  path: string;
+}
+
+export interface WriteNodePayload {
+  root: string;
+  path: string;
+  node: FolderNode | RequestNode;
+}
+
+export interface MoveNodePayload {
+  root: string;
+  from: string;
+  to: string;
+  /** Posição (1-indexed) entre os irmãos do diretório de destino. */
+  seq: number;
+}
+
 /**
  * Canal → forma do payload e do retorno.
  *
@@ -73,6 +105,13 @@ export interface IpcContract {
   "http:send": { payload: HttpRequestSpec; result: HttpResponseResult };
   "http:cancel": { payload: string; result: void };
   "dialog:saveFile": { payload: SaveFilePayload; result: SaveFileResult };
+  "workspace:open": { payload: OpenWorkspacePayload; result: WorkspaceTree | null };
+  "workspace:create": { payload: CreateWorkspacePayload; result: WorkspaceTree };
+  "workspace:recent": { payload: void; result: RecentWorkspace[] };
+  "node:read": { payload: NodePathPayload; result: FolderNode | RequestNode };
+  "node:write": { payload: WriteNodePayload; result: void };
+  "node:move": { payload: MoveNodePayload; result: void };
+  "node:delete": { payload: NodePathPayload; result: void };
 }
 
 export type IpcChannel = keyof IpcContract;
@@ -91,6 +130,7 @@ export type WttpErrorCode =
   | "INVALID_PAYLOAD"
   | "SCHEMA_INVALID"
   | "SCHEMA_VERSION_UNSUPPORTED"
+  | "PATH_ESCAPES_ROOT"
   | "SCRIPT_TIMEOUT"
   | "REQUEST_FAILED"
   | "DNS_ERROR"
