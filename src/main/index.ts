@@ -1,20 +1,27 @@
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, Menu, shell } from "electron";
 import { join } from "path";
 
 import icon from "../../resources/icon.png?asset";
 import { registerIpcHandlers } from "./ipc";
+import { buildMenu } from "./menu";
+import { loadWindowState, watchWindowState } from "./window/windowState";
 
-function createWindow(): void {
+async function createWindow(): Promise<void> {
+  const state = await loadWindowState();
+
   const mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    x: state.x,
+    y: state.y,
+    width: state.width,
+    height: state.height,
     minWidth: 940,
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
     title: "Wttp",
     ...(process.platform === "linux" ? { icon } : {}),
+    ...(process.platform === "darwin" ? { titleBarStyle: "hiddenInset" as const } : {}),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       contextIsolation: true,
@@ -22,6 +29,11 @@ function createWindow(): void {
       sandbox: false,
     },
   });
+
+  if (state.isMaximized) mainWindow.maximize();
+  watchWindowState(mainWindow);
+
+  Menu.setApplicationMenu(buildMenu(mainWindow));
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show();
@@ -51,10 +63,10 @@ app.whenReady().then(() => {
 
   registerIpcHandlers();
 
-  createWindow();
+  void createWindow();
 
   app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) void createWindow();
   });
 });
 
