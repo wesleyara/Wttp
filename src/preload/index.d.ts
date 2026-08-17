@@ -1,5 +1,5 @@
 import type { ElectronAPI } from "@electron-toolkit/preload";
-import type { AppInfo, UiState } from "@shared";
+import type { AppInfo, AppSettings, UiState } from "@shared";
 
 interface WttpApi {
   app: {
@@ -8,6 +8,10 @@ interface WttpApi {
   ui: {
     getState: () => Promise<UiState>;
     setState: (patch: Partial<UiState>) => Promise<UiState>;
+  };
+  settings: {
+    get: () => Promise<AppSettings>;
+    set: (patch: Partial<AppSettings>) => Promise<AppSettings>;
   };
 }
 

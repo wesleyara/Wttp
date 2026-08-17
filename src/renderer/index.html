@@ -1,5 +1,12 @@
 <!doctype html>
-<html>
+<html class="dark">
+  <!--
+    Dark começa aplicado estaticamente — é o padrão do produto (design-system.md §2) e
+    evita o pisca-pisca de esperar a resposta assíncrona de `settings:get` antes de
+    pintar. `useSettingsStore.load()` (main.ts) corrige para light se for o caso; só o
+    caminho (minoritário) de preferência light sofre um flash breve, dado que preload
+    não tem acesso a `app.getPath` para ler a config de forma síncrona.
+  -->
   <head>
     <meta charset="UTF-8" />
     <title>Wttp</title>
