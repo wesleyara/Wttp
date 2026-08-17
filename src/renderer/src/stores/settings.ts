@@ -1,13 +1,47 @@
+import type { AppSettings } from "@shared";
+
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 /**
- * Store de exemplo do EP-01-T06, provando que Pinia está registrado e é lido por um
- * componente. Vira `useSettingsStore` real, com estado persistido em
- * `.wttp/ui-state.json`, no épico de settings.
+ * Tema do app (EP-02-T05): persistido via IPC nas configurações do app (não do
+ * workspace, ao contrário de `useUiStore`). `system` acompanha `prefers-color-scheme`
+ * em tempo real; sem sinal do SO, cai em `dark` — é o padrão do produto
+ * (docs/design-system.md §2).
  */
 export const useSettingsStore = defineStore("settings", () => {
-  const appName = ref("Wttp");
+  const theme = ref<AppSettings["theme"]>("system");
+  const systemPrefersLight = ref(
+    typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: light)").matches : false,
+  );
 
-  return { appName };
+  const resolvedTheme = computed<"dark" | "light">(() => {
+    if (theme.value === "system") return systemPrefersLight.value ? "light" : "dark";
+    return theme.value;
+  });
+
+  function applyToDocument(): void {
+    document.documentElement.classList.toggle("dark", resolvedTheme.value === "dark");
+  }
+
+  watch(resolvedTheme, applyToDocument);
+
+  async function load(): Promise<void> {
+    const settings = await window.wttp.settings.get();
+    theme.value = settings.theme;
+    applyToDocument();
+  }
+
+  function setTheme(next: AppSettings["theme"]): void {
+    theme.value = next;
+    void window.wttp.settings.set({ theme: next });
+  }
+
+  if (typeof matchMedia === "function") {
+    matchMedia("(prefers-color-scheme: light)").addEventListener("change", event => {
+      systemPrefersLight.value = event.matches;
+    });
+  }
+
+  return { theme, resolvedTheme, load, setTheme };
 });

@@ -25,6 +25,14 @@ export interface UiState {
 }
 
 /**
+ * Configurações do app (EP-02-T05) — separadas de `UiState`: sobrevivem entre
+ * workspaces diferentes, não são "estado de uma sessão de UI".
+ */
+export interface AppSettings {
+  theme: "dark" | "light" | "system";
+}
+
+/**
  * Canal → forma do payload e do retorno.
  *
  * Cada linha aqui é a fonte da verdade de um canal: `handle` no main e `invoke` no
@@ -35,6 +43,8 @@ export interface IpcContract {
   "app:ping": { payload: void; result: AppInfo };
   "ui:getState": { payload: void; result: UiState };
   "ui:setState": { payload: Partial<UiState>; result: UiState };
+  "settings:get": { payload: void; result: AppSettings };
+  "settings:set": { payload: Partial<AppSettings>; result: AppSettings };
 }
 
 export type IpcChannel = keyof IpcContract;
