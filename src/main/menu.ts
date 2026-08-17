@@ -49,6 +49,17 @@ export function buildMenu(win: BrowserWindow): Menu {
           click: () => send(win, "request:send"),
         },
         { type: "separator" },
+        {
+          label: "Close Tab",
+          accelerator: "CmdOrCtrl+W",
+          click: () => send(win, "tab:close"),
+        },
+        {
+          label: "Next Tab",
+          accelerator: "CmdOrCtrl+Tab",
+          click: () => send(win, "tab:next"),
+        },
+        { type: "separator" },
         isMac ? { role: "close" } : { role: "quit" },
       ],
     },

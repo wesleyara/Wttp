@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { WorkspaceNode } from "@shared";
 
+import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
+import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
+import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
+import ResponsePanel from "@renderer/components/ResponsePanel.vue";
 import StatusBar from "@renderer/components/StatusBar.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WContextMenu, { type ContextMenuItem } from "@renderer/components/WContextMenu.vue";
@@ -11,22 +15,32 @@ import WorkspaceLanding from "@renderer/components/WorkspaceLanding.vue";
 import WSplitPane from "@renderer/components/WSplitPane.vue";
 import WTree from "@renderer/components/WTree.vue";
 import { useMenuStore } from "@renderer/stores/menu";
+import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useTreeStore } from "@renderer/stores/tree";
 import { useUiStore } from "@renderer/stores/ui";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, onMounted, onUnmounted } from "vue";
 
 // Esqueleto definitivo do app (EP-02-T04): sidebar de collections, área central de
-// abas de request e painel de resposta. As abas chegam em EP-05-T05 — por ora o
-// shell só decide entre a landing (sem workspace) e os painéis vazios.
+// abas de request e painel de resposta (EP-05-T05).
 const ui = useUiStore();
 const menu = useMenuStore();
 const workspace = useWorkspaceStore();
 const tree = useTreeStore();
+const requestTabs = useRequestTabsStore();
 
-function onActivate(node: WorkspaceNode): void {
-  // Abrir a request numa aba chega em EP-05-T05 — por ora a árvore só navega/seleciona.
-  void node;
+function onActivate(node: WorkspaceNode, mode: "preview" | "pinned"): void {
+  if (node.kind !== "request") return;
+  void (mode === "preview"
+    ? requestTabs.openPreview(node.path)
+    : requestTabs.openPinned(node.path));
+}
+
+function onTabNext(): void {
+  const ids = requestTabs.tabs.map(tab => tab.id);
+  if (ids.length === 0) return;
+  const currentIndex = ids.indexOf(requestTabs.activeId ?? "");
+  requestTabs.activate(ids[(currentIndex + 1) % ids.length]);
 }
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
@@ -62,6 +76,11 @@ onMounted(() => {
   void workspace.init();
   stopListeningToMenu = menu.listen({
     "request:new": () => void tree.createRequest(),
+    "request:save": () => void requestTabs.saveActive(),
+    "tab:close": () => {
+      if (requestTabs.activeId) requestTabs.requestClose(requestTabs.activeId);
+    },
+    "tab:next": onTabNext,
   });
 });
 
@@ -138,12 +157,25 @@ onUnmounted(() => stopListeningToMenu?.());
           >
             <template #first>
               <main class="flex h-full flex-col bg-surface-1">
-                <WEmptyState title="No request open" description="Select or create a request." />
+                <WEmptyState
+                  v-if="requestTabs.tabs.length === 0"
+                  title="No request open"
+                  description="Select or create a request."
+                />
+                <template v-else>
+                  <RequestTabsBar />
+                  <div class="min-h-0 flex-1 overflow-y-auto p-3">
+                    <RequestUrlBar />
+                    <RequestConfigTabs class="mt-3" />
+                  </div>
+                </template>
               </main>
             </template>
             <template #second>
               <section class="flex h-full flex-col bg-surface-2">
+                <ResponsePanel v-if="requestTabs.active" />
                 <WEmptyState
+                  v-else
                   title="No response yet"
                   description="Send a request to see a response."
                 />
@@ -162,6 +194,21 @@ onUnmounted(() => stopListeningToMenu?.());
       :items="contextMenuItems"
       @close="tree.closeContextMenu"
     />
+
+    <WModal
+      :open="requestTabs.closeConfirmTab !== null"
+      title="Unsaved changes"
+      @close="requestTabs.cancelClose"
+    >
+      <p v-if="requestTabs.closeConfirmTab" class="font-inter text-sm text-1">
+        "{{ requestTabs.closeConfirmTab.title }}" has unsaved changes. Save before closing?
+      </p>
+      <template #footer>
+        <WButton variant="ghost" @click="requestTabs.cancelClose">Cancel</WButton>
+        <WButton variant="danger" @click="requestTabs.confirmCloseDiscard">Discard</WButton>
+        <WButton variant="primary" @click="requestTabs.confirmCloseSave">Save</WButton>
+      </template>
+    </WModal>
 
     <WModal :open="tree.deleteTarget !== null" title="Delete" @close="tree.cancelDelete">
       <p v-if="tree.deleteTarget" class="font-inter text-sm text-1">

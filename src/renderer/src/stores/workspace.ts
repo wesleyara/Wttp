@@ -25,6 +25,13 @@ export const useWorkspaceStore = defineStore("workspace", () => {
    * nunca se pisarem escrevendo o arquivo ao mesmo tempo.
    */
   const uiState = ref<WorkspaceUiState>(EMPTY_UI_STATE);
+  /**
+   * Incrementado só em `loadUiState` (nunca em `patchUiState`) — o sinal que
+   * `useRequestTabsStore` observa para saber quando reidratar a sessão de abas de um
+   * `.wttp/ui-state.json` recém-lido do disco, sem reagir ao próprio merge que
+   * `patchUiState` faz a cada escrita (o que reidrataria as abas em cima de si mesmas).
+   */
+  const uiStateVersion = ref(0);
 
   const root = computed(() => tree.value?.root ?? null);
   /** `wttp.yaml` ausente ou inválido — a pasta aberta ainda não é um workspace de verdade. */
@@ -55,6 +62,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   async function loadUiState(): Promise<void> {
     if (!root.value) return;
     uiState.value = await window.wttp.workspace.getUiState({ root: root.value });
+    uiStateVersion.value += 1;
   }
 
   /** Mescla `patch` no estado local e agenda a escrita em disco (debounced). */
@@ -134,6 +142,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     persistUiStateTimer = null;
     tree.value = null;
     uiState.value = EMPTY_UI_STATE;
+    uiStateVersion.value = 0;
   }
 
   return {
@@ -142,6 +151,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     loading,
     error,
     uiState,
+    uiStateVersion,
     root,
     needsInit,
     ready,
