@@ -139,6 +139,36 @@ describe("readNode / writeNode", () => {
 
     expect(await fs.readFile(target, "utf-8")).toBe("valor original");
   });
+
+  it("recusa sobrescrever um arquivo alterado externamente depois da leitura", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("login.req.yaml", requestYaml("Login", 1));
+
+    const node = (await readNode(root, "login.req.yaml")) as RequestNode;
+
+    // Simula um `git checkout`/editor externo mexendo no arquivo depois da leitura.
+    await writeYaml("login.req.yaml", requestYaml("Login externo", 1));
+    const target = join(root, "login.req.yaml");
+    const stat = await fs.stat(target);
+    await fs.utimes(target, stat.atime, new Date(stat.mtimeMs + 60_000));
+
+    await expect(writeNode(root, "login.req.yaml", node)).rejects.toThrow(/changed on disk/);
+    expect(await fs.readFile(target, "utf-8")).toContain("Login externo");
+  });
+
+  it("permite escrever um nó que nunca foi lido antes (criação)", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    const node: RequestNode = {
+      kind: "request",
+      path: "new.req.yaml",
+      name: "New",
+      seq: 1,
+      data: { wttp: 1, name: "New", seq: 1, method: "GET", url: "https://example.com" },
+    };
+
+    await writeNode(root, "new.req.yaml", node);
+    expect(await fs.readFile(join(root, "new.req.yaml"), "utf-8")).toContain("name: New");
+  });
 });
 
 describe("moveNode", () => {

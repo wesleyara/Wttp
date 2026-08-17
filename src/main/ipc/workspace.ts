@@ -1,11 +1,34 @@
 import type { WorkspaceTree } from "@shared";
 
-import { BrowserWindow, dialog } from "electron";
+import { BrowserWindow, dialog, type WebContents } from "electron";
 import { basename } from "node:path";
 
 import { listRecentWorkspaces, touchRecentWorkspace } from "../storage/recentWorkspaces";
 import { initWorkspace, scanWorkspace } from "../storage/tree";
+import { watchWorkspace, type WorkspaceWatcher } from "../storage/watcher";
 import { registerHandler } from "./registry";
+
+/**
+ * Um workspace aberto por vez (hoje o app tem uma única janela) — trocar de workspace
+ * fecha o watcher anterior antes de abrir o novo, para nunca vazar um `fs.watch` ativo
+ * numa raiz que a UI já não olha mais.
+ */
+let activeWatcher: WorkspaceWatcher | null = null;
+
+function startWatching(root: string, sender: WebContents): void {
+  activeWatcher?.close();
+  activeWatcher = null;
+
+  try {
+    activeWatcher = watchWorkspace(root, event => {
+      if (!sender.isDestroyed()) sender.send("workspace:changed", event);
+    });
+  } catch (error) {
+    // Plataforma sem suporte a watch recursivo: o workspace continua funcionando,
+    // só sem live-reload de edições externas.
+    console.error(`failed to watch workspace "${root}"`, error);
+  }
+}
 
 export function registerWorkspaceHandlers(): void {
   registerHandler("workspace:open", async (payload, event) => {
@@ -23,12 +46,14 @@ export function registerWorkspaceHandlers(): void {
 
     const tree: WorkspaceTree = await scanWorkspace(path);
     await touchRecentWorkspace(path, tree.data?.name ?? basename(path));
+    startWatching(path, event.sender);
     return tree;
   });
 
-  registerHandler("workspace:create", async payload => {
+  registerHandler("workspace:create", async (payload, event) => {
     const tree = await initWorkspace(payload.path, payload.name);
     await touchRecentWorkspace(payload.path, payload.name);
+    startWatching(payload.path, event.sender);
     return tree;
   });
 

@@ -69,7 +69,7 @@ Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos t
 | `workspace:open`    | invoke  | `{ path? }` → `WorkspaceTree`                      |
 | `workspace:create`  | invoke  | `{ path, name }` → `WorkspaceTree`                 |
 | `workspace:recent`  | invoke  | `void` → `RecentWorkspace[]`                       |
-| `workspace:changed` | event ↓ | `WorkspaceTree`                                    |
+| `workspace:changed` | event ↓ | `WorkspaceChangedEvent` (`{ tree, changedPaths }`) |
 | `node:read`         | invoke  | `{ path }` → `RequestNode \| FolderNode`           |
 | `node:write`        | invoke  | `{ path, node }` → `void`                          |
 | `node:move`         | invoke  | `{ from, to, seq }` → `void`                       |
