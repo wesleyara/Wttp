@@ -142,6 +142,7 @@ Construídos no **EP-02**, antes de qualquer tela de produto. Todos aceitam `cla
 | `WMethodBadge`   | Método HTTP colorido                                                                    |
 | `WStatusBadge`   | Código de status + faixa de cor                                                         |
 | `WEmptyState`    | Ícone, título, descrição e ação — para árvore vazia, sem resposta, sem workspace        |
+| `WModal`         | Overlay com painel focado, `Esc` fecha, foco preso e devolvido ao fechar (EP-05-T01)    |
 
 ### Editor de código
 
