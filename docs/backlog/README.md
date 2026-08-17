@@ -13,7 +13,7 @@ Para executar uma task, use a skill `wttp-task`.
 | [EP-01](EP-01-fundacao.md)               | Fundação electron-vite            | Concluída |
 | [EP-02](EP-02-design-system.md)          | Design system e shell de layout   | Concluída (verificação visual pendente) |
 | [EP-03](EP-03-nucleo-http.md)            | Núcleo HTTP                       | Concluída (verificação visual pendente) |
-| [EP-04](EP-04-persistencia.md)           | Formato de arquivo e persistência | Em andamento |
+| [EP-04](EP-04-persistencia.md)           | Formato de arquivo e persistência | Concluída |
 | [EP-05](EP-05-workspaces-collections.md) | Workspaces, collections e tabs    | Pendente  |
 | [EP-06](EP-06-environments-variaveis.md) | Environments e variáveis          | Pendente  |
 | [EP-07](EP-07-autenticacao.md)           | Autenticação                      | Pendente  |

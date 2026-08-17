@@ -16,7 +16,7 @@ src/main/
 ├── storage/       parser + serializer YAML, watcher, resolução de caminhos (EP-04)
 ├── scripts/       spawn e protocolo do utility process (EP-09)
 ├── importers/     parse → normalize → emit, um módulo por formato (EP-08)
-└── secrets/       keychain do SO (EP-07)
+└── secrets/       keychain do SO, via `safeStorage` (EP-04)
 ```
 
 `ipc/` e `config/` existem hoje — as demais chegam junto do épico que as introduz.

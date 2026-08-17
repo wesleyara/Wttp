@@ -86,6 +86,26 @@ export interface MoveNodePayload {
 }
 
 /**
+ * `key` é a chave completa `wttp:<workspaceId>:<env>:<name>` (docs/file-format.md §5) —
+ * quem monta essa string é o chamador (a store de environments, EP-06), não o main.
+ * Sempre relativo ao workspace atualmente aberto (`workspace:open`/`workspace:create`);
+ * não existe outro jeito de trocar isso pelo IPC hoje.
+ */
+export interface SecretKeyPayload {
+  key: string;
+}
+
+export interface SetSecretPayload {
+  key: string;
+  value: string;
+}
+
+/** `encrypted: false` = os segredos deste workspace estão indo para `.wttp/secrets.json` em texto puro (EP-04-T06). */
+export interface SecretStorageStatus {
+  encrypted: boolean;
+}
+
+/**
  * Canal → forma do payload e do retorno.
  *
  * Cada linha aqui é a fonte da verdade de um canal: `handle` no main e `invoke` no
@@ -112,6 +132,10 @@ export interface IpcContract {
   "node:write": { payload: WriteNodePayload; result: void };
   "node:move": { payload: MoveNodePayload; result: void };
   "node:delete": { payload: NodePathPayload; result: void };
+  "secret:get": { payload: SecretKeyPayload; result: string | null };
+  "secret:set": { payload: SetSecretPayload; result: void };
+  "secret:delete": { payload: SecretKeyPayload; result: void };
+  "secret:status": { payload: void; result: SecretStorageStatus };
 }
 
 export type IpcChannel = keyof IpcContract;

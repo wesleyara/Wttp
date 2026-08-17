@@ -1,6 +1,6 @@
 # EP-04 — Formato de arquivo e persistência
 
-**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-03
+**Status:** Concluída · **Alvo:** v0.1 · **Depende de:** EP-03
 
 Implementar [file-format.md](../file-format.md). Este épico é onde a promessa "git-friendly" é cumprida ou perdida — as regras invioláveis do documento são critérios de aceite, não sugestões.
 
@@ -201,7 +201,7 @@ por vez, fechado ao trocar de workspace).
 
 ### EP-04-T06 — Segredos no keychain
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-04-T04
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-04-T04
 
 **Objetivo.** Valores sensíveis nunca chegam ao Git.
 
@@ -213,6 +213,31 @@ por vez, fechado ao trocar de workspace).
 
 **Critérios de aceite.**
 
-- [ ] O valor de uma variável secreta não aparece em nenhum arquivo versionado
-- [ ] Fallback funciona e avisa que é menos seguro
-- [ ] Remover a variável remove também a entrada do keychain
+- [x] O valor de uma variável secreta não aparece em nenhum arquivo versionado
+- [x] Fallback funciona e avisa que é menos seguro
+- [x] Remover a variável remove também a entrada do keychain
+
+**Notas.** `src/main/secrets/encryption.ts` é o único ponto que toca `electron.safeStorage`
+— o que Electron chama de "keychain do SO" (Keychain no macOS, DPAPI no Windows,
+libsecret/kwallet no Linux via `safeStorage`); segue o mesmo padrão de
+`config/appDataDir.ts`, um wrapper fino não testado, para que a lógica real
+(`src/main/secrets/store.ts`) receba a capacidade de cifrar por parâmetro e continue
+testável com Vitest puro, sem Electron (`store.spec.ts` usa um backend falso). Os
+segredos ficam em `<root>/.wttp/secrets.json` (docs/file-format.md §1), cifrados
+quando o backend do SO está disponível, em texto puro com `encrypted: false` e um
+`console.warn` quando não está — o aviso de UI de fato (banner na tela de
+environments) depende dessa tela existir, que é EP-06; o que esta task entrega é o
+aviso no log do processo main e `secret:status` (`getSecretStorageStatus`), pronto
+para essa UI consumir. `wttp:<workspaceId>:<env>:<name>` é montado por quem chama
+`secret:get`/`secret:set`/`secret:delete` — a store não sabe o que é environment ou
+variável, só guarda pares chave-valor por workspace; como `secret:*` não recebe `root`
+no payload (diferente de `node:*`), `src/main/storage/activeWorkspace.ts` guarda a raiz
+do workspace aberto no momento, setada por `ipc/workspace.ts` a cada
+`workspace:open`/`workspace:create`. Dois canais novos além dos dois já documentados em
+`architecture.md` desde antes desta task existir de fato: `secret:delete` (o critério
+"remover a variável remove também a entrada do keychain" não tinha canal nenhum para
+isso) e `secret:status` (para o aviso de fallback chegar à UI). `src/main/CLAUDE.md`
+tinha `secrets/` anotado como "(EP-07)" — desatualizado desde que o backlog moveu essa
+pasta para cá; corrigido no mesmo commit. A regra "variável `secret: true` grava valor
+vazio no YAML" já estava em vigor desde EP-04-T01 (serializer força `value: ""`) — nada
+novo aqui, só reafirmando que continua valendo.
