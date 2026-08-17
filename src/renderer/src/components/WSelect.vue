@@ -1,18 +1,25 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 const props = withDefaults(
   defineProps<{
     modelValue: string;
     options: { value: string; label: string }[];
     disabled?: boolean;
+    /** Classe de texto aplicada ao valor selecionado — ex: cor por método HTTP. */
+    valueClass?: (value: string) => string;
   }>(),
   {
     disabled: false,
+    valueClass: undefined,
   },
 );
 
 const emit = defineEmits<{
   "update:modelValue": [value: string];
 }>();
+
+const triggerClass = computed(() => props.valueClass?.(props.modelValue) ?? "font-inter text-1");
 
 function onChange(event: Event): void {
   emit("update:modelValue", (event.target as HTMLSelectElement).value);
@@ -27,7 +34,8 @@ function onChange(event: Event): void {
     <select
       :value="modelValue"
       :disabled="disabled"
-      class="w-full appearance-none bg-transparent font-inter text-sm text-1 outline-none"
+      class="w-full appearance-none bg-transparent text-sm outline-none"
+      :class="triggerClass"
       @change="onChange"
     >
       <option v-for="option in props.options" :key="option.value" :value="option.value">

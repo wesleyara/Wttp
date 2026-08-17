@@ -108,7 +108,7 @@ inclui uma seção `WCodeEditor` com os três casos), não por inspeção visual
 
 ### EP-03-T05 — Barra de método e URL
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-03-T02, EP-02-T03
+**Status:** Concluída (verificação visual pendente) · **Tamanho:** M · **Depende de:** EP-03-T02, EP-02-T03
 
 **Objetivo.** Disparar uma requisição a partir da UI.
 
@@ -120,9 +120,26 @@ inclui uma seção `WCodeEditor` com os três casos), não por inspeção visual
 
 **Critérios de aceite.**
 
-- [ ] Sincronização URL ↔ query params funciona nos dois sentidos sem loop
-- [ ] Valores com caracteres especiais são codificados corretamente
-- [ ] Durante o envio o botão cancela, e cancelar deixa a UI num estado limpo
+- [x] Sincronização URL ↔ query params funciona nos dois sentidos sem loop — lógica pura
+      em `src/renderer/src/lib/url-query-sync.ts` (`parseQueryFromUrl` / `rewriteUrlQuery`,
+      10 testes Vitest), consumida em `RequestUrlBar.vue` por dois `watch` com
+      `flush: "sync"` e flags mútuas que impedem o ping-pong.
+- [x] Valores com caracteres especiais são codificados corretamente — via
+      `URLSearchParams`, coberto em `url-query-sync.spec.ts`.
+- [x] Durante o envio o botão cancela, e cancelar deixa a UI num estado limpo —
+      `useRequestStore.send()` sempre passa por `finally` (T02 nunca lança, só devolve
+      `ok: false`), então `sending` volta a `false` mesmo quando `cancel()` interrompeu a
+      request.
+
+**Nota.** Mesma limitação de ambiente do EP-03-T04: sem `xvfb`/`sudo` aqui, não deu para
+abrir uma janela real e ver o seletor de método colorido ou o toggle de tema. Verificado
+por leitura de código e pela seção `RequestUrlBar` adicionada à `DevGalleryPage`.
+
+Criada também `useRequestStore` (`src/renderer/src/stores/request.ts`): guarda o
+`HttpRequestSpec` sendo montado (`method`, `url`, `query`, `headers`, `body`, `auth`) e o
+`send()`/`cancel()` que fala com `window.wttp.http.*`. `headers`/`body`/`auth` já
+existem ali, mesmo sem UI própria ainda, porque o `HttpRequestSpec` exige todos para
+disparar — T06 só precisa adicionar as abas que os editam, reaproveitando a mesma store.
 
 ---
 
