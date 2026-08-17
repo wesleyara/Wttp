@@ -1,4 +1,4 @@
-import type { AppInfo } from "@shared";
+import type { AppInfo, UiState } from "@shared";
 
 import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge } from "electron";
@@ -11,6 +11,10 @@ import { invoke } from "./ipc";
 const wttp = {
   app: {
     ping: (): Promise<AppInfo> => invoke("app:ping"),
+  },
+  ui: {
+    getState: (): Promise<UiState> => invoke("ui:getState"),
+    setState: (patch: Partial<UiState>): Promise<UiState> => invoke("ui:setState", patch),
   },
 };
 
