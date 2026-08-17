@@ -33,6 +33,13 @@ export interface AppSettings {
 }
 
 /**
+ * Ação disparada por um atalho do menu nativo (EP-02-T06), entregue ao renderer por
+ * `window.wttp.menu.onAction`. Não é `invoke`/`result` como o resto do `IpcContract` —
+ * é um evento main → renderer sem resposta, então fica fora dele.
+ */
+export type MenuAction = "request:new" | "request:save" | "request:send" | "search:focus";
+
+/**
  * Canal → forma do payload e do retorno.
  *
  * Cada linha aqui é a fonte da verdade de um canal: `handle` no main e `invoke` no
