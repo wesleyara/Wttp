@@ -45,6 +45,27 @@ export default defineConfig(
     },
   },
   {
+    // docs/design-system.md regra nº1: componentes nunca referenciam uma cor crua da
+    // escala (`bluewood-900`, `brand-blue-500`) — só o token semântico (`bg-surface-2`).
+    // A escala crua só pode aparecer na própria definição dos tokens (tailwind.config.js).
+    // `no-restricted-syntax` (core) não enxerga o `templateBody` do vue-eslint-parser —
+    // só rules do próprio eslint-plugin-vue, com `defineTemplateBodyVisitor`, veem.
+    files: ["**/*.vue"],
+    rules: {
+      "vue/no-restricted-class": ["error", "/(bluewood|brand-blue)-\\d{2,3}/"],
+      "no-restricted-syntax": [
+        "error",
+        {
+          // Cobre string literal fora do `class=`/`:class` — ex. um `computed` que monta
+          // classe crua em JS dentro do `<script setup>`.
+          selector: "Literal[value=/\\b(bluewood|brand-blue)-\\d{2,3}\\b/]",
+          message:
+            "Cor crua da escala (bluewood-*/brand-blue-*) não é permitida em componentes — use um token semântico (docs/design-system.md §2).",
+        },
+      ],
+    },
+  },
+  {
     plugins: { perfectionist: eslintPluginPerfectionist },
     rules: {
       "perfectionist/sort-imports": "error",

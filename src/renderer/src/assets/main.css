@@ -1,3 +1,67 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * Tokens semânticos — docs/design-system.md §2 e §3. Cada custom property guarda o
+ * triplet "R G B" (sem `rgb()`), consumido pelo tailwind.config.js como
+ * `rgb(var(--w-x) / <alpha-value>)`.
+ *
+ * `:root` guarda o tema light (fallback do `darkMode: "class"` do Tailwind); `.dark`
+ * sobrescreve. Dark é o tema padrão do produto, mas isso é resolvido em JS
+ * (`useSettingsStore`, EP-02-T05), que aplica a classe `dark` na raiz antes da
+ * primeira pintura — este arquivo só define os dois conjuntos de valores.
+ */
+:root {
+  --w-surface-1: 245 247 250; /* bluewood-50 */
+  --w-surface-2: 255 255 255;
+  --w-surface-3: 234 239 244; /* bluewood-100 */
+  --w-border-subtle: 207 220 232; /* bluewood-200 */
+  --w-border-strong: 166 191 211; /* bluewood-300 */
+  --w-text-1: 44 62 80; /* bluewood-900 */
+  --w-text-muted: 84 128 163; /* bluewood-500 */
+  --w-text-faint: 117 156 187; /* bluewood-400 */
+  --w-accent: 10 133 191; /* brand-blue-600 */
+  --w-accent-hover: 10 106 154; /* brand-blue-700 */
+  --w-focus-ring: 10 133 191; /* brand-blue-600 */
+
+  --w-method-get: 10 106 154; /* #0a6a9a */
+  --w-method-post: 21 128 61; /* #15803d */
+  --w-method-put: 180 83 9; /* #b45309 */
+  --w-method-patch: 126 34 206; /* #7e22ce */
+  --w-method-delete: 185 28 28; /* #b91c1c */
+  --w-method-neutral: 71 85 105; /* #475569 */
+
+  --w-status-2xx: 21 128 61; /* #15803d */
+  --w-status-3xx: 180 83 9; /* #b45309 */
+  --w-status-4xx: 194 65 12; /* #c2410c */
+  --w-status-5xx: 185 28 28; /* #b91c1c */
+  --w-status-error: 185 28 28; /* #b91c1c */
+}
+
+.dark {
+  --w-surface-1: 29 40 52; /* bluewood-950 */
+  --w-surface-2: 44 62 80; /* bluewood-900 */
+  --w-surface-3: 47 71 93; /* bluewood-800 */
+  --w-border-subtle: 47 71 93; /* bluewood-800 */
+  --w-border-strong: 53 82 111; /* bluewood-700 */
+  --w-text-1: 234 239 244; /* bluewood-100 */
+  --w-text-muted: 117 156 187; /* bluewood-400 */
+  --w-text-faint: 65 103 136; /* bluewood-600 */
+  --w-accent: 24 170 229; /* brand-blue-500 */
+  --w-accent-hover: 64 190 240; /* brand-blue-400 */
+  --w-focus-ring: 24 170 229; /* brand-blue-500 */
+
+  --w-method-get: 64 190 240; /* #40bef0 */
+  --w-method-post: 74 222 128; /* #4ade80 */
+  --w-method-put: 251 191 36; /* #fbbf24 */
+  --w-method-patch: 192 132 252; /* #c084fc */
+  --w-method-delete: 248 113 113; /* #f87171 */
+  --w-method-neutral: 148 163 184; /* #94a3b8 — HEAD/OPTIONS */
+
+  --w-status-2xx: 74 222 128; /* #4ade80 */
+  --w-status-3xx: 251 191 36; /* #fbbf24 */
+  --w-status-4xx: 251 146 60; /* #fb923c */
+  --w-status-5xx: 248 113 113; /* #f87171 */
+  --w-status-error: 248 113 113; /* #f87171 — erro de rede */
+}
