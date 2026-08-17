@@ -41,7 +41,7 @@ memória carregar — a leitura/escrita do keychain em si é EP-04-T06. Validaç
 
 ### EP-04-T02 — Validação de schema
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-04-T01
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-04-T01
 
 **Objetivo.** Arquivo inválido produz erro compreensível, não crash.
 
@@ -53,9 +53,22 @@ memória carregar — a leitura/escrita do keychain em si é EP-04-T06. Validaç
 
 **Critérios de aceite.**
 
-- [ ] YAML sintaticamente quebrado não impede abrir o workspace
-- [ ] A mensagem aponta arquivo e linha
-- [ ] Nenhuma exceção não tratada escapa da camada de storage
+- [x] YAML sintaticamente quebrado não impede abrir o workspace
+- [x] A mensagem aponta arquivo e linha
+- [x] Nenhuma exceção não tratada escapa da camada de storage
+
+**Notas.** `src/main/storage/validate.ts` expõe `validateWorkspace` / `validateFolder` /
+`validateRequest` / `validateEnvironment`, cada uma devolvendo `ValidationResult<T>` —
+nunca lançando. Usa `parseDocument` do `yaml` (que coleta erros de sintaxe em
+`doc.errors` em vez de lançar, ao contrário de `parse()`) mais um `LineCounter` para
+localizar a linha de qualquer campo via `range` do nó. Em caso de sucesso, delega a
+`parser.ts` para manter a mesma forma (`unknown` etc.) usada pelo round-trip. Only
+`wttp` ausente não é tratado como erro aqui — virar versão 1 com aviso é EP-04-T03,
+ainda pendente. "Nó inválido marcado na árvore, resto do workspace utilizável" (o
+critério de escopo) se completa de fato quando a camada de filesystem (EP-04-T04)
+passar a chamar estas funções por arquivo; aqui a garantia é que a validação em si
+nunca derruba o processo. `formatSchemaIssue` produz o layout de docs/file-format.md
+§7. Testes em `validate.spec.ts`.
 
 ---
 
