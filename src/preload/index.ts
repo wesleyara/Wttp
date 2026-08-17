@@ -10,7 +10,9 @@ import type {
   MoveNodePayload,
   NodePathPayload,
   OpenWorkspacePayload,
+  PickFolderResult,
   RecentWorkspace,
+  RemoveRecentWorkspacePayload,
   RequestNode,
   SaveFilePayload,
   SaveFileResult,
@@ -55,6 +57,7 @@ const wttp = {
   dialog: {
     saveFile: (payload: SaveFilePayload): Promise<SaveFileResult> =>
       invoke("dialog:saveFile", payload),
+    pickFolder: (): Promise<PickFolderResult> => invoke("dialog:pickFolder"),
   },
   workspace: {
     open: (payload: OpenWorkspacePayload = {}): Promise<WorkspaceTree | null> =>
@@ -62,6 +65,8 @@ const wttp = {
     create: (payload: CreateWorkspacePayload): Promise<WorkspaceTree> =>
       invoke("workspace:create", payload),
     recent: (): Promise<RecentWorkspace[]> => invoke("workspace:recent"),
+    removeRecent: (payload: RemoveRecentWorkspacePayload): Promise<RecentWorkspace[]> =>
+      invoke("workspace:removeRecent", payload),
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
     onChanged: (callback: (event: WorkspaceChangedEvent) => void): (() => void) => {
       const listener = (_event: Electron.IpcRendererEvent, changed: WorkspaceChangedEvent): void =>

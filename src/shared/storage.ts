@@ -146,6 +146,34 @@ export interface RecentWorkspace {
   name: string;
   /** ISO 8601, última vez que este workspace foi aberto ou criado. */
   lastOpened: string;
+  /**
+   * Computado a cada `workspace:recent` (checa `fs.access`), nunca persistido em
+   * `recent-workspaces.json` — uma entrada apontando para uma pasta removida é
+   * sinalizada, não some silenciosamente (EP-05-T01).
+   */
+  missing?: boolean;
+}
+
+/**
+ * Uma aba de request aberta, dentro de `.wttp/ui-state.json` (EP-05-T05). `pinned:
+ * false` = aba de preview (itálico, substituída pela próxima aberta em preview).
+ */
+export interface TabState {
+  path: string;
+  pinned: boolean;
+}
+
+/**
+ * Estado de UI por workspace (docs/file-format.md §1), gitignored em
+ * `.wttp/ui-state.json` — não confundir com `UiState` de `shared/ipc.ts`, que é
+ * global ao app (tamanhos de painel, sobrevive entre workspaces diferentes).
+ */
+export interface WorkspaceUiState {
+  /** Caminhos de pasta expandidos no `WTree` (EP-05-T02). */
+  expandedPaths: string[];
+  /** Abas de request abertas, na ordem exibida (EP-05-T05). */
+  openTabs: TabState[];
+  activeTabPath: string | null;
 }
 
 /**

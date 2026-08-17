@@ -85,6 +85,17 @@ export interface MoveNodePayload {
   seq: number;
 }
 
+/** Resultado de `dialog:pickFolder` (EP-05-T01) — escolher a pasta onde criar um workspace. */
+export interface PickFolderResult {
+  canceled: boolean;
+  path?: string;
+}
+
+/** Payload de `workspace:removeRecent` (EP-05-T01). */
+export interface RemoveRecentWorkspacePayload {
+  path: string;
+}
+
 /**
  * `key` é a chave completa `wttp:<workspaceId>:<env>:<name>` (docs/file-format.md §5) —
  * quem monta essa string é o chamador (a store de environments, EP-06), não o main.
@@ -125,9 +136,11 @@ export interface IpcContract {
   "http:send": { payload: HttpRequestSpec; result: HttpResponseResult };
   "http:cancel": { payload: string; result: void };
   "dialog:saveFile": { payload: SaveFilePayload; result: SaveFileResult };
+  "dialog:pickFolder": { payload: void; result: PickFolderResult };
   "workspace:open": { payload: OpenWorkspacePayload; result: WorkspaceTree | null };
   "workspace:create": { payload: CreateWorkspacePayload; result: WorkspaceTree };
   "workspace:recent": { payload: void; result: RecentWorkspace[] };
+  "workspace:removeRecent": { payload: RemoveRecentWorkspacePayload; result: RecentWorkspace[] };
   "node:read": { payload: NodePathPayload; result: FolderNode | RequestNode };
   "node:write": { payload: WriteNodePayload; result: void };
   "node:move": { payload: MoveNodePayload; result: void };

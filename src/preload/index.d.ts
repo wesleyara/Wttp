@@ -11,7 +11,9 @@ import type {
   MoveNodePayload,
   NodePathPayload,
   OpenWorkspacePayload,
+  PickFolderResult,
   RecentWorkspace,
+  RemoveRecentWorkspacePayload,
   RequestNode,
   SaveFilePayload,
   SaveFileResult,
@@ -41,11 +43,13 @@ interface WttpApi {
   };
   dialog: {
     saveFile: (payload: SaveFilePayload) => Promise<SaveFileResult>;
+    pickFolder: () => Promise<PickFolderResult>;
   };
   workspace: {
     open: (payload?: OpenWorkspacePayload) => Promise<WorkspaceTree | null>;
     create: (payload: CreateWorkspacePayload) => Promise<WorkspaceTree>;
     recent: () => Promise<RecentWorkspace[]>;
+    removeRecent: (payload: RemoveRecentWorkspacePayload) => Promise<RecentWorkspace[]>;
     onChanged: (callback: (event: WorkspaceChangedEvent) => void) => () => void;
   };
   node: {

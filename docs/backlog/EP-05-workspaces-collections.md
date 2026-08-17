@@ -1,6 +1,6 @@
 # EP-05 — Workspaces, collections e tabs
 
-**Status:** Pendente · **Alvo:** v0.1 · **Depende de:** EP-04
+**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-04
 
 Organizar o trabalho: abrir um workspace, navegar pela árvore, trabalhar com várias requests abertas.
 
@@ -8,7 +8,7 @@ Organizar o trabalho: abrir um workspace, navegar pela árvore, trabalhar com v�
 
 ### EP-05-T01 — Abrir e criar workspace
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-04-T04
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-04-T04
 
 **Objetivo.** O usuário escolhe uma pasta e começa a trabalhar.
 
@@ -20,9 +20,16 @@ Organizar o trabalho: abrir um workspace, navegar pela árvore, trabalhar com v�
 
 **Critérios de aceite.**
 
-- [ ] Abrir uma pasta que não é workspace oferece inicializá-la
-- [ ] Recente apontando para pasta removida é sinalizado, não some silenciosamente
-- [ ] Último workspace reabre automaticamente ao iniciar o app
+- [x] Abrir uma pasta que não é workspace oferece inicializá-la
+- [x] Recente apontando para pasta removida é sinalizado, não some silenciosamente
+- [x] Último workspace reabre automaticamente ao iniciar o app
+
+**Nota de fechamento.** "Importar" na tela inicial é um botão desabilitado
+("coming soon") — o importador de verdade é o EP-08, fora de escopo aqui. Os três
+critérios acima são verificados por `recentWorkspaces.spec.ts` (detecção de `missing`
+e remoção) e por inspeção de código para os fluxos de UI (`useWorkspaceStore.init`,
+`WorkspaceLanding`'s `needsInit`); não foi possível abrir uma janela real neste
+ambiente (sem `xvfb`/`sudo`), mesma limitação já registrada em EP-02/EP-03.
 
 ---
 

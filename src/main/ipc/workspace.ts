@@ -4,7 +4,11 @@ import { BrowserWindow, dialog, type WebContents } from "electron";
 import { basename } from "node:path";
 
 import { setActiveWorkspaceRoot } from "../storage/activeWorkspace";
-import { listRecentWorkspaces, touchRecentWorkspace } from "../storage/recentWorkspaces";
+import {
+  listRecentWorkspacesWithStatus,
+  removeRecentWorkspace,
+  touchRecentWorkspace,
+} from "../storage/recentWorkspaces";
 import { initWorkspace, scanWorkspace } from "../storage/tree";
 import { watchWorkspace, type WorkspaceWatcher } from "../storage/watcher";
 import { registerHandler } from "./registry";
@@ -60,5 +64,7 @@ export function registerWorkspaceHandlers(): void {
     return tree;
   });
 
-  registerHandler("workspace:recent", () => listRecentWorkspaces());
+  registerHandler("workspace:recent", () => listRecentWorkspacesWithStatus());
+
+  registerHandler("workspace:removeRecent", payload => removeRecentWorkspace(payload.path));
 }
