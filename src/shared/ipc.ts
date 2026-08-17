@@ -41,6 +41,18 @@ export interface AppSettings {
  */
 export type MenuAction = "request:new" | "request:save" | "request:send" | "search:focus";
 
+/** Payload de `dialog:saveFile` (EP-03-T07) — salvar o body de uma resposta em disco. */
+export interface SaveFilePayload {
+  /** Bytes exatos a gravar — nunca uma string, para não corromper corpo binário. */
+  data: Uint8Array;
+  suggestedName?: string;
+}
+
+export interface SaveFileResult {
+  canceled: boolean;
+  path?: string;
+}
+
 /**
  * Canal → forma do payload e do retorno.
  *
@@ -60,6 +72,7 @@ export interface IpcContract {
    */
   "http:send": { payload: HttpRequestSpec; result: HttpResponseResult };
   "http:cancel": { payload: string; result: void };
+  "dialog:saveFile": { payload: SaveFilePayload; result: SaveFileResult };
 }
 
 export type IpcChannel = keyof IpcContract;

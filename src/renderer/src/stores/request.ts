@@ -5,8 +5,10 @@ import type {
   HttpResponseResult,
   KeyValueEntry,
   RequestBody,
+  SaveFileResult,
 } from "@shared";
 
+import { suggestedFileName } from "@renderer/lib/content-type";
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
@@ -58,5 +60,30 @@ export const useRequestStore = defineStore("request", () => {
     void window.wttp.http.cancel(requestId.value);
   }
 
-  return { method, url, query, headers, body, auth, docs, sending, lastResult, send, cancel };
+  /** Salva o body da última resposta em disco, byte a byte (EP-03-T07). */
+  async function saveResponseToFile(): Promise<SaveFileResult | null> {
+    const result = lastResult.value;
+    if (!result?.ok) return null;
+    const contentType =
+      result.headers.find(h => h.name.toLowerCase() === "content-type")?.value ?? "";
+    return window.wttp.dialog.saveFile({
+      data: result.body,
+      suggestedName: suggestedFileName(contentType),
+    });
+  }
+
+  return {
+    method,
+    url,
+    query,
+    headers,
+    body,
+    auth,
+    docs,
+    sending,
+    lastResult,
+    send,
+    cancel,
+    saveResponseToFile,
+  };
 });

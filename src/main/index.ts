@@ -27,6 +27,10 @@ async function createWindow(): Promise<void> {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      // Chromium's built-in PDF viewer, used by the response panel's preview tab
+      // (EP-03-T07) to render a `blob:` URL — it's Chromium's PDFium plugin, not a
+      // browser plugin/NPAPI risk.
+      plugins: true,
     },
   });
 
