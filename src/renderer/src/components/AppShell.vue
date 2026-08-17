@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceNode } from "@shared";
 
+import CommandPalette from "@renderer/components/CommandPalette.vue";
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
 import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
@@ -19,7 +20,7 @@ import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useTreeStore } from "@renderer/stores/tree";
 import { useUiStore } from "@renderer/stores/ui";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
-import { computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 // Esqueleto definitivo do app (EP-02-T04): sidebar de collections, área central de
 // abas de request e painel de resposta (EP-05-T05).
@@ -42,6 +43,8 @@ function onTabNext(): void {
   const currentIndex = ids.indexOf(requestTabs.activeId ?? "");
   requestTabs.activate(ids[(currentIndex + 1) % ids.length]);
 }
+
+const paletteOpen = ref(false);
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const target = tree.contextMenuTarget;
@@ -81,6 +84,7 @@ onMounted(() => {
       if (requestTabs.activeId) requestTabs.requestClose(requestTabs.activeId);
     },
     "tab:next": onTabNext,
+    "search:quickOpen": () => (paletteOpen.value = true),
   });
 });
 
@@ -186,6 +190,8 @@ onUnmounted(() => stopListeningToMenu?.());
       </WSplitPane>
     </div>
     <StatusBar />
+
+    <CommandPalette :open="paletteOpen" @close="paletteOpen = false" />
 
     <WContextMenu
       :open="tree.contextMenuTarget !== null"

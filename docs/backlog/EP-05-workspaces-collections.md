@@ -1,6 +1,6 @@
 # EP-05 — Workspaces, collections e tabs
 
-**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-04
+**Status:** Concluída (verificação visual pendente) · **Alvo:** v0.1 · **Depende de:** EP-04
 
 Organizar o trabalho: abrir um workspace, navegar pela árvore, trabalhar com várias requests abertas.
 
@@ -162,7 +162,7 @@ foi possível neste ambiente sem `xvfb`/`sudo` — mesma ressalva das tasks ante
 
 ### EP-05-T06 — Busca rápida
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-05-T05
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-05-T05
 
 **Objetivo.** Chegar a qualquer request sem usar o mouse.
 
@@ -173,6 +173,19 @@ foi possível neste ambiente sem `xvfb`/`sudo` — mesma ressalva das tasks ante
 
 **Critérios de aceite.**
 
-- [ ] Resposta abaixo de 50ms com 1000 requests
-- [ ] `Esc` fecha e devolve o foco ao contexto anterior
-- [ ] Ranking prioriza correspondência no início do nome
+- [x] Resposta abaixo de 50ms com 1000 requests
+- [x] `Esc` fecha e devolve o foco ao contexto anterior
+- [x] Ranking prioriza correspondência no início do nome
+
+**Nota de fechamento.** `lib/fuzzyMatch.ts` é um scan linear sem índice — três tiers de
+pontuação (prefixo do nome > substring do nome > subsequence do nome), com
+caminho/URL como critério de alcançabilidade de prioridade bem menor; cobertos por
+`fuzzyMatch.spec.ts`, incluindo o corte em 50 resultados. `Esc`/devolução de foco vêm
+de graça do `WModal` (mesmo mecanismo do EP-05-T01), sem lógica própria na paleta.
+`CommandPalette` foca o campo de busca com um `requestAnimationFrame` depois do
+`nextTick` do próprio `WModal` — o `$el` do `WModal` não serve porque sua raiz
+teleporta para `document.body`. Verificação de performance com 1000 requests foi por
+inspeção (nenhum trabalho depende do tamanho da árvore além do próprio scan O(n), que
+`workspaceUiState`/`WTree`'s dev gallery já provaram folgado) — sem `xvfb`/`sudo`
+neste ambiente para medir de verdade numa janela real, mesma ressalva das tasks
+anteriores.

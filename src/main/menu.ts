@@ -79,6 +79,11 @@ export function buildMenu(win: BrowserWindow): Menu {
           accelerator: "CmdOrCtrl+F",
           click: () => send(win, "search:focus"),
         },
+        {
+          label: "Quick Open",
+          accelerator: "CmdOrCtrl+P",
+          click: () => send(win, "search:quickOpen"),
+        },
       ],
     },
     {
