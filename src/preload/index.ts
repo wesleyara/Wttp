@@ -15,6 +15,7 @@ import type {
   SaveFilePayload,
   SaveFileResult,
   UiState,
+  WorkspaceChangedEvent,
   WorkspaceTree,
   WriteNodePayload,
 } from "@shared";
@@ -60,6 +61,13 @@ const wttp = {
     create: (payload: CreateWorkspacePayload): Promise<WorkspaceTree> =>
       invoke("workspace:create", payload),
     recent: (): Promise<RecentWorkspace[]> => invoke("workspace:recent"),
+    // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
+    onChanged: (callback: (event: WorkspaceChangedEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, changed: WorkspaceChangedEvent): void =>
+        callback(changed);
+      ipcRenderer.on("workspace:changed", listener);
+      return () => ipcRenderer.off("workspace:changed", listener);
+    },
   },
   node: {
     read: (payload: NodePathPayload): Promise<FolderNode | RequestNode> =>

@@ -16,6 +16,7 @@ import type {
   SaveFilePayload,
   SaveFileResult,
   UiState,
+  WorkspaceChangedEvent,
   WorkspaceTree,
   WriteNodePayload,
 } from "@shared";
@@ -44,6 +45,7 @@ interface WttpApi {
     open: (payload?: OpenWorkspacePayload) => Promise<WorkspaceTree | null>;
     create: (payload: CreateWorkspacePayload) => Promise<WorkspaceTree>;
     recent: () => Promise<RecentWorkspace[]>;
+    onChanged: (callback: (event: WorkspaceChangedEvent) => void) => () => void;
   };
   node: {
     read: (payload: NodePathPayload) => Promise<FolderNode | RequestNode>;

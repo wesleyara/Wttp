@@ -147,3 +147,15 @@ export interface RecentWorkspace {
   /** ISO 8601, última vez que este workspace foi aberto ou criado. */
   lastOpened: string;
 }
+
+/**
+ * Evento `workspace:changed` (EP-04-T05) — main → renderer, fora do `IpcContract` de
+ * invoke/result pelo mesmo motivo que `HttpProgressEvent`/`MenuAction`. `changedPaths`
+ * são os caminhos (relativos à raiz) que motivaram a reconciliação — quem consome o
+ * evento usa isso para saber se algum deles corresponde a uma aba com edições não
+ * salvas, antes de trocar a árvore exibida.
+ */
+export interface WorkspaceChangedEvent {
+  tree: WorkspaceTree;
+  changedPaths: string[];
+}

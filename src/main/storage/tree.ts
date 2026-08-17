@@ -35,6 +35,12 @@ import {
   validateRequest,
   validateWorkspace,
 } from "./validate";
+import {
+  clearKnownMtimesUnder,
+  getKnownMtime,
+  markOwnWrite,
+  recordKnownMtime,
+} from "./writeTracker";
 
 const WORKSPACE_FILE = "wttp.yaml";
 const FOLDER_FILE = "folder.yaml";
@@ -192,13 +198,47 @@ export async function scanWorkspace(root: string): Promise<WorkspaceTree> {
   return { root, data, issues, environments, children };
 }
 
+/** Caminho do arquivo que de fato guarda o conteúdo de um nó — o próprio arquivo para uma request, `folder.yaml` para uma pasta. */
+function contentPath(absPath: string, kind: WorkspaceNode["kind"]): string {
+  return kind === "folder" ? join(absPath, FOLDER_FILE) : absPath;
+}
+
 /** Lê um único nó — pasta (diretório) ou request (`*.req.yaml`) — usado por `node:read`. */
 export async function readNode(root: string, relPath: string): Promise<WorkspaceNode> {
   const absPath = resolveWorkspacePath(root, relPath);
   const stat = await fs.stat(absPath).catch(() => null);
   if (!stat) throw new DomainError("ENOENT", `node not found: "${relPath}"`, relPath);
 
-  return stat.isDirectory() ? readFolderNode(root, relPath) : readRequestNode(root, relPath);
+  const node = stat.isDirectory()
+    ? await readFolderNode(root, relPath)
+    : await readRequestNode(root, relPath);
+
+  // Marca a versão vista agora — base de comparação para o `writeNode` que vier depois
+  // recusar sobrescrever uma edição externa acontecida nesse meio-tempo.
+  const contentStat = await fs.stat(contentPath(absPath, node.kind)).catch(() => null);
+  if (contentStat) recordKnownMtime(contentPath(absPath, node.kind), contentStat.mtimeMs);
+
+  return node;
+}
+
+/**
+ * Recusa a escrita se o arquivo mudou no disco desde a última vez que este processo o
+ * leu (`readNode`) ou escreveu — docs/backlog EP-04-T05: "nada é perdido
+ * silenciosamente". Sem leitura prévia conhecida (nó recém-criado no app), não há o
+ * que comparar e a escrita segue normalmente.
+ */
+async function assertNoConflict(path: string, relPath: string): Promise<void> {
+  const known = getKnownMtime(path);
+  if (known === undefined) return;
+
+  const stat = await fs.stat(path).catch(() => null);
+  if (!stat || stat.mtimeMs !== known) {
+    throw new DomainError(
+      "CONFLICT",
+      `file changed on disk since it was last read: "${relPath}"`,
+      relPath,
+    );
+  }
 }
 
 /** Serializa e grava `node.data` atomicamente no caminho do nó — usado por `node:write`. */
@@ -208,18 +248,22 @@ export async function writeNode(root: string, relPath: string, node: WorkspaceNo
   }
 
   const absPath = resolveWorkspacePath(root, relPath);
+  const path = contentPath(absPath, node.kind);
+  await assertNoConflict(path, relPath);
 
   if (node.kind === "folder") {
-    await writeFileAtomic(join(absPath, FOLDER_FILE), serializeFolder(node.data as FolderFile));
+    await writeFileAtomic(path, serializeFolder(node.data as FolderFile));
   } else {
-    await writeFileAtomic(absPath, serializeRequest(node.data as RequestFile));
+    await writeFileAtomic(path, serializeRequest(node.data as RequestFile));
   }
 }
 
 /** Remove um nó — arquivo de request, ou diretório de pasta com tudo dentro — `node:delete`. */
 export async function deleteNode(root: string, relPath: string): Promise<void> {
   const absPath = resolveWorkspacePath(root, relPath);
+  markOwnWrite(absPath);
   await fs.rm(absPath, { recursive: true, force: true });
+  clearKnownMtimesUnder(absPath);
 }
 
 async function writeSeq(root: string, node: WorkspaceNode, newSeq: number): Promise<void> {
@@ -243,7 +287,10 @@ export async function moveNode(root: string, from: string, to: string, seq: numb
 
   if (absFrom !== absTo) {
     await fs.mkdir(dirname(absTo), { recursive: true });
+    markOwnWrite(absFrom);
+    markOwnWrite(absTo);
     await fs.rename(absFrom, absTo);
+    clearKnownMtimesUnder(absFrom);
   }
 
   const targetSiblings = (await scanChildren(root, targetDir))

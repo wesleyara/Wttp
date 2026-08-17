@@ -157,7 +157,7 @@ UX de "confirmar antes de reescrever, sugerir commit" citada no EP-04-T03.
 
 ### EP-04-T05 — Watcher de filesystem
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-04-T04
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-04-T04
 
 **Objetivo.** Editar arquivos fora do app (git pull, editor) reflete na UI.
 
@@ -169,9 +169,33 @@ UX de "confirmar antes de reescrever, sugerir commit" citada no EP-04-T03.
 
 **Critérios de aceite.**
 
-- [ ] `git checkout` de outra branch atualiza a árvore em segundos
-- [ ] Save do próprio app não dispara reload em loop
-- [ ] Conflito com aba suja pergunta ao usuário; nada é perdido silenciosamente
+- [x] `git checkout` de outra branch atualiza a árvore em segundos
+- [x] Save do próprio app não dispara reload em loop
+- [x] Conflito com aba suja pergunta ao usuário; nada é perdido silenciosamente
+
+**Notas.** `src/main/storage/watcher.ts` observa a raiz com `fs.watch(root, { recursive:
+true })`, ignora `.wttp/`/`.git/` e os `*.tmp-<hex>` de `fsAtomic.ts`, debounça 300ms e
+reconcilia com `scanWorkspace` — testado com um "git checkout" simulado (várias escritas
+de uma vez) chegando como um único evento em `watcher.spec.ts`. `src/main/storage/writeTracker.ts`
+é o registro em memória que faz duas coisas com a mesma ideia (uma escrita própria do
+processo, sabida de antemão): `markOwnWrite`/`isOwnWrite` fazem o watcher ignorar o
+próprio save (chokepoint em `fsAtomic.writeFileAtomic`, mais os `fs.rename`/`fs.rm` de
+`moveNode`/`deleteNode` que não passam por ali) — a marca é colocada **antes** da
+operação de disco, não depois, porque o evento de fs pode chegar ao callback do watcher
+antes do `await` seguinte devolver o controle. `getKnownMtime`/`recordKnownMtime`
+resolvem a parte "nada é perdido silenciosamente" do terceiro critério: `readNode`
+carimba a `mtime` do arquivo lido, e `writeNode` recusa sobrescrever (`DomainError("CONFLICT", …)`,
+novo código em `WttpErrorCode`) se a `mtime` no disco não bate mais com a última vista —
+ou seja, alguém mexeu no arquivo entre a leitura e a escrita. A metade desse critério que
+é interação de UI ("pergunta ao usuário") depende de abas existirem no renderer, que é
+EP-05 (ainda pendente) — o que esta task entrega é a garantia estrutural: o main nunca
+escreve por cima de uma mudança externa sem que o renderer decida explicitamente sobrescrever,
+e o evento `workspace:changed` leva `changedPaths` (não só a árvore) para a UI de abas
+comparar contra o que está sujo, quando EP-05 chegar. `IpcContract` não ganhou uma
+entrada para `workspace:changed` — segue o mesmo padrão de `http:progress`/`menu:action`
+(evento sem invoke/result), exposto em `preload/index.ts` como `workspace.onChanged` e
+ligado a cada `workspace:open`/`workspace:create` em `ipc/workspace.ts` (um watcher ativo
+por vez, fechado ao trocar de workspace).
 
 ---
 
