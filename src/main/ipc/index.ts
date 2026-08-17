@@ -1,8 +1,10 @@
 import { registerAppHandlers } from "./app";
 import { registerDialogHandlers } from "./dialog";
 import { registerHttpHandlers } from "./http";
+import { registerNodeHandlers } from "./node";
 import { registerSettingsHandlers } from "./settings";
 import { registerUiHandlers } from "./ui";
+import { registerWorkspaceHandlers } from "./workspace";
 
 /** Um `register*Handlers` por domínio, chamado uma vez no bootstrap do main. */
 export function registerIpcHandlers(): void {
@@ -11,4 +13,6 @@ export function registerIpcHandlers(): void {
   registerSettingsHandlers();
   registerHttpHandlers();
   registerDialogHandlers();
+  registerWorkspaceHandlers();
+  registerNodeHandlers();
 }

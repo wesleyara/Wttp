@@ -1,13 +1,22 @@
 import type {
   AppInfo,
   AppSettings,
+  CreateWorkspacePayload,
+  FolderNode,
   HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
   MenuAction,
+  MoveNodePayload,
+  NodePathPayload,
+  OpenWorkspacePayload,
+  RecentWorkspace,
+  RequestNode,
   SaveFilePayload,
   SaveFileResult,
   UiState,
+  WorkspaceTree,
+  WriteNodePayload,
 } from "@shared";
 
 import { electronAPI } from "@electron-toolkit/preload";
@@ -44,6 +53,20 @@ const wttp = {
   dialog: {
     saveFile: (payload: SaveFilePayload): Promise<SaveFileResult> =>
       invoke("dialog:saveFile", payload),
+  },
+  workspace: {
+    open: (payload: OpenWorkspacePayload = {}): Promise<WorkspaceTree | null> =>
+      invoke("workspace:open", payload),
+    create: (payload: CreateWorkspacePayload): Promise<WorkspaceTree> =>
+      invoke("workspace:create", payload),
+    recent: (): Promise<RecentWorkspace[]> => invoke("workspace:recent"),
+  },
+  node: {
+    read: (payload: NodePathPayload): Promise<FolderNode | RequestNode> =>
+      invoke("node:read", payload),
+    write: (payload: WriteNodePayload): Promise<void> => invoke("node:write", payload),
+    move: (payload: MoveNodePayload): Promise<void> => invoke("node:move", payload),
+    delete: (payload: NodePathPayload): Promise<void> => invoke("node:delete", payload),
   },
   menu: {
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).

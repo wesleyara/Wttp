@@ -83,3 +83,67 @@ export interface EnvironmentFile extends UnknownFields {
   name: string;
   variables?: EnvironmentVariable[];
 }
+
+/**
+ * Árvore de um workspace lida do disco (EP-04-T04) — o que `workspace:open` e
+ * `workspace:create` devolvem ao renderer. Espelha o layout de diretórios de
+ * docs/file-format.md §1, não a hierarquia de `import`/`export` do resto do app.
+ */
+
+/** Localização de um problema de schema num nó da árvore — ver `SchemaIssue` no main. */
+export interface WorkspaceNodeIssue {
+  /** Caminho pontuado até o campo problemático, relativo ao próprio arquivo do nó. */
+  path: string;
+  message: string;
+  /** 1-indexed. Ausente quando o problema não é localizável num campo do arquivo. */
+  line?: number;
+}
+
+/**
+ * Uma pasta/collection. `path` é o diretório, relativo à raiz do workspace ("" para a
+ * raiz). `data` é `null` quando não existe `folder.yaml` (pasta "nua", válida) **ou**
+ * quando existe mas é inválido — nesse segundo caso `issues` vem preenchido e a pasta
+ * continua navegável, com seus filhos, docs/file-format.md §7.
+ */
+export interface FolderNode {
+  kind: "folder";
+  path: string;
+  /** `data.name` quando presente e válido; senão o nome do diretório. */
+  name: string;
+  /** `data.seq` quando presente e válido; senão um valor alto, para ordenar por último. */
+  seq: number;
+  data: FolderFile | null;
+  issues?: WorkspaceNodeIssue[];
+  children: WorkspaceNode[];
+}
+
+/** Uma request. `data` é `null` quando o arquivo é inválido — ver `FolderNode`. */
+export interface RequestNode {
+  kind: "request";
+  /** Caminho do arquivo `*.req.yaml`, relativo à raiz do workspace. */
+  path: string;
+  name: string;
+  seq: number;
+  data: RequestFile | null;
+  issues?: WorkspaceNodeIssue[];
+}
+
+export type WorkspaceNode = FolderNode | RequestNode;
+
+/** Árvore completa de um workspace — devolvida por `workspace:open`/`workspace:create`. */
+export interface WorkspaceTree {
+  /** Caminho absoluto da raiz do workspace na máquina do usuário. */
+  root: string;
+  data: WorkspaceFile | null;
+  issues?: WorkspaceNodeIssue[];
+  environments: EnvironmentFile[];
+  children: WorkspaceNode[];
+}
+
+/** Entrada da lista de workspaces recentes (`workspace:recent`), fora do YAML. */
+export interface RecentWorkspace {
+  path: string;
+  name: string;
+  /** ISO 8601, última vez que este workspace foi aberto ou criado. */
+  lastOpened: string;
+}
