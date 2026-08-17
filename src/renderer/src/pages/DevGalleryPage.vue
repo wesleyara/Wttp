@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { WorkspaceNode } from "@shared";
+
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
 import ResponsePanel from "@renderer/components/ResponsePanel.vue";
@@ -11,6 +13,7 @@ import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import WSelect from "@renderer/components/WSelect.vue";
 import WStatusBadge from "@renderer/components/WStatusBadge.vue";
 import WTabs from "@renderer/components/WTabs.vue";
+import WTree from "@renderer/components/WTree.vue";
 import { useRequestStore } from "@renderer/stores/request";
 import { onMounted, ref } from "vue";
 
@@ -64,6 +67,44 @@ function loadBigDoc(): void {
 const kvRows = ref<KeyValueRow[]>([
   { enabled: true, name: "Content-Type", value: "application/json", description: "" },
 ]);
+
+// 1000 nós gerados — verificação manual da AC "1000 nós rolam a 60fps" (EP-05-T02),
+// já que este ambiente não abre uma janela real para medir fps de verdade.
+function generateTreeNodes(count: number): WorkspaceNode[] {
+  const folders: WorkspaceNode[] = Array.from({ length: 20 }, (_, i) => ({
+    kind: "folder" as const,
+    path: `folder-${i}`,
+    name: `Folder ${i}`,
+    seq: i,
+    data: { wttp: 1, name: `Folder ${i}`, seq: i },
+    children: [],
+  }));
+
+  for (let i = 0; i < count; i++) {
+    const folder = folders[i % folders.length] as Extract<WorkspaceNode, { kind: "folder" }>;
+    const methods = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+    folder.children.push({
+      kind: "request",
+      path: `${folder.path}/request-${i}.req.yaml`,
+      name: `Request ${i}`,
+      seq: folder.children.length,
+      data: {
+        wttp: 1,
+        name: `Request ${i}`,
+        seq: folder.children.length,
+        method: methods[i % methods.length] as never,
+        url: `{{base_url}}/items/${i}`,
+      },
+    });
+  }
+
+  return folders;
+}
+
+const treeNodes = generateTreeNodes(1000);
+const treeExpandedPaths = ref(new Set<string>());
+const treeSelectedPath = ref<string | null>(null);
+const treeFilterText = ref("");
 </script>
 
 <template>
@@ -156,6 +197,23 @@ const kvRows = ref<KeyValueRow[]>([
           <div v-if="bigDocLoaded" class="mt-2 h-40">
             <WCodeEditor v-model="bigDoc" language="json" read-only />
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mb-8 flex flex-col gap-3">
+      <h2 class="font-inter text-xs font-medium uppercase text-faint">WTree (1000 nós gerados)</h2>
+      <div class="flex max-w-md flex-col gap-2">
+        <WInput v-model="treeFilterText" placeholder="Filter…" />
+        <div class="h-96 rounded-md border border-subtle bg-surface-2">
+          <WTree
+            :nodes="treeNodes"
+            :expanded-paths="treeExpandedPaths"
+            :selected-path="treeSelectedPath"
+            :filter-text="treeFilterText"
+            @update:expanded-paths="treeExpandedPaths = $event"
+            @update:selected-path="treeSelectedPath = $event"
+          />
         </div>
       </div>
     </section>

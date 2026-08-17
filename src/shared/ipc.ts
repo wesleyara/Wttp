@@ -8,7 +8,13 @@
  */
 
 import type { HttpRequestSpec, HttpResponseResult } from "./http";
-import type { FolderNode, RecentWorkspace, RequestNode, WorkspaceTree } from "./storage";
+import type {
+  FolderNode,
+  RecentWorkspace,
+  RequestNode,
+  WorkspaceTree,
+  WorkspaceUiState,
+} from "./storage";
 
 export interface AppInfo {
   version: string;
@@ -96,6 +102,17 @@ export interface RemoveRecentWorkspacePayload {
   path: string;
 }
 
+/** Payload de `workspace:getUiState` (EP-05-T02) — a raiz do workspace cujo `.wttp/ui-state.json` ler. */
+export interface WorkspaceRootPayload {
+  root: string;
+}
+
+/** Payload de `workspace:setUiState` (EP-05-T02). */
+export interface SetWorkspaceUiStatePayload {
+  root: string;
+  state: WorkspaceUiState;
+}
+
 /**
  * `key` é a chave completa `wttp:<workspaceId>:<env>:<name>` (docs/file-format.md §5) —
  * quem monta essa string é o chamador (a store de environments, EP-06), não o main.
@@ -141,6 +158,8 @@ export interface IpcContract {
   "workspace:create": { payload: CreateWorkspacePayload; result: WorkspaceTree };
   "workspace:recent": { payload: void; result: RecentWorkspace[] };
   "workspace:removeRecent": { payload: RemoveRecentWorkspacePayload; result: RecentWorkspace[] };
+  "workspace:getUiState": { payload: WorkspaceRootPayload; result: WorkspaceUiState };
+  "workspace:setUiState": { payload: SetWorkspaceUiStatePayload; result: void };
   "node:read": { payload: NodePathPayload; result: FolderNode | RequestNode };
   "node:write": { payload: WriteNodePayload; result: void };
   "node:move": { payload: MoveNodePayload; result: void };

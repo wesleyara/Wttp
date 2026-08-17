@@ -18,9 +18,12 @@ import type {
   SaveFilePayload,
   SaveFileResult,
   SecretStorageStatus,
+  SetWorkspaceUiStatePayload,
   UiState,
   WorkspaceChangedEvent,
+  WorkspaceRootPayload,
   WorkspaceTree,
+  WorkspaceUiState,
   WriteNodePayload,
 } from "@shared";
 
@@ -50,6 +53,8 @@ interface WttpApi {
     create: (payload: CreateWorkspacePayload) => Promise<WorkspaceTree>;
     recent: () => Promise<RecentWorkspace[]>;
     removeRecent: (payload: RemoveRecentWorkspacePayload) => Promise<RecentWorkspace[]>;
+    getUiState: (payload: WorkspaceRootPayload) => Promise<WorkspaceUiState>;
+    setUiState: (payload: SetWorkspaceUiStatePayload) => Promise<void>;
     onChanged: (callback: (event: WorkspaceChangedEvent) => void) => () => void;
   };
   node: {

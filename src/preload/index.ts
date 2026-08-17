@@ -17,9 +17,12 @@ import type {
   SaveFilePayload,
   SaveFileResult,
   SecretStorageStatus,
+  SetWorkspaceUiStatePayload,
   UiState,
   WorkspaceChangedEvent,
+  WorkspaceRootPayload,
   WorkspaceTree,
+  WorkspaceUiState,
   WriteNodePayload,
 } from "@shared";
 
@@ -67,6 +70,10 @@ const wttp = {
     recent: (): Promise<RecentWorkspace[]> => invoke("workspace:recent"),
     removeRecent: (payload: RemoveRecentWorkspacePayload): Promise<RecentWorkspace[]> =>
       invoke("workspace:removeRecent", payload),
+    getUiState: (payload: WorkspaceRootPayload): Promise<WorkspaceUiState> =>
+      invoke("workspace:getUiState", payload),
+    setUiState: (payload: SetWorkspaceUiStatePayload): Promise<void> =>
+      invoke("workspace:setUiState", payload),
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
     onChanged: (callback: (event: WorkspaceChangedEvent) => void): (() => void) => {
       const listener = (_event: Electron.IpcRendererEvent, changed: WorkspaceChangedEvent): void =>

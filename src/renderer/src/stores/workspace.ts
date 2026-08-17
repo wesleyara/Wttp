@@ -1,7 +1,11 @@
-import type { RecentWorkspace, WorkspaceTree, WttpError } from "@shared";
+import type { RecentWorkspace, WorkspaceTree, WorkspaceUiState, WttpError } from "@shared";
 
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+
+const PERSIST_UI_STATE_DEBOUNCE_MS = 300;
+
+const EMPTY_UI_STATE: WorkspaceUiState = { expandedPaths: [], openTabs: [], activeTabPath: null };
 
 /**
  * Workspace atualmente aberto (EP-05-T01) — a raiz que toda a UI de collections/abas
@@ -14,6 +18,13 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   const loading = ref(false);
   const initialized = ref(false);
   const error = ref<WttpError | null>(null);
+  /**
+   * `.wttp/ui-state.json` do workspace aberto — pastas expandidas (EP-05-T02), abas
+   * abertas (EP-05-T05). Único ponto de leitura/escrita: `useTreeStore` e
+   * `useRequestTabsStore` só chamam `patchUiState`, nunca o IPC direto, para as duas
+   * nunca se pisarem escrevendo o arquivo ao mesmo tempo.
+   */
+  const uiState = ref<WorkspaceUiState>(EMPTY_UI_STATE);
 
   const root = computed(() => tree.value?.root ?? null);
   /** `wttp.yaml` ausente ou inválido — a pasta aberta ainda não é um workspace de verdade. */
@@ -22,12 +33,31 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   const ready = computed(() => tree.value !== null && !needsInit.value);
 
   let stopWatchingChanges: (() => void) | null = null;
+  let persistUiStateTimer: ReturnType<typeof setTimeout> | null = null;
 
   function watchChanges(): void {
     stopWatchingChanges?.();
     stopWatchingChanges = window.wttp.workspace.onChanged(event => {
       if (tree.value && event.tree.root === tree.value.root) tree.value = event.tree;
     });
+  }
+
+  async function loadUiState(): Promise<void> {
+    if (!root.value) return;
+    uiState.value = await window.wttp.workspace.getUiState({ root: root.value });
+  }
+
+  /** Mescla `patch` no estado local e agenda a escrita em disco (debounced). */
+  function patchUiState(patch: Partial<WorkspaceUiState>): void {
+    if (!root.value) return;
+    uiState.value = { ...uiState.value, ...patch };
+
+    const currentRoot = root.value;
+    const nextState = uiState.value;
+    if (persistUiStateTimer) clearTimeout(persistUiStateTimer);
+    persistUiStateTimer = setTimeout(() => {
+      void window.wttp.workspace.setUiState({ root: currentRoot, state: nextState });
+    }, PERSIST_UI_STATE_DEBOUNCE_MS);
   }
 
   async function refreshRecents(): Promise<void> {
@@ -52,6 +82,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
       if (opened) {
         tree.value = opened;
         watchChanges();
+        await loadUiState();
       }
       await refreshRecents();
     } catch (e) {
@@ -67,6 +98,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     try {
       tree.value = await window.wttp.workspace.create({ path, name });
       watchChanges();
+      await loadUiState();
       await refreshRecents();
     } catch (e) {
       error.value = e as WttpError;
@@ -88,7 +120,10 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   function close(): void {
     stopWatchingChanges?.();
     stopWatchingChanges = null;
+    if (persistUiStateTimer) clearTimeout(persistUiStateTimer);
+    persistUiStateTimer = null;
     tree.value = null;
+    uiState.value = EMPTY_UI_STATE;
   }
 
   return {
@@ -96,6 +131,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     recents,
     loading,
     error,
+    uiState,
     root,
     needsInit,
     ready,
@@ -104,6 +140,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     create,
     pickFolder,
     removeRecent,
+    patchUiState,
     close,
   };
 });
