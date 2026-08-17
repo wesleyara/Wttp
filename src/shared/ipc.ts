@@ -13,6 +13,18 @@ export interface AppInfo {
 }
 
 /**
+ * Estado de UI persistido entre sessões (EP-02-T04). Especificado em
+ * docs/conventions.md como `.wttp/ui-state.json` do workspace; como o EP-04 (leitura e
+ * escrita de workspace) ainda não existe, fica hoje em `app.getPath("userData")` —
+ * migra para o arquivo por-workspace quando o EP-04 chegar.
+ */
+export interface UiState {
+  sidebarWidth: number;
+  responsePanelSize: number;
+  responsePanelPosition: "side" | "bottom";
+}
+
+/**
  * Canal → forma do payload e do retorno.
  *
  * Cada linha aqui é a fonte da verdade de um canal: `handle` no main e `invoke` no
@@ -21,6 +33,8 @@ export interface AppInfo {
  */
 export interface IpcContract {
   "app:ping": { payload: void; result: AppInfo };
+  "ui:getState": { payload: void; result: UiState };
+  "ui:setState": { payload: Partial<UiState>; result: UiState };
 }
 
 export type IpcChannel = keyof IpcContract;
