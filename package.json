@@ -39,7 +39,8 @@
     "codemirror": "^6.0.2",
     "electron-updater": "^6.3.9",
     "pinia": "^4.0.3",
-    "vue-router": "^5.2.0"
+    "vue-router": "^5.2.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "3.0.0",

@@ -1,0 +1,6 @@
+wttp: 1
+name: dev
+variables:
+  - { name: base_url, value: https://api.dev.example.com, enabled: true }
+  - { name: user_email, value: dev@example.com, enabled: true }
+  - { name: api_key, value: "", enabled: true, secret: true }

@@ -1,6 +1,6 @@
 # EP-04 — Formato de arquivo e persistência
 
-**Status:** Pendente · **Alvo:** v0.1 · **Depende de:** EP-03
+**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-03
 
 Implementar [file-format.md](../file-format.md). Este épico é onde a promessa "git-friendly" é cumprida ou perdida — as regras invioláveis do documento são critérios de aceite, não sugestões.
 
@@ -8,7 +8,7 @@ Implementar [file-format.md](../file-format.md). Este épico é onde a promessa 
 
 ### EP-04-T01 — Parser e serializer YAML
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-03-T01
+**Status:** Concluída · **Tamanho:** G · **Depende de:** EP-03-T01
 
 **Objetivo.** Converter entre arquivo em disco e modelo em memória, sem perdas.
 
@@ -21,10 +21,21 @@ Implementar [file-format.md](../file-format.md). Este épico é onde a promessa 
 
 **Critérios de aceite.**
 
-- [ ] Teste de round-trip: ler → serializar → **bytes idênticos**, para todos os tipos de arquivo
-- [ ] Um arquivo com chave desconhecida sobrevive a um ciclo de leitura e escrita
-- [ ] Alterar um único header muda uma única linha no diff
-- [ ] Body multilinha permanece legível no YAML
+- [x] Teste de round-trip: ler → serializar → **bytes idênticos**, para todos os tipos de arquivo
+- [x] Um arquivo com chave desconhecida sobrevive a um ciclo de leitura e escrita
+- [x] Alterar um único header muda uma única linha no diff
+- [x] Body multilinha permanece legível no YAML
+
+**Notas.** Tipos em `src/shared/storage.ts`, reaproveitando `KeyValueEntry`/`AuthConfig`/`RequestBody`
+de `http.ts`. Ordem de chaves e variantes de `body`/`auth` centralizadas em
+`src/main/storage/fieldOrder.ts`; a construção do YAML (`yaml` — eemeli/yaml) fica em
+`yamlDocument.ts`, com os pares `query`/`headers`/`variables`/`urlencoded`/`multipart`
+forçados a mapas flow (`{ name: a, value: b }`) para bater com os exemplos do
+file-format.md. Campos desconhecidos ficam em `unknown: Record<string, unknown>` e são
+regravados ao final do arquivo. A regra "segredo jamais em YAML" já é aplicada aqui:
+`secret: true` força `value: ""` na serialização, independente do que o objeto em
+memória carregar — a leitura/escrita do keychain em si é EP-04-T06. Validação de schema
+(mensagens de erro, linha, nó inválido) é EP-04-T02, fora de escopo aqui.
 
 ---
 

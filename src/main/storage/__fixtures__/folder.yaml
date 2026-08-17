@@ -1,0 +1,7 @@
+wttp: 1
+name: Auth
+seq: 1
+auth:
+  type: none
+docs: |
+  Endpoints de autenticação e renovação de sessão.
