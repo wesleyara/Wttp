@@ -112,3 +112,14 @@ export interface HttpResponseFailure {
 }
 
 export type HttpResponseResult = HttpResponseSuccess | HttpResponseFailure;
+
+/**
+ * Evento main → renderer emitido durante o download da resposta (EP-03-T03), fora do
+ * `IpcContract` pelo mesmo motivo que `MenuAction`: não é um `invoke`/`result`.
+ */
+export interface HttpProgressEvent {
+  requestId: string;
+  bytesReceived: number;
+  /** Do `Content-Length` da resposta, quando presente. */
+  totalBytes?: number;
+}
