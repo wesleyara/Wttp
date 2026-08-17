@@ -1,4 +1,6 @@
-singleQuote: true
-semi: false
+semi: true
+singleQuote: false
 printWidth: 100
-trailingComma: none
+tabWidth: 2
+trailingComma: all
+arrowParens: avoid

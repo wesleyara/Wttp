@@ -1,22 +1,29 @@
-import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import type { AppInfo } from "@shared";
 
-// Custom APIs for renderer
-const api = {}
+import { electronAPI } from "@electron-toolkit/preload";
+import { contextBridge } from "electron";
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+import { invoke } from "./ipc";
+
+// Superfície exposta ao renderer. Métodos específicos, nunca `ipcRenderer` inteiro
+// nem um `invoke(channel, ...)` genérico — isso reabriria a superfície que o
+// contextBridge existe para fechar.
+const wttp = {
+  app: {
+    ping: (): Promise<AppInfo> => invoke("app:ping"),
+  },
+};
+
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld("electron", electronAPI);
+    contextBridge.exposeInMainWorld("wttp", wttp);
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
 } else {
   // @ts-ignore (define in dts)
-  window.electron = electronAPI
+  window.electron = electronAPI;
   // @ts-ignore (define in dts)
-  window.api = api
+  window.wttp = wttp;
 }

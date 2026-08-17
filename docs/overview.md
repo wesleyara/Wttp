@@ -21,15 +21,15 @@ Design pensado para ser intuitivo e fácil de usar, com uma interface limpa e or
 
 ## Documentação
 
-Este documento descreve o *que* o Wttp é. O *como* está nos documentos abaixo.
+Este documento descreve o _que_ o Wttp é. O _como_ está nos documentos abaixo.
 
-| Documento | Conteúdo |
-|---|---|
-| [architecture.md](architecture.md) | Processos do Electron, contrato IPC, fluxo de uma requisição |
-| [file-format.md](file-format.md) | Especificação do YAML em disco — o contrato com o Git do usuário |
-| [design-system.md](design-system.md) | Paleta, tokens semânticos, tipografia, componentes base |
-| [conventions.md](conventions.md) | Convenções de código, estado, lint, testes e git |
-| [backlog/](backlog/README.md) | Épicos e tasks do MVP e da evolução futura |
+| Documento                            | Conteúdo                                                         |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| [architecture.md](architecture.md)   | Processos do Electron, contrato IPC, fluxo de uma requisição     |
+| [file-format.md](file-format.md)     | Especificação do YAML em disco — o contrato com o Git do usuário |
+| [design-system.md](design-system.md) | Paleta, tokens semânticos, tipografia, componentes base          |
+| [conventions.md](conventions.md)     | Convenções de código, estado, lint, testes e git                 |
+| [backlog/](backlog/README.md)        | Épicos e tasks do MVP e da evolução futura                       |
 
 ### Decisões de base
 

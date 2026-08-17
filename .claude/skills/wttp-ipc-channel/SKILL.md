@@ -16,7 +16,7 @@ Nome do canal no formato `dominio:acao`. Registre no `IpcContract`:
 ```ts
 export interface IpcContract {
   // ...
-  "env:save": { payload: Environment; result: void }
+  "env:save": { payload: Environment; result: void };
 }
 ```
 
@@ -28,9 +28,9 @@ Um arquivo por domínio. O handler é fino: valida a entrada, delega, mapeia o e
 
 ```ts
 handle("env:save", async payload => {
-  assertEnvironment(payload)      // valida — o renderer não é confiável
-  await saveEnvironment(payload)  // delega para a camada de domínio
-})
+  assertEnvironment(payload); // valida — o renderer não é confiável
+  await saveEnvironment(payload); // delega para a camada de domínio
+});
 ```
 
 Regras:
@@ -48,7 +48,7 @@ contextBridge.exposeInMainWorld("wttp", {
   env: {
     save: (env: Environment) => invoke("env:save", env),
   },
-})
+});
 ```
 
 E declare o tipo em `src/preload/index.d.ts`, senão o renderer não enxerga o método.
@@ -63,9 +63,9 @@ O componente **não** chama `window.wttp.*`. A store chama:
 // stores/environment.ts
 async function save(env: Environment) {
   try {
-    await window.wttp.env.save(env)
+    await window.wttp.env.save(env);
   } catch (e) {
-    error.value = e as WttpError
+    error.value = e as WttpError;
   }
 }
 ```
@@ -78,10 +78,10 @@ Para fluxo contínuo (`http:progress`, `workspace:changed`), exponha um subscrib
 
 ```ts
 onProgress: (cb: (p: HttpProgress) => void) => {
-  const listener = (_: unknown, p: HttpProgress) => cb(p)
-  ipcRenderer.on("http:progress", listener)
-  return () => ipcRenderer.off("http:progress", listener)
-}
+  const listener = (_: unknown, p: HttpProgress) => cb(p);
+  ipcRenderer.on("http:progress", listener);
+  return () => ipcRenderer.off("http:progress", listener);
+};
 ```
 
 O renderer **precisa** chamar essa função no `onUnmounted` — sem isso, vazam listeners a cada montagem.

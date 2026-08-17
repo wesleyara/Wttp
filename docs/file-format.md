@@ -41,12 +41,12 @@ name: My API
 description: Backend público da plataforma.
 defaultEnvironment: dev
 settings:
-  timeout: 30000          # ms
+  timeout: 30000 # ms
   followRedirects: true
   maxRedirects: 10
   validateTls: true
-  scriptTimeout: 5000     # ms
-variables:                # variáveis globais do workspace
+  scriptTimeout: 5000 # ms
+variables: # variáveis globais do workspace
   - { name: api_version, value: v2, enabled: true }
 ```
 
@@ -82,10 +82,10 @@ headers:
   - { name: X-Request-Id, value: "{{$uuid}}", enabled: true }
 
 auth:
-  type: inherit           # none | inherit | bearer | basic | apikey
+  type: inherit # none | inherit | bearer | basic | apikey
 
 body:
-  type: json              # none | json | form | urlencoded | raw | multipart | binary
+  type: json # none | json | form | urlencoded | raw | multipart | binary
   json: |
     {
       "email": "{{user_email}}",
@@ -93,7 +93,7 @@ body:
     }
 
 settings:
-  timeout: 10000          # sobrescreve o workspace
+  timeout: 10000 # sobrescreve o workspace
 
 scripts:
   preRequest: |
@@ -139,11 +139,11 @@ Caminhos de arquivo são **relativos à raiz do workspace** — nunca absolutos,
 ### Variantes de `auth`
 
 ```yaml
-auth: { type: inherit }                                   # herda da pasta/collection
-auth: { type: none }                                      # corta a herança
+auth: { type: inherit } # herda da pasta/collection
+auth: { type: none } # corta a herança
 auth: { type: bearer, bearer: { token: "{{access_token}}" } }
 auth: { type: basic, basic: { username: "{{user}}", password: "{{pass}}" } }
-auth: { type: apikey, apikey: { key: X-Api-Key, value: "{{api_key}}", in: header } }  # in: header | query
+auth: { type: apikey, apikey: { key: X-Api-Key, value: "{{api_key}}", in: header } } # in: header | query
 ```
 
 ## 5. `environments/*.yaml`
@@ -196,12 +196,12 @@ users/list-users.req.yaml:7
 
 Além das variáveis de usuário, o resolvedor entende um conjunto fechado de geradores, prefixados com `$`:
 
-| Variável | Resultado |
-|---|---|
-| `{{$uuid}}` | UUID v4 |
-| `{{$timestamp}}` | epoch em segundos |
-| `{{$isoTimestamp}}` | ISO 8601 |
-| `{{$randomInt}}` | inteiro de 0 a 1000 |
+| Variável            | Resultado           |
+| ------------------- | ------------------- |
+| `{{$uuid}}`         | UUID v4             |
+| `{{$timestamp}}`    | epoch em segundos   |
+| `{{$isoTimestamp}}` | ISO 8601            |
+| `{{$randomInt}}`    | inteiro de 0 a 1000 |
 
 **Precedência na resolução** (a primeira que definir o nome vence):
 

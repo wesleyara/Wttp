@@ -8,9 +8,9 @@ Visão do produto: [docs/overview.md](docs/overview.md).
 
 ## Estado do projeto
 
-**Pré-MVP.** A fundação está sendo criada pelo **EP-01**. O scaffold antigo não existe mais; a paleta e as famílias tipográficas que ele definia sobrevivem em [docs/design-system.md](docs/design-system.md), que é a fonte da verdade visual.
+**Pré-MVP.** A fundação (**EP-01**) está pronta: electron-vite com os três processos comunicando, IPC tipado, Tailwind com a paleta preservada, Pinia, vue-router e o ferramental de qualidade ligado. Nenhuma funcionalidade de produto existe ainda — o app abre uma janela vazia.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-01**.
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-02**.
 
 ---
 
@@ -57,21 +57,21 @@ yarn build:linux     # instalador (também :win, :mac)
 
 ## Referência
 
-| Documento | Conteúdo |
-|---|---|
-| [docs/overview.md](docs/overview.md) | visão do produto |
-| [docs/architecture.md](docs/architecture.md) | processos, contrato IPC, fluxo de uma requisição |
-| [docs/file-format.md](docs/file-format.md) | especificação do YAML em disco |
-| [docs/design-system.md](docs/design-system.md) | paleta, tokens, tipografia, componentes base |
-| [docs/conventions.md](docs/conventions.md) | código, estado, lint, testes, git |
-| [docs/backlog/README.md](docs/backlog/README.md) | épicos e tasks |
+| Documento                                        | Conteúdo                                         |
+| ------------------------------------------------ | ------------------------------------------------ |
+| [docs/overview.md](docs/overview.md)             | visão do produto                                 |
+| [docs/architecture.md](docs/architecture.md)     | processos, contrato IPC, fluxo de uma requisição |
+| [docs/file-format.md](docs/file-format.md)       | especificação do YAML em disco                   |
+| [docs/design-system.md](docs/design-system.md)   | paleta, tokens, tipografia, componentes base     |
+| [docs/conventions.md](docs/conventions.md)       | código, estado, lint, testes, git                |
+| [docs/backlog/README.md](docs/backlog/README.md) | épicos e tasks                                   |
 
 ## Skills
 
-| Skill | Quando |
-|---|---|
-| `wttp-task` | executar uma task do backlog (`EP-XX-TYY`) |
-| `wttp-vue-component` | criar ou editar componente/página Vue |
-| `wttp-ipc-channel` | adicionar ou alterar comunicação main↔renderer |
-| `wttp-file-format` | ler, gravar ou migrar arquivos de workspace |
-| `wttp-importer` | adicionar importador (Postman, Insomnia, OpenAPI, cURL) |
+| Skill                | Quando                                                  |
+| -------------------- | ------------------------------------------------------- |
+| `wttp-task`          | executar uma task do backlog (`EP-XX-TYY`)              |
+| `wttp-vue-component` | criar ou editar componente/página Vue                   |
+| `wttp-ipc-channel`   | adicionar ou alterar comunicação main↔renderer          |
+| `wttp-file-format`   | ler, gravar ou migrar arquivos de workspace             |
+| `wttp-importer`      | adicionar importador (Postman, Insomnia, OpenAPI, cURL) |
