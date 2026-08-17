@@ -16,7 +16,7 @@ my-api/                        # raiz do workspace
 │   └── prod.yaml
 ├── .wttp/                     # gitignored — estado local da máquina
 │   ├── secrets.json           # fallback quando não há keychain
-│   └── ui-state.json          # abas abertas, tamanhos de painel
+│   └── ui-state.json          # abas abertas, pastas expandidas na árvore
 ├── auth/                      # uma pasta = uma collection ou subpasta
 │   ├── folder.yaml
 │   ├── login.req.yaml

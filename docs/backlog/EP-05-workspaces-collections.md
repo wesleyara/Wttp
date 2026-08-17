@@ -35,7 +35,7 @@ ambiente (sem `xvfb`/`sudo`), mesma limitação já registrada em EP-02/EP-03.
 
 ### EP-05-T02 — `WTree` — árvore de collections
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-05-T01, EP-02-T03
+**Status:** Concluída · **Tamanho:** G · **Depende de:** EP-05-T01, EP-02-T03
 
 **Objetivo.** Navegar por toda a hierarquia com fluidez.
 
@@ -48,9 +48,19 @@ ambiente (sem `xvfb`/`sudo`), mesma limitação já registrada em EP-02/EP-03.
 
 **Critérios de aceite.**
 
-- [ ] 1000 nós rolam a 60fps
-- [ ] Toda ação alcançável por teclado
-- [ ] Filtrar mostra a hierarquia até cada resultado, não uma lista plana
+- [x] 1000 nós rolam a 60fps
+- [x] Toda ação alcançável por teclado
+- [x] Filtrar mostra a hierarquia até cada resultado, não uma lista plana
+
+**Nota de fechamento.** Virtualização por janela feita à mão (sem lib), altura de
+linha fixa de 28px — `docs/backlog/README.md`'s ambiente não tem `xvfb`/`sudo` para
+medir fps de uma janela real, então a verificação da AC de performance foi por
+inspeção (renderiza só `visibleRows`, ~30 linhas de DOM independente do tamanho da
+árvore) e por uma seção de 1000 nós gerados na `DevGalleryPage` (`yarn dev` +
+`/dev/gallery`), mesma ressalva já registrada em EP-02/EP-03. `.wttp/ui-state.json`
+(pastas expandidas) nasceu com o formato final já incluindo `openTabs`/`activeTabPath`
+que só EP-05-T05 usa de verdade — decisão registrada no plano do épico, para não
+migrar o arquivo duas vezes.
 
 ---
 

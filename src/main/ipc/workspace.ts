@@ -11,6 +11,7 @@ import {
 } from "../storage/recentWorkspaces";
 import { initWorkspace, scanWorkspace } from "../storage/tree";
 import { watchWorkspace, type WorkspaceWatcher } from "../storage/watcher";
+import { readWorkspaceUiState, writeWorkspaceUiState } from "../storage/workspaceUiState";
 import { registerHandler } from "./registry";
 
 /**
@@ -67,4 +68,10 @@ export function registerWorkspaceHandlers(): void {
   registerHandler("workspace:recent", () => listRecentWorkspacesWithStatus());
 
   registerHandler("workspace:removeRecent", payload => removeRecentWorkspace(payload.path));
+
+  registerHandler("workspace:getUiState", payload => readWorkspaceUiState(payload.root));
+
+  registerHandler("workspace:setUiState", payload =>
+    writeWorkspaceUiState(payload.root, payload.state),
+  );
 }
