@@ -1,7 +1,7 @@
-import type { AppInfo, AppSettings, UiState } from "@shared";
+import type { AppInfo, AppSettings, MenuAction, UiState } from "@shared";
 
 import { electronAPI } from "@electron-toolkit/preload";
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 
 import { invoke } from "./ipc";
 
@@ -19,6 +19,16 @@ const wttp = {
   settings: {
     get: (): Promise<AppSettings> => invoke("settings:get"),
     set: (patch: Partial<AppSettings>): Promise<AppSettings> => invoke("settings:set", patch),
+  },
+  menu: {
+    // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
+    // Devolve o `unsubscribe`, já que quem escuta normalmente é um componente Vue.
+    onAction: (callback: (action: MenuAction) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, action: MenuAction): void =>
+        callback(action);
+      ipcRenderer.on("menu:action", listener);
+      return () => ipcRenderer.off("menu:action", listener);
+    },
   },
 };
 

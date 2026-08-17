@@ -1,5 +1,5 @@
 import type { ElectronAPI } from "@electron-toolkit/preload";
-import type { AppInfo, AppSettings, UiState } from "@shared";
+import type { AppInfo, AppSettings, MenuAction, UiState } from "@shared";
 
 interface WttpApi {
   app: {
@@ -12,6 +12,9 @@ interface WttpApi {
   settings: {
     get: () => Promise<AppSettings>;
     set: (patch: Partial<AppSettings>) => Promise<AppSettings>;
+  };
+  menu: {
+    onAction: (callback: (action: MenuAction) => void) => () => void;
   };
 }
 
