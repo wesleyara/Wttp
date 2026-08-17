@@ -1,4 +1,5 @@
 import { registerAppHandlers } from "./app";
+import { registerHttpHandlers } from "./http";
 import { registerSettingsHandlers } from "./settings";
 import { registerUiHandlers } from "./ui";
 
@@ -7,4 +8,5 @@ export function registerIpcHandlers(): void {
   registerAppHandlers();
   registerUiHandlers();
   registerSettingsHandlers();
+  registerHttpHandlers();
 }

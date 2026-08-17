@@ -30,7 +30,7 @@ Referência: [architecture.md §4](../architecture.md)
 
 ### EP-03-T02 — Engine de requisição
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-03-T01
+**Status:** Concluída · **Tamanho:** G · **Depende de:** EP-03-T01
 
 **Objetivo.** O main dispara qualquer requisição HTTP e devolve um resultado completo.
 
@@ -44,11 +44,11 @@ Referência: [architecture.md §4](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] Os cinco tipos de body são enviados corretamente, verificado contra servidor de teste local
-- [ ] Resposta binária (imagem) chega íntegra, sem corrupção de encoding
-- [ ] Cancelar uma requisição em andamento a interrompe de fato e libera o socket
-- [ ] Timeout e erro de DNS retornam `WttpError` com código distinto
-- [ ] Testes Vitest cobrindo os casos acima sem subir o Electron
+- [x] Os cinco tipos de body são enviados corretamente, verificado contra servidor de teste local
+- [x] Resposta binária (imagem) chega íntegra, sem corrupção de encoding
+- [x] Cancelar uma requisição em andamento a interrompe de fato e libera o socket
+- [x] Timeout e erro de DNS retornam `WttpError` com código distinto
+- [x] Testes Vitest cobrindo os casos acima sem subir o Electron
 
 **Fora de escopo.** Resolução de variáveis (EP-06) e auth (EP-07) — a engine recebe tudo já resolvido.
 
