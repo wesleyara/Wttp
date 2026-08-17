@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import WButton from "@renderer/components/WButton.vue";
+import WCodeEditor from "@renderer/components/WCodeEditor.vue";
 import WEmptyState from "@renderer/components/WEmptyState.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WKeyValueTable, { type KeyValueRow } from "@renderer/components/WKeyValueTable.vue";
@@ -41,6 +42,16 @@ const methodOptions = [
 ];
 
 const inputValue = ref("");
+
+const jsonDoc = ref('{\n  "email": "{{user_email}}",\n  "password": "{{user_password}}"\n}');
+const readOnlyDoc = ref("<html>\n  <body>not editable</body>\n</html>");
+const bigDocLoaded = ref(false);
+const bigDoc = ref("");
+function loadBigDoc(): void {
+  const line = `{"id": 1, "name": "item", "value": ${"x".repeat(60)}},\n`;
+  bigDoc.value = "[\n" + line.repeat(Math.ceil((5 * 1024 * 1024) / line.length)) + "]\n";
+  bigDocLoaded.value = true;
+}
 const kvRows = ref<KeyValueRow[]>([
   { enabled: true, name: "Content-Type", value: "application/json", description: "" },
 ]);
@@ -102,6 +113,24 @@ const kvRows = ref<KeyValueRow[]>([
       <h2 class="font-inter text-xs font-medium uppercase text-faint">WKeyValueTable</h2>
       <div class="max-w-2xl rounded-md border border-subtle bg-surface-2">
         <WKeyValueTable v-model="kvRows" />
+      </div>
+    </section>
+
+    <section class="mb-8 flex flex-col gap-3">
+      <h2 class="font-inter text-xs font-medium uppercase text-faint">WCodeEditor</h2>
+      <div class="flex max-w-2xl flex-col gap-3">
+        <div class="h-40">
+          <WCodeEditor v-model="jsonDoc" language="json" />
+        </div>
+        <div class="h-24">
+          <WCodeEditor v-model="readOnlyDoc" language="html" read-only />
+        </div>
+        <div>
+          <WButton size="sm" @click="loadBigDoc">Load 5MB JSON doc</WButton>
+          <div v-if="bigDocLoaded" class="mt-2 h-40">
+            <WCodeEditor v-model="bigDoc" language="json" read-only />
+          </div>
+        </div>
       </div>
     </section>
 
