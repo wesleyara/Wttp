@@ -6,12 +6,54 @@
  * no EP-02. Fonte da verdade: docs/design-system.md.
  */
 
+/**
+ * Um token semântico vira `rgb(var(--w-x) / <alpha-value>)`: o valor da custom
+ * property é o triplet "R G B" (sem `rgb()`), definido para os dois temas em
+ * `src/renderer/src/assets/main.css`. É isso que permite `bg-surface-2/60` funcionar.
+ */
+function token(name) {
+  return `rgb(var(--w-${name}) / <alpha-value>)`;
+}
+
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "class",
   content: ["./src/renderer/index.html", "./src/renderer/src/**/*.{vue,js,ts}"],
   theme: {
     extend: {
       colors: {
+        // Classes de topo (`text-1`, `border-subtle`, `ring-focus`) — não aninhadas —
+        // porque é o nome de classe exato que docs/design-system.md §2 define.
+        surface: {
+          1: token("surface-1"),
+          2: token("surface-2"),
+          3: token("surface-3"),
+        },
+        subtle: token("border-subtle"),
+        strong: token("border-strong"),
+        1: token("text-1"),
+        muted: token("text-muted"),
+        faint: token("text-faint"),
+        accent: {
+          DEFAULT: token("accent"),
+          hover: token("accent-hover"),
+        },
+        focus: token("focus-ring"),
+        method: {
+          get: token("method-get"),
+          post: token("method-post"),
+          put: token("method-put"),
+          patch: token("method-patch"),
+          delete: token("method-delete"),
+          neutral: token("method-neutral"),
+        },
+        status: {
+          "2xx": token("status-2xx"),
+          "3xx": token("status-3xx"),
+          "4xx": token("status-4xx"),
+          "5xx": token("status-5xx"),
+          error: token("status-error"),
+        },
         bluewood: {
           50: "#f5f7fa",
           100: "#eaeff4",
