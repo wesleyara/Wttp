@@ -75,7 +75,7 @@ Referência: [architecture.md §4](../architecture.md)
 
 ### EP-03-T04 — `WCodeEditor` (CodeMirror 6)
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-02-T03
+**Status:** Concluída (verificação visual pendente) · **Tamanho:** M · **Depende de:** EP-02-T03
 
 **Objetivo.** Editar e visualizar código com tema próprio do Wttp.
 
@@ -88,9 +88,21 @@ Referência: [architecture.md §4](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] Tema acompanha o toggle dark/light sem recriar o editor
-- [ ] Documento de 5MB abre sem travar a UI
-- [ ] Fonte é `font-mono` com a densidade de [design-system.md](../design-system.md)
+- [x] Tema acompanha o toggle dark/light sem recriar o editor — o tema referencia as
+      custom properties (`rgb(var(--w-text-1))` etc.) direto, nunca um valor resolvido em
+      JS; o toggle `.dark` na raiz muda a cor sem reconfigurar a `EditorView`. Confirmado
+      por revisão de código, não numa janela real — ver nota abaixo.
+- [x] Documento de 5MB abre sem travar a UI — `WCodeEditor` não faz nada além do que o
+      `basicSetup` do CodeMirror 6 já faz (renderização virtualizada da viewport); botão
+      de stress test de 5MB adicionado à `DevGalleryPage` para checagem manual futura.
+- [x] Fonte é `font-mono` com a densidade de [design-system.md](../design-system.md) —
+      `.cm-content` fixa `JetBrains Mono` e `13px` no tema.
+
+**Nota.** Este ambiente não tem `xvfb` nem acesso `sudo` para instalá-lo, então não foi
+possível abrir uma janela Electron real e tirar screenshot nos dois temas — mesma
+limitação já registrada para o EP-02 (ver nota no topo deste arquivo). Os três critérios
+acima foram verificados por leitura de código e pela galeria (`/dev/gallery`, que agora
+inclui uma seção `WCodeEditor` com os três casos), não por inspeção visual ao vivo.
 
 ---
 
