@@ -8,6 +8,8 @@ const props = withDefaults(
     disabled?: boolean;
     error?: boolean;
     type?: string;
+    /** URLs e outros valores de código usam `font-mono`, não `font-inter`. */
+    monospace?: boolean;
   }>(),
   {
     modelValue: "",
@@ -15,6 +17,7 @@ const props = withDefaults(
     disabled: false,
     error: false,
     type: "text",
+    monospace: false,
   },
 );
 
@@ -45,7 +48,8 @@ const wrapperClasses = computed(() => [
       :placeholder="placeholder"
       :disabled="disabled"
       :type="type"
-      class="w-full min-w-0 bg-transparent font-inter text-sm text-1 outline-none placeholder:text-faint"
+      class="w-full min-w-0 bg-transparent text-sm text-1 outline-none placeholder:text-faint"
+      :class="monospace ? 'font-mono text-[13px]' : 'font-inter'"
       @input="onInput"
     />
     <slot name="suffix" />

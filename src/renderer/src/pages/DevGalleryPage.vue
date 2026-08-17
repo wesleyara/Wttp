@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WCodeEditor from "@renderer/components/WCodeEditor.vue";
 import WEmptyState from "@renderer/components/WEmptyState.vue";
@@ -8,7 +9,13 @@ import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import WSelect from "@renderer/components/WSelect.vue";
 import WStatusBadge from "@renderer/components/WStatusBadge.vue";
 import WTabs from "@renderer/components/WTabs.vue";
+import { useRequestStore } from "@renderer/stores/request";
 import { onMounted, ref } from "vue";
+
+// Só faz sentido preencher a demo se a URL ainda estiver vazia — evita sobrescrever o
+// estado da store a cada hot-reload da galeria.
+const requestStore = useRequestStore();
+if (!requestStore.url) requestStore.url = "https://api.example.com/users?verbose=true";
 
 // Só existe em dev (ver router.ts) — vitrine dos componentes W* nos dois temas,
 // lado a lado, para revisão visual antes de qualquer tela de produto (EP-02-T03).
@@ -113,6 +120,13 @@ const kvRows = ref<KeyValueRow[]>([
       <h2 class="font-inter text-xs font-medium uppercase text-faint">WKeyValueTable</h2>
       <div class="max-w-2xl rounded-md border border-subtle bg-surface-2">
         <WKeyValueTable v-model="kvRows" />
+      </div>
+    </section>
+
+    <section class="mb-8 flex flex-col gap-3">
+      <h2 class="font-inter text-xs font-medium uppercase text-faint">RequestUrlBar</h2>
+      <div class="max-w-2xl rounded-md border border-subtle bg-surface-2 p-3">
+        <RequestUrlBar />
       </div>
     </section>
 
