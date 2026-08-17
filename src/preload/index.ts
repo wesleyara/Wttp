@@ -1,4 +1,11 @@
-import type { AppInfo, AppSettings, MenuAction, UiState } from "@shared";
+import type {
+  AppInfo,
+  AppSettings,
+  HttpRequestSpec,
+  HttpResponseResult,
+  MenuAction,
+  UiState,
+} from "@shared";
 
 import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge, ipcRenderer } from "electron";
@@ -19,6 +26,10 @@ const wttp = {
   settings: {
     get: (): Promise<AppSettings> => invoke("settings:get"),
     set: (patch: Partial<AppSettings>): Promise<AppSettings> => invoke("settings:set", patch),
+  },
+  http: {
+    send: (spec: HttpRequestSpec): Promise<HttpResponseResult> => invoke("http:send", spec),
+    cancel: (requestId: string): Promise<void> => invoke("http:cancel", requestId),
   },
   menu: {
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).

@@ -7,6 +7,8 @@
  * um único byte de JavaScript.
  */
 
+import type { HttpRequestSpec, HttpResponseResult } from "./http";
+
 export interface AppInfo {
   version: string;
   platform: NodeJS.Platform;
@@ -52,6 +54,12 @@ export interface IpcContract {
   "ui:setState": { payload: Partial<UiState>; result: UiState };
   "settings:get": { payload: void; result: AppSettings };
   "settings:set": { payload: Partial<AppSettings>; result: AppSettings };
+  /**
+   * Nunca rejeita por erro de rede — `HttpResponseResult.ok: false` é o resultado
+   * normal para DNS, TLS, timeout ou cancelamento (EP-03-T01).
+   */
+  "http:send": { payload: HttpRequestSpec; result: HttpResponseResult };
+  "http:cancel": { payload: string; result: void };
 }
 
 export type IpcChannel = keyof IpcContract;
