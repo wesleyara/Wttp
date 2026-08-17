@@ -122,6 +122,7 @@ onUnmounted(() => stopListeningToMenu?.());
                 @rename="tree.confirmRename"
                 @cancel-rename="tree.cancelRename"
                 @shortcut="tree.onShortcut"
+                @move="tree.moveInto"
               />
             </div>
           </aside>

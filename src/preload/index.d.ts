@@ -9,6 +9,7 @@ import type {
   HttpRequestSpec,
   HttpResponseResult,
   MenuAction,
+  MoveNodeIntoPayload,
   MoveNodePayload,
   NodePathPayload,
   OpenWorkspacePayload,
@@ -70,6 +71,7 @@ interface WttpApi {
     duplicate: (payload: NodePathPayload) => Promise<FolderNode | RequestNode>;
     reveal: (payload: NodePathPayload) => Promise<void>;
     trash: (payload: NodePathPayload) => Promise<void>;
+    moveInto: (payload: MoveNodeIntoPayload) => Promise<FolderNode | RequestNode>;
   };
   secret: {
     get: (key: string) => Promise<string | null>;

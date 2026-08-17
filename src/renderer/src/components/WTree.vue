@@ -3,7 +3,7 @@ import type { WorkspaceNode } from "@shared";
 
 import WInput from "@renderer/components/WInput.vue";
 import WMethodBadge from "@renderer/components/WMethodBadge.vue";
-import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 
 /** Altura de linha fixa (docs/design-system.md §4) — base da virtualização por janela. */
 const ROW_HEIGHT = 28;
@@ -39,7 +39,29 @@ const emit = defineEmits<{
   rename: [path: string, name: string];
   "cancel-rename": [];
   shortcut: [type: "rename" | "duplicate" | "delete", node: WorkspaceNode];
+  /** Drag & drop soltou `from` dentro de `targetDir`, na posição `index` (1-indexed) — EP-05-T04. */
+  move: [from: string, targetDir: string, index: number];
 }>();
+
+const parentPathOf = (path: string): string => {
+  const index = path.lastIndexOf("/");
+  return index === -1 ? "" : path.slice(0, index);
+};
+
+function findContainingArray(nodes: WorkspaceNode[], path: string): WorkspaceNode[] | null {
+  for (const node of nodes) {
+    if (node.path === path) return nodes;
+    if (node.kind === "folder") {
+      const found = findContainingArray(node.children, path);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function isDescendantOrSelf(ancestorPath: string, path: string): boolean {
+  return path === ancestorPath || path.startsWith(`${ancestorPath}/`);
+}
 
 const editingValue = ref("");
 
@@ -179,6 +201,98 @@ async function selectIndex(index: number): Promise<void> {
   scrollToIndex(index);
 }
 
+interface DropIndicator {
+  index: number;
+  mode: "before" | "after" | "into";
+  invalid: boolean;
+}
+
+const draggingNode = ref<WorkspaceNode | null>(null);
+const dropIndicator = ref<DropIndicator | null>(null);
+let dragCandidate: { node: WorkspaceNode; startX: number; startY: number } | null = null;
+
+const DRAG_START_THRESHOLD_PX = 4;
+
+function onRowPointerDown(node: WorkspaceNode, event: PointerEvent): void {
+  if (props.editingPath || event.button !== 0) return;
+  dragCandidate = { node, startX: event.clientX, startY: event.clientY };
+  window.addEventListener("pointermove", onDragPointerMove);
+  window.addEventListener("pointerup", onDragPointerUp);
+}
+
+function computeDropIndicator(event: PointerEvent): DropIndicator | null {
+  const el = containerRef.value;
+  if (!el || !draggingNode.value) return null;
+
+  const rect = el.getBoundingClientRect();
+  const relY = event.clientY - rect.top + scrollTop.value;
+  const index = Math.max(0, Math.min(rows.value.length - 1, Math.floor(relY / ROW_HEIGHT)));
+  const row = rows.value[index];
+  if (!row) return null;
+
+  const fraction = (relY - index * ROW_HEIGHT) / ROW_HEIGHT;
+  const isFolder = row.node.kind === "folder";
+  const mode: DropIndicator["mode"] =
+    fraction < 0.25 ? "before" : fraction > 0.75 || !isFolder ? "after" : "into";
+
+  const dragged = draggingNode.value;
+  let invalid = row.node.path === dragged.path;
+  if (dragged.kind === "folder") {
+    const targetDir = mode === "into" ? row.node.path : parentPathOf(row.node.path);
+    invalid = invalid || isDescendantOrSelf(dragged.path, targetDir);
+  }
+
+  return { index, mode, invalid };
+}
+
+function onDragPointerMove(event: PointerEvent): void {
+  if (!draggingNode.value && dragCandidate) {
+    const dx = event.clientX - dragCandidate.startX;
+    const dy = event.clientY - dragCandidate.startY;
+    if (Math.hypot(dx, dy) >= DRAG_START_THRESHOLD_PX) draggingNode.value = dragCandidate.node;
+  }
+  if (draggingNode.value) dropIndicator.value = computeDropIndicator(event);
+}
+
+function endDrag(): void {
+  window.removeEventListener("pointermove", onDragPointerMove);
+  window.removeEventListener("pointerup", onDragPointerUp);
+  dragCandidate = null;
+  draggingNode.value = null;
+  dropIndicator.value = null;
+}
+
+onBeforeUnmount(endDrag);
+
+function onDragPointerUp(): void {
+  const dragged = draggingNode.value;
+  const indicator = dropIndicator.value;
+  if (!dragged || !indicator || indicator.invalid) {
+    endDrag();
+    return;
+  }
+
+  const targetRow = rows.value[indicator.index];
+  if (!targetRow) {
+    endDrag();
+    return;
+  }
+
+  if (indicator.mode === "into") {
+    const targetDir = targetRow.node.path;
+    const siblings = targetRow.node.kind === "folder" ? targetRow.node.children : [];
+    emit("move", dragged.path, targetDir, siblings.length + 1);
+  } else {
+    const targetDir = parentPathOf(targetRow.node.path);
+    const siblings = findContainingArray(props.nodes, targetRow.node.path) ?? [];
+    const targetIndex = siblings.indexOf(targetRow.node);
+    const position = indicator.mode === "before" ? targetIndex + 1 : targetIndex + 2;
+    emit("move", dragged.path, targetDir, position);
+  }
+
+  endDrag();
+}
+
 let typeaheadBuffer = "";
 let typeaheadTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -273,21 +387,39 @@ function onKeydown(event: KeyboardEvent): void {
           :aria-selected="row.node.path === selectedPath"
           :aria-expanded="row.node.kind === 'folder' ? row.expanded : undefined"
           :style="{ height: `${ROW_HEIGHT}px`, paddingLeft: `${row.depth * 16 + 4}px` }"
-          class="flex cursor-pointer items-center gap-1 pr-2 font-inter text-xs"
-          :class="
+          class="relative flex cursor-pointer items-center gap-1 pr-2 font-inter text-xs"
+          :class="[
             row.node.path === selectedPath
               ? 'bg-surface-3 text-1'
-              : 'text-muted hover:bg-surface-3/50'
-          "
+              : 'text-muted hover:bg-surface-3/50',
+            draggingNode?.path === row.node.path ? 'opacity-40' : '',
+            dropIndicator?.mode === 'into' &&
+            !dropIndicator.invalid &&
+            rows[dropIndicator.index]?.node.path === row.node.path
+              ? 'bg-accent/20'
+              : '',
+          ]"
           @click="select(row.node.path)"
           @dblclick="activate(row.node)"
           @contextmenu="onRowContextmenu(row.node, $event)"
+          @pointerdown="onRowPointerDown(row.node, $event)"
         >
+          <div
+            v-if="
+              dropIndicator &&
+              !dropIndicator.invalid &&
+              dropIndicator.mode !== 'into' &&
+              rows[dropIndicator.index]?.node.path === row.node.path
+            "
+            class="pointer-events-none absolute inset-x-0 z-10 h-0.5 bg-accent"
+            :class="dropIndicator.mode === 'before' ? '-top-px' : '-bottom-px'"
+          />
           <button
             v-if="row.hasChildren"
             type="button"
             tabindex="-1"
             class="flex size-4 shrink-0 items-center justify-center text-faint"
+            @pointerdown.stop
             @click.stop="toggleExpanded(row.node.path)"
           >
             <svg
@@ -319,6 +451,7 @@ function onKeydown(event: KeyboardEvent): void {
             v-model="editingValue"
             class="h-5 flex-1"
             @click.stop
+            @pointerdown.stop
             @keydown.stop.enter="confirmRename"
             @keydown.stop.esc="cancelRename"
             @focusout="confirmRename"

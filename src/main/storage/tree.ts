@@ -279,6 +279,16 @@ async function writeSeq(root: string, node: WorkspaceNode, newSeq: number): Prom
  * afetadas e só elas". Mover entre pastas também fecha o buraco deixado na origem.
  */
 export async function moveNode(root: string, from: string, to: string, seq: number): Promise<void> {
+  // Recusa mover uma pasta para dentro dela mesma ou de um dos seus descendentes —
+  // defesa em profundidade além da checagem já feita no `WTree` (EP-05-T04).
+  if (from !== to && (to === from || to.startsWith(`${from}/`))) {
+    throw new DomainError(
+      "INVALID_PAYLOAD",
+      `cannot move a node into its own descendant: "${from}" → "${to}"`,
+      to,
+    );
+  }
+
   const absFrom = resolveWorkspacePath(root, from);
   const absTo = resolveWorkspacePath(root, to);
 
@@ -453,4 +463,35 @@ export async function duplicateNode(root: string, path: string): Promise<Workspa
   // reindexação de `moveNode`, reaproveitada passando `from === to`.
   await moveNode(root, newPath, newPath, node.seq + 1);
   return readNode(root, newPath);
+}
+
+/**
+ * Move ou reordena um nó por drag & drop (EP-05-T04) — `index` é a posição (1-indexed)
+ * entre os irmãos de `targetDir`. Mantém o nome de arquivo atual a menos que colida no
+ * destino, caso em que resolve como `duplicateNode`. Fino em cima de `moveNode`, que já
+ * faz o resto (reindexação mínima, guarda contra mover para dentro de si mesma).
+ */
+export async function moveNodeInto(
+  root: string,
+  from: string,
+  targetDir: string,
+  index: number,
+): Promise<WorkspaceNode> {
+  const node = await readNode(root, from);
+  const sourceDir = relDirname(from);
+  const basename = from.slice(from.lastIndexOf("/") + 1);
+
+  const absTargetDir = resolveWorkspacePath(root, targetDir);
+  const existingNames = await listEntryNames(absTargetDir);
+  if (targetDir === sourceDir) existingNames.delete(basename);
+
+  let newBasename = basename;
+  if (existingNames.has(basename)) {
+    const suffix = node.kind === "request" ? REQUEST_SUFFIX : "";
+    newBasename = uniqueSlugName(node.name, suffix, candidate => existingNames.has(candidate));
+  }
+
+  const to = relJoin(targetDir, newBasename);
+  await moveNode(root, from, to, index);
+  return readNode(root, to);
 }

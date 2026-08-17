@@ -94,7 +94,7 @@ inline, modal de confirmação) nos dois temas não foi possível neste ambiente
 
 ### EP-05-T04 — Drag & drop e ordenação
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-05-T03
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-05-T03
 
 **Objetivo.** Reorganizar a estrutura arrastando.
 
@@ -106,9 +106,19 @@ inline, modal de confirmação) nos dois temas não foi possível neste ambiente
 
 **Critérios de aceite.**
 
-- [ ] Reordenar altera o `seq` só das linhas necessárias — diff mínimo
-- [ ] Mover entre pastas move o arquivo, sem duplicar
-- [ ] Drop inválido é recusado com feedback visual, sem alterar nada
+- [x] Reordenar altera o `seq` só das linhas necessárias — diff mínimo
+- [x] Mover entre pastas move o arquivo, sem duplicar
+- [x] Drop inválido é recusado com feedback visual, sem alterar nada
+
+**Nota de fechamento.** Drag & drop é por ponteiro (`pointerdown`/`pointermove`/
+`pointerup`), mesmo estilo do `WSplitPane`, não HTML5 DnD. `node:moveInto` é fino
+sobre o `moveNode` do EP-04 — que já fazia diff mínimo — só resolvendo o nome final no
+destino (mesma resolução de colisão do `duplicateNode`) e validado por
+`tree.spec.ts`. A recusa de "pasta para dentro dela mesma/descendente" existe nos dois
+lados: `WTree` marca o indicador de drop como inválido sem nem emitir `move`, e
+`moveNode` lança `DomainError` se algo chegasse lá mesmo assim (defesa em
+profundidade). Verificação visual do indicador de drop nos dois temas não foi
+possível neste ambiente sem `xvfb`/`sudo` — mesma ressalva das tasks anteriores.
 
 ---
 
