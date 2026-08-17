@@ -8,27 +8,27 @@ Para executar uma task, use a skill `wttp-task`.
 
 ## MVP — v0.1
 
-| Épico | Título | Status |
-|---|---|---|
-| [EP-01](EP-01-fundacao.md) | Fundação electron-vite | Pendente |
-| [EP-02](EP-02-design-system.md) | Design system e shell de layout | Pendente |
-| [EP-03](EP-03-nucleo-http.md) | Núcleo HTTP | Pendente |
-| [EP-04](EP-04-persistencia.md) | Formato de arquivo e persistência | Pendente |
-| [EP-05](EP-05-workspaces-collections.md) | Workspaces, collections e tabs | Pendente |
-| [EP-06](EP-06-environments-variaveis.md) | Environments e variáveis | Pendente |
-| [EP-07](EP-07-autenticacao.md) | Autenticação | Pendente |
-| [EP-08](EP-08-importadores.md) | Importadores | Pendente |
-| [EP-09](EP-09-scripts.md) | Scripts e testes | Pendente |
-| [EP-10](EP-10-qualidade-ci.md) | Qualidade e CI | Pendente |
-| [EP-11](EP-11-distribuicao.md) | Empacotamento e distribuição | Pendente |
+| Épico                                    | Título                            | Status    |
+| ---------------------------------------- | --------------------------------- | --------- |
+| [EP-01](EP-01-fundacao.md)               | Fundação electron-vite            | Concluída |
+| [EP-02](EP-02-design-system.md)          | Design system e shell de layout   | Pendente  |
+| [EP-03](EP-03-nucleo-http.md)            | Núcleo HTTP                       | Pendente  |
+| [EP-04](EP-04-persistencia.md)           | Formato de arquivo e persistência | Pendente  |
+| [EP-05](EP-05-workspaces-collections.md) | Workspaces, collections e tabs    | Pendente  |
+| [EP-06](EP-06-environments-variaveis.md) | Environments e variáveis          | Pendente  |
+| [EP-07](EP-07-autenticacao.md)           | Autenticação                      | Pendente  |
+| [EP-08](EP-08-importadores.md)           | Importadores                      | Pendente  |
+| [EP-09](EP-09-scripts.md)                | Scripts e testes                  | Pendente  |
+| [EP-10](EP-10-qualidade-ci.md)           | Qualidade e CI                    | Pendente  |
+| [EP-11](EP-11-distribuicao.md)           | Empacotamento e distribuição      | Pendente  |
 
 ## Pós-MVP
 
-| Épico | Título | Alvo |
-|---|---|---|
-| [EP-12](EP-12-documentacao-apis.md) | Documentação de APIs | v0.2 |
-| [EP-13](EP-13-runner-cli.md) | Collection Runner e CLI | v0.2 |
-| [EP-14](EP-14-extensibilidade.md) | Extensibilidade e plugins | v0.3 |
+| Épico                                  | Título                          | Alvo  |
+| -------------------------------------- | ------------------------------- | ----- |
+| [EP-12](EP-12-documentacao-apis.md)    | Documentação de APIs            | v0.2  |
+| [EP-13](EP-13-runner-cli.md)           | Collection Runner e CLI         | v0.2  |
+| [EP-14](EP-14-extensibilidade.md)      | Extensibilidade e plugins       | v0.3  |
 | [EP-15](EP-15-protocolos-avancados.md) | Protocolos e recursos avançados | v0.3+ |
 
 ---
@@ -57,14 +57,17 @@ Para executar uma task, use a skill `wttp-task`.
 
 ```markdown
 ### EP-03-T02 — Título da task
+
 **Status:** Pendente · **Tamanho:** M · **Depende de:** EP-03-T01
 
 **Objetivo.** Uma frase sobre o resultado observável.
 
 **Escopo.**
+
 - itens concretos, com caminhos de arquivo
 
 **Critérios de aceite.**
+
 - [ ] verificáveis, um por linha
 
 **Fora de escopo.** o que explicitamente não entra

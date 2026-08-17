@@ -27,10 +27,10 @@ O importador **não escreve arquivo diretamente** — `emit` usa a camada de sto
 
 ```ts
 export interface Importer {
-  readonly format: ImportFormat
-  detect(payload: string): boolean
-  parse(payload: string): SourceDocument
-  normalize(doc: SourceDocument): { tree: WorkspaceTree; report: ImportReport }
+  readonly format: ImportFormat;
+  detect(payload: string): boolean;
+  parse(payload: string): SourceDocument;
+  normalize(doc: SourceDocument): { tree: WorkspaceTree; report: ImportReport };
 }
 ```
 
@@ -46,7 +46,7 @@ report.unsupported.push({
   feature: "pm.sendRequest",
   reason: "Requisições dentro de script não são suportadas",
   action: "O código foi preservado como comentário no script",
-})
+});
 ```
 
 Diga também **o que fazer** com o item. "Não suportado" sem saída deixa o usuário travado.
@@ -55,15 +55,15 @@ Quando houver equivalente parcial, converta e reporte. Quando não houver, **pre
 
 ## Mapeamentos que exigem atenção
 
-| Origem | Cuidado |
-|---|---|
-| Variáveis Postman/Insomnia | `{{var}}` já é compatível; template tags do Insomnia (`{% ... %}`) não são — reporte |
-| Scripts Postman | `pm.environment.set` → `wttp.setVar`, `pm.test` → `test`, `pm.response` → `res`. O resto vira comentário |
-| Auth | Mapeie os tipos suportados; OAuth e afins vão para o relatório até o EP-14 |
-| OpenAPI `$ref` | Resolva refs internos; detecte ciclo, não estoure a pilha |
-| OpenAPI `servers` | Um environment por servidor, com `base_url` |
-| Caminhos de arquivo | Devem virar **relativos à raiz do workspace**; caminho absoluto da máquina de origem vai para o relatório |
-| Segredos embutidos | Token hardcoded no arquivo de origem vira variável marcada `secret: true`, com aviso |
+| Origem                     | Cuidado                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Variáveis Postman/Insomnia | `{{var}}` já é compatível; template tags do Insomnia (`{% ... %}`) não são — reporte                      |
+| Scripts Postman            | `pm.environment.set` → `wttp.setVar`, `pm.test` → `test`, `pm.response` → `res`. O resto vira comentário  |
+| Auth                       | Mapeie os tipos suportados; OAuth e afins vão para o relatório até o EP-14                                |
+| OpenAPI `$ref`             | Resolva refs internos; detecte ciclo, não estoure a pilha                                                 |
+| OpenAPI `servers`          | Um environment por servidor, com `base_url`                                                               |
+| Caminhos de arquivo        | Devem virar **relativos à raiz do workspace**; caminho absoluto da máquina de origem vai para o relatório |
+| Segredos embutidos         | Token hardcoded no arquivo de origem vira variável marcada `secret: true`, com aviso                      |
 
 ## Testes
 

@@ -6,9 +6,9 @@ Regras de código do Wttp. Curtas e verificáveis — o que não estiver aqui se
 
 ## Idioma
 
-| Onde | Idioma |
-|---|---|
-| `docs/`, backlog, comentários explicativos longos | **PT-BR** |
+| Onde                                                         | Idioma     |
+| ------------------------------------------------------------ | ---------- |
+| `docs/`, backlog, comentários explicativos longos            | **PT-BR**  |
 | Código, tipos, nomes de arquivo, strings de UI, commits, PRs | **Inglês** |
 
 O produto é open source e a UI precisa ser acessível a contribuidores de fora. A documentação interna é em português porque é onde o time pensa.
@@ -37,10 +37,10 @@ src/
 
 ### Aliases
 
-| Alias | Aponta para | Disponível em |
-|---|---|---|
-| `@renderer` | `src/renderer/src` | renderer |
-| `@shared` | `src/shared` | main, preload, renderer |
+| Alias       | Aponta para        | Disponível em           |
+| ----------- | ------------------ | ----------------------- |
+| `@renderer` | `src/renderer/src` | renderer                |
+| `@shared`   | `src/shared`       | main, preload, renderer |
 
 Declarados em `electron.vite.config.ts` (nos três blocos) **e** em `tsconfig.node.json` + `tsconfig.web.json`. Adicionar em um só lugar quebra ou o build ou o typecheck.
 
@@ -64,10 +64,10 @@ Uma store Pinia por domínio, no estilo setup:
 
 ```ts
 export const useWorkspaceStore = defineStore("workspace", () => {
-  const tree = ref<WorkspaceTree | null>(null)
+  const tree = ref<WorkspaceTree | null>(null);
   // ...
-  return { tree, open, close }
-})
+  return { tree, open, close };
+});
 ```
 
 Stores previstas: `useWorkspaceStore`, `useRequestTabsStore`, `useEnvironmentStore`, `useResponseStore`, `useSettingsStore`.

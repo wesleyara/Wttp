@@ -25,12 +25,12 @@ Fique dentro do escopo. O bloco "Fora de escopo" existe porque aquele trabalho p
 
 Siga [docs/conventions.md](../../../docs/conventions.md). Se a task envolve:
 
-| Assunto | Use também a skill |
-|---|---|
-| componente ou página Vue | `wttp-vue-component` |
-| comunicação main↔renderer | `wttp-ipc-channel` |
-| leitura/escrita de arquivo de workspace | `wttp-file-format` |
-| importador de formato externo | `wttp-importer` |
+| Assunto                                 | Use também a skill   |
+| --------------------------------------- | -------------------- |
+| componente ou página Vue                | `wttp-vue-component` |
+| comunicação main↔renderer               | `wttp-ipc-channel`   |
+| leitura/escrita de arquivo de workspace | `wttp-file-format`   |
+| importador de formato externo           | `wttp-importer`      |
 
 ## 4. Validar
 

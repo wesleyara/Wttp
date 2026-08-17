@@ -21,15 +21,15 @@ Wttp is a desktop app for working with HTTP APIs — in the spirit of Postman, I
 
 ## Features
 
-| | |
-|---|---|
-| **Requests** | Every HTTP method, headers, query params, JSON/form/multipart/binary bodies |
-| **Collections** | Folder tree mirroring your files, drag & drop, tabs |
-| **Environments** | Per-environment variables with `{{interpolation}}` and scoped precedence |
-| **Auth** | Bearer, Basic and API Key, inheritable from folder or collection |
-| **Scripts** | Pre-request and test scripts in a sandboxed JS runtime |
-| **Import** | Postman v2.1, Insomnia v4, OpenAPI 3.x and cURL commands |
-| **Docs** | Markdown documentation per request, exportable *(planned)* |
+|                  |                                                                             |
+| ---------------- | --------------------------------------------------------------------------- |
+| **Requests**     | Every HTTP method, headers, query params, JSON/form/multipart/binary bodies |
+| **Collections**  | Folder tree mirroring your files, drag & drop, tabs                         |
+| **Environments** | Per-environment variables with `{{interpolation}}` and scoped precedence    |
+| **Auth**         | Bearer, Basic and API Key, inheritable from folder or collection            |
+| **Scripts**      | Pre-request and test scripts in a sandboxed JS runtime                      |
+| **Import**       | Postman v2.1, Insomnia v4, OpenAPI 3.x and cURL commands                    |
+| **Docs**         | Markdown documentation per request, exportable _(planned)_                  |
 
 ## Development
 

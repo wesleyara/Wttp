@@ -13,15 +13,15 @@ Ordem dos blocos: `script → template → style`. O bloco `style` normalmente n
 
 ```vue
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed } from "vue";
 
-import type { HttpMethod } from "@shared"
+import type { HttpMethod } from "@shared";
 
 const props = withDefaults(defineProps<{ method: HttpMethod; compact?: boolean }>(), {
   compact: false,
-})
+});
 
-const emit = defineEmits<{ select: [method: HttpMethod] }>()
+const emit = defineEmits<{ select: [method: HttpMethod] }>();
 </script>
 
 <template>
@@ -39,28 +39,28 @@ Props sempre type-only (`defineProps<{...}>()`), nunca declaração em runtime.
 
 ## Nomenclatura
 
-| Tipo | Convenção | Onde |
-|---|---|---|
-| UI base reutilizável | prefixo `W` — `WButton`, `WTree` | `components/` |
-| Domínio | sem prefixo — `RequestUrlBar`, `ResponsePanel` | `components/` |
-| Tela roteada | sufixo `Page` — `WorkspacePage` | `pages/` |
-| Composable | prefixo `use` — `useResizeObserver` | `composables/` |
+| Tipo                 | Convenção                                      | Onde           |
+| -------------------- | ---------------------------------------------- | -------------- |
+| UI base reutilizável | prefixo `W` — `WButton`, `WTree`               | `components/`  |
+| Domínio              | sem prefixo — `RequestUrlBar`, `ResponsePanel` | `components/`  |
+| Tela roteada         | sufixo `Page` — `WorkspacePage`                | `pages/`       |
+| Composable           | prefixo `use` — `useResizeObserver`            | `composables/` |
 
 ## Estilo — a regra que mais se quebra
 
 **Nunca use cor crua da escala.** `bluewood-900`, `brand-blue-500` e hex literais são proibidos em arquivos `.vue`. Sempre o token semântico:
 
-| Papel | Classe |
-|---|---|
-| Fundo da aplicação | `bg-surface-1` |
-| Painel | `bg-surface-2` |
-| Hover, linha selecionada, aba ativa | `bg-surface-3` |
-| Borda | `border-subtle` / `border-strong` |
-| Texto | `text-1` / `text-muted` / `text-faint` |
-| Acento, link, seleção | `text-accent` / `bg-accent` |
-| Foco | `ring-focus` |
-| Método HTTP | `text-method-get` … `text-method-delete` |
-| Status | `text-status-2xx` … `text-status-5xx` |
+| Papel                               | Classe                                   |
+| ----------------------------------- | ---------------------------------------- |
+| Fundo da aplicação                  | `bg-surface-1`                           |
+| Painel                              | `bg-surface-2`                           |
+| Hover, linha selecionada, aba ativa | `bg-surface-3`                           |
+| Borda                               | `border-subtle` / `border-strong`        |
+| Texto                               | `text-1` / `text-muted` / `text-faint`   |
+| Acento, link, seleção               | `text-accent` / `bg-accent`              |
+| Foco                                | `ring-focus`                             |
+| Método HTTP                         | `text-method-get` … `text-method-delete` |
+| Status                              | `text-status-2xx` … `text-status-5xx`    |
 
 Cor crua só aparece na definição dos tokens, em `tailwind.config.js`.
 

@@ -43,10 +43,10 @@ Todo tipo de arquivo tem um. É o teste que protege a regra 2:
 
 ```ts
 it("round-trips sem alterar bytes", async () => {
-  const original = await readFile(fixture, "utf8")
-  const parsed = parseRequest(original)
-  expect(serializeRequest(parsed)).toBe(original)
-})
+  const original = await readFile(fixture, "utf8");
+  const parsed = parseRequest(original);
+  expect(serializeRequest(parsed)).toBe(original);
+});
 ```
 
 Se falhar, o problema está no serializer — nunca "conserte" a fixture para o teste passar.

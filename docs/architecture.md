@@ -56,27 +56,27 @@ Desde o Electron 20 o preload roda em sandbox por padrão e perde o Node complet
 
 Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos três processos — é a única pasta compartilhada e **não pode conter runtime**, apenas `type`/`interface`/`const enum` de string.
 
-| Canal | Tipo | Payload → Retorno |
-|---|---|---|
-| `app:ping` | invoke | `void` → `{ version, platform }` |
-| `http:send` | invoke | `HttpRequestSpec` → `HttpResponseResult` |
-| `http:cancel` | invoke | `{ requestId }` → `void` |
-| `http:progress` | event ↓ | `{ requestId, phase, bytes }` |
-| `workspace:open` | invoke | `{ path? }` → `WorkspaceTree` |
-| `workspace:create` | invoke | `{ path, name }` → `WorkspaceTree` |
-| `workspace:recent` | invoke | `void` → `RecentWorkspace[]` |
-| `workspace:changed` | event ↓ | `WorkspaceTree` |
-| `node:read` | invoke | `{ path }` → `RequestNode \| FolderNode` |
-| `node:write` | invoke | `{ path, node }` → `void` |
-| `node:move` | invoke | `{ from, to, seq }` → `void` |
-| `node:delete` | invoke | `{ path }` → `void` |
-| `env:list` | invoke | `void` → `Environment[]` |
-| `env:save` | invoke | `Environment` → `void` |
-| `secret:get` | invoke | `{ key }` → `string \| null` |
-| `secret:set` | invoke | `{ key, value }` → `void` |
-| `script:run` | invoke | `ScriptRunSpec` → `ScriptResult` |
-| `import:detect` | invoke | `{ payload }` → `ImportFormat \| null` |
-| `import:run` | invoke | `{ format, payload, targetPath }` → `ImportReport` |
+| Canal               | Tipo    | Payload → Retorno                                  |
+| ------------------- | ------- | -------------------------------------------------- |
+| `app:ping`          | invoke  | `void` → `{ version, platform }`                   |
+| `http:send`         | invoke  | `HttpRequestSpec` → `HttpResponseResult`           |
+| `http:cancel`       | invoke  | `{ requestId }` → `void`                           |
+| `http:progress`     | event ↓ | `{ requestId, phase, bytes }`                      |
+| `workspace:open`    | invoke  | `{ path? }` → `WorkspaceTree`                      |
+| `workspace:create`  | invoke  | `{ path, name }` → `WorkspaceTree`                 |
+| `workspace:recent`  | invoke  | `void` → `RecentWorkspace[]`                       |
+| `workspace:changed` | event ↓ | `WorkspaceTree`                                    |
+| `node:read`         | invoke  | `{ path }` → `RequestNode \| FolderNode`           |
+| `node:write`        | invoke  | `{ path, node }` → `void`                          |
+| `node:move`         | invoke  | `{ from, to, seq }` → `void`                       |
+| `node:delete`       | invoke  | `{ path }` → `void`                                |
+| `env:list`          | invoke  | `void` → `Environment[]`                           |
+| `env:save`          | invoke  | `Environment` → `void`                             |
+| `secret:get`        | invoke  | `{ key }` → `string \| null`                       |
+| `secret:set`        | invoke  | `{ key, value }` → `void`                          |
+| `script:run`        | invoke  | `ScriptRunSpec` → `ScriptResult`                   |
+| `import:detect`     | invoke  | `{ payload }` → `ImportFormat \| null`             |
+| `import:run`        | invoke  | `{ format, payload, targetPath }` → `ImportReport` |
 
 `event ↓` = emitido do main para o renderer.
 
@@ -87,9 +87,9 @@ Todo handler `invoke` resolve com sucesso ou rejeita com um erro serializável d
 ```ts
 // src/shared/ipc.ts
 export interface WttpError {
-  code: WttpErrorCode  // "ENOENT" | "SCHEMA_INVALID" | "SCRIPT_TIMEOUT" | ...
-  message: string      // legível pelo usuário, já em inglês
-  detail?: string      // caminho de arquivo, linha do YAML, etc.
+  code: WttpErrorCode; // "ENOENT" | "SCHEMA_INVALID" | "SCRIPT_TIMEOUT" | ...
+  message: string; // legível pelo usuário, já em inglês
+  detail?: string; // caminho de arquivo, linha do YAML, etc.
 }
 ```
 

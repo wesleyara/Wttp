@@ -1,2 +1,3 @@
-/* Global stylesheet. Tailwind directives and the reset land here in EP-01-T05.
-   No element-selector rules: every style belongs to a utility class in the component. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
