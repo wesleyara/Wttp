@@ -9,25 +9,28 @@ Referências: [architecture.md](../architecture.md) · [conventions.md](../conve
 ---
 
 ### EP-01-T01 — Preservar tokens visuais e remover o scaffold antigo
-**Status:** Pendente · **Tamanho:** P · **Depende de:** —
+**Status:** Concluída · **Tamanho:** P · **Depende de:** —
 
-**Objetivo.** A pasta `Wttp.Frontend/` deixa de existir sem que a identidade visual se perca.
+**Objetivo.** A pasta do scaffold antigo deixa de existir sem que a identidade visual se perca.
+
+> **Nota de execução.** Quando a task foi executada, o scaffold já não existia — nem no disco, nem em nenhum commit (o repositório começa em `a930425`, contendo apenas `docs/` e `.claude/`). A conferência dos 22 hexes contra o `tailwind.config.js` original **não pôde ser feita**, por falta do arquivo. [docs/design-system.md](../design-system.md) passa a ser a única fonte da verdade da paleta, e é dele que o `tailwind.config.js` do EP-01-T05 é derivado.
 
 **Escopo.**
-- Conferir que as escalas `bluewood` e `brand-blue` em [docs/design-system.md](../design-system.md) batem exatamente com `Wttp.Frontend/tailwind.config.js` **enquanto o arquivo ainda existe**.
-- Remover `Wttp.Frontend/` por completo.
+- ~~Conferir as escalas `bluewood` e `brand-blue` contra o `tailwind.config.js` original.~~ Impossível — arquivo inexistente.
+- Remover o scaffold por completo.
+- Garantir que nenhum documento aponte para a pasta antiga.
 
 **Critérios de aceite.**
-- [ ] Os 22 valores hex do design system conferem com o `tailwind.config.js` original
-- [ ] `Wttp.Frontend/` não existe mais
-- [ ] Nenhum arquivo do repositório referencia `Wttp.Frontend`
+- [ ] ~~Os 22 valores hex do design system conferem com o `tailwind.config.js` original~~ — não verificável, ver nota
+- [x] A pasta do scaffold antigo não existe mais
+- [x] Nenhum arquivo do repositório, fora desta nota histórica, referencia o scaffold antigo
 
 **Fora de escopo.** Reaproveitar qualquer código ou estilo do scaffold — só as cores e as famílias tipográficas sobrevivem.
 
 ---
 
 ### EP-01-T02 — Gerar o scaffold electron-vite
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-01-T01
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-01-T01
 
 **Objetivo.** `yarn dev` abre a janela do Electron a partir do template oficial `vue-ts`.
 
@@ -41,13 +44,15 @@ Referências: [architecture.md](../architecture.md) · [conventions.md](../conve
 - Remover a demo: `Versions.vue`, assets do template, conteúdo de `App.vue`.
 - Renomear identidade: `name`, `productName`, `appId` (`com.wttp.app`), `description`, `author` no `package.json` e `electron-builder.yml`; título da janela.
 - Trocar os ícones em `build/` e `resources/` por placeholders do Wttp.
-- Primeiro commit do repositório (hoje não há nenhum).
+- ~~Primeiro commit do repositório (hoje não há nenhum).~~ Já existia o commit `a930425`; a task virou um commit normal.
 
 **Critérios de aceite.**
-- [ ] `yarn && yarn dev` abre uma janela vazia sem erro no console
-- [ ] `yarn typecheck` e `yarn lint` passam
-- [ ] `docs/`, `CLAUDE.md` e `README.md` continuam intactos
-- [ ] Nenhum resquício de "electron-app" ou "Versions" no repositório
+- [x] `yarn && yarn dev` abre uma janela vazia sem erro no console
+- [x] `yarn typecheck` e `yarn lint` passam
+- [x] `docs/`, `CLAUDE.md` e `README.md` continuam intactos
+- [x] Nenhum resquício de "electron-app" ou "Versions" no repositório
+
+> **Notas de execução.** Os prompts do gerador são toggles que exigem TTY; usamos `--skip` e aplicamos à mão exatamente o que a opção do updater faz (`dev-app-update.yml` + dependência `electron-updater`). A URL de publicação segue placeholder — é assunto do EP-11. Fora do escopo escrito, mas feito por serem óbvios: `version` em `0.1.0`, `.gitignore` com `.wttp/`, `font-src 'self' data:` no CSP (necessário para as fontes locais do EP-01-T05) e remoção dos entitlements de câmera e microfone do macOS, que um cliente HTTP não usa.
 
 **Fora de escopo.** Tailwind, Pinia, router — tasks seguintes.
 
