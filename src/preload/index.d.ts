@@ -2,6 +2,7 @@ import type { ElectronAPI } from "@electron-toolkit/preload";
 import type {
   AppInfo,
   AppSettings,
+  CreateNodePayload,
   CreateWorkspacePayload,
   FolderNode,
   HttpProgressEvent,
@@ -14,6 +15,7 @@ import type {
   PickFolderResult,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
+  RenameNodePayload,
   RequestNode,
   SaveFilePayload,
   SaveFileResult,
@@ -53,6 +55,7 @@ interface WttpApi {
     create: (payload: CreateWorkspacePayload) => Promise<WorkspaceTree>;
     recent: () => Promise<RecentWorkspace[]>;
     removeRecent: (payload: RemoveRecentWorkspacePayload) => Promise<RecentWorkspace[]>;
+    rescan: (payload: WorkspaceRootPayload) => Promise<WorkspaceTree>;
     getUiState: (payload: WorkspaceRootPayload) => Promise<WorkspaceUiState>;
     setUiState: (payload: SetWorkspaceUiStatePayload) => Promise<void>;
     onChanged: (callback: (event: WorkspaceChangedEvent) => void) => () => void;
@@ -62,6 +65,11 @@ interface WttpApi {
     write: (payload: WriteNodePayload) => Promise<void>;
     move: (payload: MoveNodePayload) => Promise<void>;
     delete: (payload: NodePathPayload) => Promise<void>;
+    create: (payload: CreateNodePayload) => Promise<FolderNode | RequestNode>;
+    rename: (payload: RenameNodePayload) => Promise<FolderNode | RequestNode>;
+    duplicate: (payload: NodePathPayload) => Promise<FolderNode | RequestNode>;
+    reveal: (payload: NodePathPayload) => Promise<void>;
+    trash: (payload: NodePathPayload) => Promise<void>;
   };
   secret: {
     get: (key: string) => Promise<string | null>;

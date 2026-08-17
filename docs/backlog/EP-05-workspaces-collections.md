@@ -66,7 +66,7 @@ migrar o arquivo duas vezes.
 
 ### EP-05-T03 — CRUD na árvore
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-05-T02
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-05-T02
 
 **Objetivo.** Gerenciar collections, pastas e requests pela interface.
 
@@ -78,9 +78,17 @@ migrar o arquivo duas vezes.
 
 **Critérios de aceite.**
 
-- [ ] Cada operação grava em disco imediatamente e a árvore reflete o resultado
-- [ ] Nome com `/`, `\` ou reservado do Windows é tratado no slug sem quebrar
-- [ ] Excluir uma pasta com filhos avisa quantos itens serão afetados
+- [x] Cada operação grava em disco imediatamente e a árvore reflete o resultado
+- [x] Nome com `/`, `\` ou reservado do Windows é tratado no slug sem quebrar
+- [x] Excluir uma pasta com filhos avisa quantos itens serão afetados
+
+**Nota de fechamento.** "Excluir" move para a lixeira do SO (`shell.trashItem`), com
+fallback avisado (`console.warn` + apagamento definitivo) se a plataforma não suportar
+— coberto por inspeção de código, não por teste automatizado (a lixeira real depende do
+SO). `createNode`/`renameNode`/`duplicateNode` e a rejeição de nomes reservados do
+Windows têm teste em `tree.spec.ts`. Verificação da UI (menu de contexto, rename
+inline, modal de confirmação) nos dois temas não foi possível neste ambiente sem
+`xvfb`/`sudo` — mesma ressalva já registrada nas tasks anteriores.
 
 ---
 

@@ -28,6 +28,7 @@ import { ensureGitignore } from "./gitignore";
 import { CURRENT_SCHEMA_VERSION } from "./migrations/registry";
 import { resolveWorkspacePath } from "./paths";
 import { serializeFolder, serializeRequest, serializeWorkspace } from "./serializer";
+import { uniqueSlugName } from "./slug";
 import {
   type SchemaIssue,
   validateEnvironment,
@@ -332,4 +333,124 @@ export async function initWorkspace(root: string, name: string): Promise<Workspa
   await writeFileAtomic(join(root, WORKSPACE_FILE), serializeWorkspace(workspaceFile));
 
   return scanWorkspace(root);
+}
+
+async function listEntryNames(absDir: string): Promise<Set<string>> {
+  try {
+    return new Set(await fs.readdir(absDir));
+  } catch {
+    return new Set();
+  }
+}
+
+/** Cria uma pasta ou request nova dentro de `parentPath` (EP-05-T03) — vai para o fim. */
+export async function createNode(
+  root: string,
+  parentPath: string,
+  kind: WorkspaceNode["kind"],
+  name: string,
+): Promise<WorkspaceNode> {
+  const absParent = resolveWorkspacePath(root, parentPath);
+  await fs.mkdir(absParent, { recursive: true });
+
+  const existingNames = await listEntryNames(absParent);
+  const suffix = kind === "request" ? REQUEST_SUFFIX : "";
+  const slug = uniqueSlugName(name, suffix, candidate => existingNames.has(candidate));
+  const relPath = relJoin(parentPath, slug);
+
+  const siblings = (await scanChildren(root, parentPath)).sort(compareNodes);
+  const seq = siblings.length + 1;
+
+  if (kind === "folder") {
+    const data: FolderFile = { wttp: CURRENT_SCHEMA_VERSION, name, seq };
+    await fs.mkdir(join(absParent, slug), { recursive: true });
+    await writeFileAtomic(join(absParent, slug, FOLDER_FILE), serializeFolder(data));
+    return { kind: "folder", path: relPath, name, seq, data, children: [] };
+  }
+
+  const data: RequestFile = { wttp: CURRENT_SCHEMA_VERSION, name, seq, method: "GET", url: "" };
+  await writeFileAtomic(join(absParent, slug), serializeRequest(data));
+  return { kind: "request", path: relPath, name, seq, data };
+}
+
+/**
+ * Renomeia um nó — atualiza `data.name` e, se o slug derivado mudar, move o
+ * arquivo/diretório para o novo nome (mesma posição entre os irmãos). Só nós com
+ * `data` válido podem ser renomeados — um nó inválido não tem o que reescrever.
+ */
+export async function renameNode(root: string, path: string, name: string): Promise<WorkspaceNode> {
+  const node = await readNode(root, path);
+  if (!node.data) {
+    throw new DomainError("INVALID_PAYLOAD", `cannot rename a node without data: "${path}"`, path);
+  }
+
+  const parentDir = relDirname(path);
+  const absParentDir = resolveWorkspacePath(root, parentDir);
+  const currentBasename = path.slice(path.lastIndexOf("/") + 1);
+  const existingNames = await listEntryNames(absParentDir);
+  existingNames.delete(currentBasename);
+
+  const suffix = node.kind === "request" ? REQUEST_SUFFIX : "";
+  const newSlug = uniqueSlugName(name, suffix, candidate => existingNames.has(candidate));
+  const newPath = relJoin(parentDir, newSlug);
+
+  const updatedNode = { ...node, data: { ...node.data, name } } as WorkspaceNode;
+  await writeNode(root, path, updatedNode);
+
+  if (newPath === path) return readNode(root, path);
+
+  await moveNode(root, path, newPath, node.seq);
+  return readNode(root, newPath);
+}
+
+/**
+ * Duplica um nó — nome único (`"X" → "X copy" → "X copy 2"`), inserido logo após o
+ * original entre os irmãos. Pasta duplica a árvore inteira recursivamente. Request
+ * inválida (`data: null`) não pode ser duplicada — não há conteúdo para copiar.
+ */
+export async function duplicateNode(root: string, path: string): Promise<WorkspaceNode> {
+  const node = await readNode(root, path);
+  if (node.kind === "request" && !node.data) {
+    throw new DomainError(
+      "INVALID_PAYLOAD",
+      `cannot duplicate an invalid request: "${path}"`,
+      path,
+    );
+  }
+
+  const parentDir = relDirname(path);
+  const absParentDir = resolveWorkspacePath(root, parentDir);
+  const siblings = (await scanChildren(root, parentDir)).sort(compareNodes);
+  const existingDisplayNames = new Set(siblings.map(sibling => sibling.name));
+
+  let candidateName = `${node.name} copy`;
+  for (let n = 2; existingDisplayNames.has(candidateName); n++) {
+    candidateName = `${node.name} copy ${n}`;
+  }
+
+  const existingFsNames = await listEntryNames(absParentDir);
+  const suffix = node.kind === "request" ? REQUEST_SUFFIX : "";
+  const newSlug = uniqueSlugName(candidateName, suffix, candidate =>
+    existingFsNames.has(candidate),
+  );
+  const newPath = relJoin(parentDir, newSlug);
+
+  const absFrom = resolveWorkspacePath(root, path);
+  const absTo = resolveWorkspacePath(root, newPath);
+
+  if (node.kind === "folder") {
+    await fs.cp(absFrom, absTo, { recursive: true });
+    if (node.data) {
+      const updated: FolderFile = { ...node.data, name: candidateName };
+      await writeFileAtomic(join(absTo, FOLDER_FILE), serializeFolder(updated));
+    }
+  } else {
+    const updated: RequestFile = { ...(node.data as RequestFile), name: candidateName };
+    await writeFileAtomic(absTo, serializeRequest(updated));
+  }
+
+  // Insere logo depois do original e renumera só quem precisa — mesma lógica de
+  // reindexação de `moveNode`, reaproveitada passando `from === to`.
+  await moveNode(root, newPath, newPath, node.seq + 1);
+  return readNode(root, newPath);
 }

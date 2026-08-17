@@ -8,7 +8,17 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { writeFileAtomic } from "./fsAtomic";
 import { resolveWorkspacePath } from "./paths";
 import { slugify, uniqueSlugName } from "./slug";
-import { deleteNode, initWorkspace, moveNode, readNode, scanWorkspace, writeNode } from "./tree";
+import {
+  createNode,
+  deleteNode,
+  duplicateNode,
+  initWorkspace,
+  moveNode,
+  readNode,
+  renameNode,
+  scanWorkspace,
+  writeNode,
+} from "./tree";
 
 let root: string;
 
@@ -274,5 +284,116 @@ describe("slug", () => {
 
     expect(first).toBe("login-2.req.yaml");
     expect(second).toBe("login-3.req.yaml");
+  });
+
+  it("nunca deixa um nome reservado do Windows como candidato final", () => {
+    const existing = new Set<string>();
+    const first = uniqueSlugName("CON", ".req.yaml", name => existing.has(name));
+    expect(first).not.toBe("con.req.yaml");
+    existing.add(first);
+    const second = uniqueSlugName("CON", ".req.yaml", name => existing.has(name));
+    expect(second).not.toBe(first);
+  });
+});
+
+describe("createNode", () => {
+  it("cria uma request no fim da pasta, com o slug derivado do nome", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("a.req.yaml", requestYaml("A", 1));
+
+    const node = await createNode(root, "", "request", "New request");
+
+    expect(node.path).toBe("new-request.req.yaml");
+    expect(node.seq).toBe(2);
+    await expect(fs.access(join(root, "new-request.req.yaml"))).resolves.toBeUndefined();
+  });
+
+  it("cria uma pasta com folder.yaml", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+
+    const node = await createNode(root, "", "folder", "Users");
+
+    expect(node.path).toBe("users");
+    await expect(fs.access(join(root, "users", "folder.yaml"))).resolves.toBeUndefined();
+  });
+
+  it("resolve colisão de nome com sufixo numérico", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("login.req.yaml", requestYaml("Login", 1));
+
+    const node = await createNode(root, "", "request", "Login");
+
+    expect(node.path).toBe("login-2.req.yaml");
+  });
+
+  it("nome reservado do Windows não quebra a criação", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+
+    const node = await createNode(root, "", "folder", "CON");
+
+    expect(node.path).not.toBe("con");
+    await expect(fs.access(join(root, node.path))).resolves.toBeUndefined();
+  });
+});
+
+describe("renameNode", () => {
+  it("atualiza data.name e move o arquivo para o novo slug", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("login.req.yaml", requestYaml("Login", 1));
+
+    const renamed = (await renameNode(root, "login.req.yaml", "Sign in")) as RequestNode;
+
+    expect(renamed.path).toBe("sign-in.req.yaml");
+    expect(renamed.data?.name).toBe("Sign in");
+    await expect(fs.access(join(root, "login.req.yaml"))).rejects.toThrow();
+  });
+
+  it("mantém o seq quando o slug não muda de posição", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("a.req.yaml", requestYaml("A", 1));
+    await writeYaml("b.req.yaml", requestYaml("B", 2));
+
+    await renameNode(root, "b.req.yaml", "B renamed");
+
+    const tree = await scanWorkspace(root);
+    expect(tree.children.map(node => node.name)).toEqual(["A", "B renamed"]);
+  });
+});
+
+describe("duplicateNode", () => {
+  it("duplica uma request com nome único, logo após o original", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("a.req.yaml", requestYaml("A", 1));
+    await writeYaml("b.req.yaml", requestYaml("B", 2));
+
+    const duplicate = (await duplicateNode(root, "a.req.yaml")) as RequestNode;
+
+    expect(duplicate.data?.name).toBe("A copy");
+    const tree = await scanWorkspace(root);
+    expect(tree.children.map(node => node.name)).toEqual(["A", "A copy", "B"]);
+  });
+
+  it("resolve nome duplicado repetido com sufixo incremental", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("a.req.yaml", requestYaml("A", 1));
+
+    await duplicateNode(root, "a.req.yaml");
+    const secondPath = (await scanWorkspace(root)).children.find(n => n.name === "A")!.path;
+    const second = (await duplicateNode(root, secondPath)) as RequestNode;
+
+    expect(second.data?.name).toBe("A copy 2");
+  });
+
+  it("duplica uma pasta recursivamente, com os filhos", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml("auth/login.req.yaml", requestYaml("Login", 1));
+
+    const duplicate = await duplicateNode(root, "auth");
+
+    expect(duplicate.kind).toBe("folder");
+    const tree = await scanWorkspace(root);
+    const copy = tree.children.find(node => node.name === "Auth copy") as FolderNode;
+    expect(copy.children.map(node => node.name)).toEqual(["Login"]);
   });
 });

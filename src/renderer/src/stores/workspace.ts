@@ -42,6 +42,16 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     });
   }
 
+  /**
+   * Rescan sem efeitos colaterais (não toca recentes, não reinicia o watcher) — usado
+   * depois de um `node:*` que já sabemos que aconteceu, para não esperar o watcher (que
+   * ignora nossa própria escrita, `writeTracker.ts`) refletir a mudança sozinho.
+   */
+  async function refreshTree(): Promise<void> {
+    if (!root.value) return;
+    tree.value = await window.wttp.workspace.rescan({ root: root.value });
+  }
+
   async function loadUiState(): Promise<void> {
     if (!root.value) return;
     uiState.value = await window.wttp.workspace.getUiState({ root: root.value });
@@ -141,6 +151,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     pickFolder,
     removeRecent,
     patchUiState,
+    refreshTree,
     close,
   };
 });

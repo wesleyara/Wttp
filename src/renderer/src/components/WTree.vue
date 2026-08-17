@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceNode } from "@shared";
 
+import WInput from "@renderer/components/WInput.vue";
 import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
 
@@ -24,15 +25,23 @@ const props = withDefaults(
     expandedPaths: Set<string>;
     selectedPath: string | null;
     filterText?: string;
+    /** Path do nó em edição inline de nome — `null` quando nada está sendo renomeado. */
+    editingPath?: string | null;
   }>(),
-  { filterText: "" },
+  { filterText: "", editingPath: null },
 );
 
 const emit = defineEmits<{
   "update:expandedPaths": [paths: Set<string>];
   "update:selectedPath": [path: string | null];
   activate: [node: WorkspaceNode];
+  contextmenu: [node: WorkspaceNode, event: MouseEvent];
+  rename: [path: string, name: string];
+  "cancel-rename": [];
+  shortcut: [type: "rename" | "duplicate" | "delete", node: WorkspaceNode];
 }>();
+
+const editingValue = ref("");
 
 const containerRef = useTemplateRef<HTMLElement>("container");
 const scrollTop = ref(0);
@@ -107,6 +116,36 @@ const visibleRows = computed(() => rows.value.slice(startIndex.value, endIndex.v
 const offsetY = computed(() => startIndex.value * ROW_HEIGHT);
 const totalHeight = computed(() => rows.value.length * ROW_HEIGHT);
 
+watch(
+  () => props.editingPath,
+  async path => {
+    if (!path) return;
+    const index = rows.value.findIndex(r => r.node.path === path);
+    if (index === -1) return;
+    editingValue.value = rows.value[index].node.name;
+    scrollToIndex(index);
+    await nextTick();
+    containerRef.value?.querySelector<HTMLInputElement>("input")?.focus();
+  },
+);
+
+function confirmRename(): void {
+  if (!props.editingPath) return;
+  const trimmed = editingValue.value.trim();
+  if (trimmed) emit("rename", props.editingPath, trimmed);
+  else emit("cancel-rename");
+}
+
+function cancelRename(): void {
+  emit("cancel-rename");
+}
+
+function onRowContextmenu(node: WorkspaceNode, event: MouseEvent): void {
+  event.preventDefault();
+  select(node.path);
+  emit("contextmenu", node, event);
+}
+
 function toggleExpanded(path: string): void {
   const next = new Set(props.expandedPaths);
   if (next.has(path)) next.delete(path);
@@ -158,9 +197,25 @@ function onTypeahead(char: string): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
+  // Uma linha em edição de nome tem seu próprio WInput cuidando do teclado — a
+  // navegação da árvore fica pausada até `rename`/`cancel-rename`.
+  if (props.editingPath) return;
+
   const current = selectedIndex.value;
 
-  if (event.key === "ArrowDown") {
+  if (event.key === "F2") {
+    event.preventDefault();
+    const row = rows.value[current];
+    if (row) emit("shortcut", "rename", row.node);
+  } else if (event.key.toLowerCase() === "d" && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault();
+    const row = rows.value[current];
+    if (row) emit("shortcut", "duplicate", row.node);
+  } else if (event.key === "Delete") {
+    event.preventDefault();
+    const row = rows.value[current];
+    if (row) emit("shortcut", "delete", row.node);
+  } else if (event.key === "ArrowDown") {
     event.preventDefault();
     void selectIndex(current === -1 ? 0 : Math.min(current + 1, rows.value.length - 1));
   } else if (event.key === "ArrowUp") {
@@ -226,6 +281,7 @@ function onKeydown(event: KeyboardEvent): void {
           "
           @click="select(row.node.path)"
           @dblclick="activate(row.node)"
+          @contextmenu="onRowContextmenu(row.node, $event)"
         >
           <button
             v-if="row.hasChildren"
@@ -258,7 +314,16 @@ function onKeydown(event: KeyboardEvent): void {
             class="w-10 shrink-0 text-[11px]"
           />
 
-          <span class="truncate">{{ row.node.name }}</span>
+          <WInput
+            v-if="row.node.path === editingPath"
+            v-model="editingValue"
+            class="h-5 flex-1"
+            @click.stop
+            @keydown.stop.enter="confirmRename"
+            @keydown.stop.esc="cancelRename"
+            @focusout="confirmRename"
+          />
+          <span v-else class="truncate">{{ row.node.name }}</span>
 
           <svg
             v-if="row.node.issues && row.node.issues.length > 0"
