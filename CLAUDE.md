@@ -8,7 +8,7 @@ Visão do produto: [docs/overview.md](docs/overview.md).
 
 ## Estado do projeto
 
-**Pré-MVP.** A fundação ainda não foi criada — o repositório contém documentação e o scaffold antigo `Wttp.Frontend/`, que será removido pelo **EP-01**.
+**Pré-MVP.** A fundação está sendo criada pelo **EP-01**. O scaffold antigo não existe mais; a paleta e as famílias tipográficas que ele definia sobrevivem em [docs/design-system.md](docs/design-system.md), que é a fonte da verdade visual.
 
 Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-01**.
 
