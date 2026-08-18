@@ -1,7 +1,12 @@
 import type { RecentWorkspace, WorkspaceTree, WorkspaceUiState, WttpError } from "@shared";
 
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, toRaw } from "vue";
+
+/** Tira a reatividade do Pinia antes de cruzar a ponte de IPC — Proxy reativo não é clonável pelo Electron. */
+function unwrap<T>(value: T): T {
+  return JSON.parse(JSON.stringify(toRaw(value))) as T;
+}
 
 const PERSIST_UI_STATE_DEBOUNCE_MS = 300;
 
@@ -76,7 +81,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     uiState.value = { ...uiState.value, ...patch };
 
     const currentRoot = root.value;
-    const nextState = uiState.value;
+    const nextState = unwrap(uiState.value);
     if (persistUiStateTimer) clearTimeout(persistUiStateTimer);
     persistUiStateTimer = setTimeout(() => {
       void window.wttp.workspace.setUiState({ root: currentRoot, state: nextState });
@@ -93,7 +98,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     if (!root.value) return;
     if (persistUiStateTimer) clearTimeout(persistUiStateTimer);
     persistUiStateTimer = null;
-    void window.wttp.workspace.setUiState({ root: root.value, state: uiState.value });
+    void window.wttp.workspace.setUiState({ root: root.value, state: unwrap(uiState.value) });
   }
 
   async function refreshRecents(): Promise<void> {
