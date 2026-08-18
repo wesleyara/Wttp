@@ -8,6 +8,7 @@ import { useRequestStore } from "@renderer/stores/request";
 import { storeToRefs } from "pinia";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 
+import ScriptResultsPanel from "./ScriptResultsPanel.vue";
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
@@ -29,11 +30,24 @@ import WTabs from "./WTabs.vue";
 const MAX_DISPLAY_BYTES = 2_000_000;
 
 const store = useRequestStore();
-const { sending, lastResult } = storeToRefs(store);
+const { sending, lastResult, scriptRun } = storeToRefs(store);
 
 const successResult = computed(() => (lastResult.value?.ok ? lastResult.value : null));
 const failureResult = computed(() =>
   lastResult.value && !lastResult.value.ok ? lastResult.value : null,
+);
+
+// --- Tests (EP-09-T05) ---------------------------------------------------------------
+const scriptAssertions = computed(() => scriptRun.value?.assertions ?? []);
+const scriptConsole = computed(() => scriptRun.value?.console ?? []);
+const scriptPreRequestError = computed(() => scriptRun.value?.preRequestError);
+const failedAssertionCount = computed(() => scriptAssertions.value.filter(a => !a.passed).length);
+/** "Request sem scripts não exibe abas vazias" (EP-09-T05) — só aparece quando há algo pra mostrar. */
+const hasScriptResults = computed(
+  () =>
+    scriptAssertions.value.length > 0 ||
+    scriptConsole.value.length > 0 ||
+    Boolean(scriptPreRequestError.value),
 );
 
 const contentType = computed(
@@ -41,11 +55,21 @@ const contentType = computed(
     successResult.value?.headers.find(h => h.name.toLowerCase() === "content-type")?.value ?? "",
 );
 
-const mainTab = ref<"body" | "headers" | "cookies">("body");
+const mainTab = ref<"body" | "headers" | "cookies" | "tests">("body");
 const mainTabs = computed(() => [
   { value: "body", label: "Body" },
   { value: "headers", label: "Headers", count: successResult.value?.headers.length ?? 0 },
   { value: "cookies", label: "Cookies", count: cookies.value.length },
+  ...(hasScriptResults.value
+    ? [
+        {
+          value: "tests",
+          label: "Tests",
+          count: scriptAssertions.value.length,
+          warning: failedAssertionCount.value > 0,
+        },
+      ]
+    : []),
 ]);
 
 const bodyViewMode = ref<"pretty" | "raw" | "preview">("pretty");
@@ -159,6 +183,16 @@ async function saveBody(): Promise<void> {
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
+    <div
+      v-if="!sending && scriptPreRequestError"
+      class="mx-2 mt-2 flex shrink-0 flex-col gap-1 rounded-md bg-status-5xx/10 px-3 py-2 font-inter text-sm text-status-5xx"
+    >
+      <p class="font-medium">
+        Pre-request script failed ({{ scriptPreRequestError.source }}) — request not sent
+      </p>
+      <p class="font-mono text-xs">{{ scriptPreRequestError.error.message }}</p>
+    </div>
+
     <WEmptyState
       v-if="!sending && !lastResult"
       title="No response yet"
@@ -175,19 +209,24 @@ async function saveBody(): Promise<void> {
       </template>
     </WEmptyState>
 
-    <div
-      v-else-if="failureResult"
-      class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center"
-    >
-      <WStatusBadge :code="null" />
-      <p class="font-barlow text-base font-semibold text-1">{{ failureResult.error.code }}</p>
-      <p class="max-w-md font-inter text-sm text-muted">
-        {{ describeRequestError(failureResult.error.code) }}
-      </p>
-      <p v-if="failureResult.error.detail" class="font-mono text-xs text-faint">
-        {{ failureResult.error.detail }}
-      </p>
-    </div>
+    <template v-else-if="failureResult">
+      <div class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+        <WStatusBadge :code="null" />
+        <p class="font-barlow text-base font-semibold text-1">{{ failureResult.error.code }}</p>
+        <p class="max-w-md font-inter text-sm text-muted">
+          {{ describeRequestError(failureResult.error.code) }}
+        </p>
+        <p v-if="failureResult.error.detail" class="font-mono text-xs text-faint">
+          {{ failureResult.error.detail }}
+        </p>
+      </div>
+      <ScriptResultsPanel
+        v-if="hasScriptResults"
+        class="border-t border-subtle"
+        :assertions="scriptAssertions"
+        :console-entries="scriptConsole"
+      />
+    </template>
 
     <template v-else-if="successResult">
       <div class="flex h-9 shrink-0 items-center gap-4 border-b border-subtle px-3">
@@ -276,6 +315,13 @@ async function saveBody(): Promise<void> {
           <span class="flex-1 truncate text-muted">{{ header.value }}</span>
         </div>
       </div>
+
+      <ScriptResultsPanel
+        v-else-if="mainTab === 'tests'"
+        :assertions="scriptAssertions"
+        :console-entries="scriptConsole"
+        :pre-request-error="scriptPreRequestError"
+      />
 
       <div v-else-if="mainTab === 'cookies'" class="min-h-0 flex-1 overflow-y-auto pt-2">
         <WEmptyState

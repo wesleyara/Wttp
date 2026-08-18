@@ -1,12 +1,17 @@
 # EP-09 — Scripts e testes
 
-**Status:** Pendente · **Alvo:** v0.1 · **Depende de:** EP-08
+**Status:** Concluída (verificação visual pendente) · **Alvo:** v0.1 · **Depende de:** EP-08
 
 Scripts pre-request e de teste. É o que permite encadear requisições — fazer login, guardar o token, usar nas próximas — e transformar uma collection num conjunto de testes.
 
 Referência: [architecture.md §5](../architecture.md)
 
 > **Este é o épico de maior risco de segurança do MVP.** Scripts vêm de collections que o usuário importa de terceiros. O isolamento não é opcional.
+
+> **Nota de ordem:** EP-08 (Importadores), declarado como dependência, ainda estava
+> `Pendente` (só cURL e o parser genérico prontos) quando este épico foi implementado —
+> decisão explícita do usuário de seguir mesmo assim, já que scripts não têm
+> acoplamento funcional com importadores. Nada aqui depende do que falta em EP-08.
 
 ---
 
@@ -106,7 +111,7 @@ Referência: [architecture.md §5](../architecture.md)
 
 ### EP-09-T05 — Resultados de teste e console
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-09-T03, EP-03-T07
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-09-T03, EP-03-T07
 
 **Objetivo.** Ver o que os scripts fizeram.
 
@@ -118,6 +123,8 @@ Referência: [architecture.md §5](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] Falha mostra esperado versus recebido de forma legível
-- [ ] Console distingue a fase (pre-request ou tests)
-- [ ] Request sem scripts não exibe abas vazias
+- [x] Falha mostra esperado versus recebido de forma legível — mensagem do matcher tem os dois lados (`ScriptResultsPanel.vue`, reaproveita `api.ts`)
+- [x] Console distingue a fase (pre-request ou tests) — cada linha mostra `entry.phase` e a origem na cadeia
+- [x] Request sem scripts não exibe abas vazias — aba Tests só entra em `mainTabs` quando `hasScriptResults`
+
+**Nota:** verificação visual (dois temas, abrir a aba Tests numa janela de verdade) não foi feita — mesma pendência de `xvfb`/`sudo` já registrada nas notas acima e em EP-02/03/05/06/07.
