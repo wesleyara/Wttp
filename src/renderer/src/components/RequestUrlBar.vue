@@ -37,6 +37,20 @@ function onSend(): void {
     void store.send();
   }
 }
+
+// Detecção só do lado do cliente ("parece um cURL?") — o parsing de verdade
+// (`window.wttp.import.parseCurl`) fica no main (EP-08-T05); aqui é só decidir se
+// intercepta o paste ou deixa o `WCodeEditor` tratar como texto de URL normal.
+const CURL_PREFIX = /^\s*curl(\.exe)?\s/i;
+
+function onPasteUrl(event: ClipboardEvent): void {
+  const text = event.clipboardData?.getData("text/plain") ?? "";
+  if (!CURL_PREFIX.test(text)) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  void store.applyPastedCurl(text);
+}
 </script>
 
 <template>
@@ -56,6 +70,7 @@ function onSend(): void {
         :variable-tooltips="urlTooltips"
         :variable-names="variableNames"
         @enter="onSend"
+        @paste.capture="onPasteUrl"
       />
     </div>
     <WButton :variant="sending ? 'danger' : 'primary'" class="w-24 shrink-0" @click="onSend">

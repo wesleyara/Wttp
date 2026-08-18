@@ -1,8 +1,15 @@
 /**
- * Superfície pública de `importers/`. Módulos de formato (EP-08-T02..T05) importam
- * `registerImporter` daqui e se registram ao ser importados por este arquivo.
+ * Superfície pública de `importers/`. Módulos de formato (EP-08-T02..T05) se
+ * registram aqui — adicionar um formato novo é só uma linha em `registerImporter`,
+ * nada no resto do pipeline muda.
  */
 
+import { curlImporter } from "./curl";
+import { registerImporter } from "./registry";
+
+registerImporter(curlImporter);
+
+export { looksLikeCurlCommand, parseCurlCommand, parseCurlToRequest } from "./curl";
 export { detectImportFormat, runImport } from "./pipeline";
 export type { RunImportInput } from "./pipeline";
 export { registerImporter } from "./registry";

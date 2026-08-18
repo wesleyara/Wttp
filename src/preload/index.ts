@@ -19,6 +19,8 @@ import type {
   MoveNodePayload,
   NodePathPayload,
   OpenWorkspacePayload,
+  ParseCurlPayload,
+  ParsedCurlRequest,
   PickFolderPayload,
   PickFolderResult,
   RecentWorkspace,
@@ -163,6 +165,8 @@ const wttp = {
     detect: (payload: DetectImportPayload): Promise<ImportFormat | null> =>
       invoke("import:detect", payload),
     run: (payload: RunImportPayload): Promise<ImportReport> => invoke("import:run", payload),
+    parseCurl: (payload: ParseCurlPayload): Promise<ParsedCurlRequest | null> =>
+      invoke("import:parseCurl", payload),
   },
 };
 

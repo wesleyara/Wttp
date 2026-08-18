@@ -4,6 +4,14 @@
  * `EnvironmentFile`) é o alvo da normalização, não algo que este arquivo redefine.
  */
 
+import type {
+  AuthConfig,
+  HttpMethod,
+  HttpRequestSettings,
+  KeyValueEntry,
+  RequestBody,
+} from "./http";
+
 /** Um formato de origem suportado — cada um vira um módulo próprio em `main/importers/`. */
 export type ImportFormat = "postman" | "insomnia" | "openapi" | "curl";
 
@@ -34,4 +42,24 @@ export interface RunImportPayload {
   root: string;
   /** Pasta do workspace onde a árvore importada é criada — "" para a raiz. */
   targetPath: string;
+}
+
+/**
+ * Um comando cURL colado direto na barra de URL (EP-08-T05) — não passa pela árvore
+ * do workspace, só preenche a aba de request ativa. Campos espelham `RequestFile`,
+ * já sem `wttp`/`seq`/`name`/`docs`, que não fazem sentido para um autofill pontual.
+ */
+export interface ParsedCurlRequest {
+  method: HttpMethod;
+  url: string;
+  query: KeyValueEntry[];
+  headers: KeyValueEntry[];
+  auth?: AuthConfig;
+  body?: RequestBody;
+  settings?: HttpRequestSettings;
+  notConverted: ImportReportItem[];
+}
+
+export interface ParseCurlPayload {
+  content: string;
 }
