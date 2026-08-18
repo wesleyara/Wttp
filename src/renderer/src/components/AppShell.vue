@@ -3,7 +3,7 @@ import type { WorkspaceNode } from "@shared";
 
 import CommandPalette from "@renderer/components/CommandPalette.vue";
 import EnvironmentEditorModal from "@renderer/components/EnvironmentEditorModal.vue";
-import FolderAuthModal from "@renderer/components/FolderAuthModal.vue";
+import FolderConfigTabs from "@renderer/components/FolderConfigTabs.vue";
 import PreferencesModal from "@renderer/components/PreferencesModal.vue";
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
@@ -25,7 +25,7 @@ import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useTreeStore } from "@renderer/stores/tree";
 import { useUiStore } from "@renderer/stores/ui";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
 
 // Esqueleto definitivo do app (EP-02-T04): sidebar de collections, área central de
 // abas de request e painel de resposta (EP-05-T05).
@@ -36,10 +36,14 @@ const tree = useTreeStore();
 const requestTabs = useRequestTabsStore();
 
 function onActivate(node: WorkspaceNode, mode: "preview" | "pinned"): void {
-  if (node.kind !== "request") return;
-  void (mode === "preview"
-    ? requestTabs.openPreview(node.path)
-    : requestTabs.openPinned(node.path));
+  if (node.kind === "request") {
+    void (mode === "preview"
+      ? requestTabs.openPreview(node.path)
+      : requestTabs.openPinned(node.path));
+  } else if (node.kind === "folder") {
+    // Pasta/collection: sem noção de preview, um clique já abre/ativa a aba definitiva (EP-07.1).
+    void requestTabs.openFolderTab(node.path);
+  }
 }
 
 function onTabNext(): void {
@@ -53,6 +57,23 @@ const paletteOpen = ref(false);
 const environmentEditorOpen = ref(false);
 const preferencesOpen = ref(false);
 
+/** Menu "+" da toolbar da árvore (EP-07.1) — substitui os dois botões separados de criar. */
+const createMenuOpen = ref(false);
+const createButtonRef = useTemplateRef<HTMLElement>("createButton");
+const createMenuPosition = ref({ x: 0, y: 0 });
+
+function openCreateMenu(): void {
+  const rect = createButtonRef.value?.getBoundingClientRect();
+  if (rect) createMenuPosition.value = { x: rect.left, y: rect.bottom + 4 };
+  createMenuOpen.value = true;
+}
+
+const createMenuItems = computed<ContextMenuItem[]>(() => [
+  { label: "New collection", icon: "layers", action: () => void tree.createCollection() },
+  { label: "New folder", icon: "folder-plus", action: () => void tree.createFolder() },
+  { label: "New request", icon: "file-plus", action: () => void tree.createRequest() },
+]);
+
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const target = tree.contextMenuTarget;
   if (!target) return [];
@@ -63,7 +84,11 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     items.push(
       { label: "New request", icon: "file-plus", action: () => void tree.createRequest(node.path) },
       { label: "New folder", icon: "folder-plus", action: () => void tree.createFolder(node.path) },
-      { label: "Edit auth", icon: "key", action: () => void tree.openAuthEditor(node) },
+      {
+        label: "Settings",
+        icon: "settings",
+        action: () => void requestTabs.openFolderTab(node.path),
+      },
     );
   }
   items.push(
@@ -121,12 +146,11 @@ onUnmounted(() => stopListeningToMenu?.());
           <aside class="flex h-full flex-col bg-surface-2">
             <div class="flex shrink-0 items-center gap-1 border-b border-subtle p-2">
               <WInput v-model="tree.filterText" placeholder="Filter…" class="flex-1" />
-              <WButton size="sm" variant="ghost" title="New request" @click="tree.createRequest()">
-                <WIcon name="file-plus" />
-              </WButton>
-              <WButton size="sm" variant="ghost" title="New folder" @click="tree.createFolder()">
-                <WIcon name="folder-plus" />
-              </WButton>
+              <span ref="createButton" class="inline-flex">
+                <WButton size="sm" variant="ghost" title="New…" @click="openCreateMenu">
+                  <WIcon name="plus" />
+                </WButton>
+              </span>
             </div>
             <div class="min-h-0 flex-1">
               <WEmptyState
@@ -175,8 +199,8 @@ onUnmounted(() => stopListeningToMenu?.());
               <main class="flex h-full flex-col bg-surface-1">
                 <WEmptyState
                   v-if="requestTabs.tabs.length === 0"
-                  title="No request open"
-                  description="Select or create a request."
+                  title="Nothing open"
+                  description="Select or create a request, folder or collection."
                 >
                   <template #icon>
                     <WIcon name="send" size="5" />
@@ -185,15 +209,18 @@ onUnmounted(() => stopListeningToMenu?.());
                 <template v-else>
                   <RequestTabsBar />
                   <div class="min-h-0 flex-1 overflow-y-auto p-3">
-                    <RequestUrlBar />
-                    <RequestConfigTabs class="mt-3" />
+                    <template v-if="requestTabs.active?.kind === 'request'">
+                      <RequestUrlBar />
+                      <RequestConfigTabs class="mt-3" />
+                    </template>
+                    <FolderConfigTabs v-else-if="requestTabs.active?.kind === 'folder'" />
                   </div>
                 </template>
               </main>
             </template>
             <template #second>
               <section class="flex h-full flex-col bg-surface-2">
-                <ResponsePanel v-if="requestTabs.active" />
+                <ResponsePanel v-if="requestTabs.active?.kind === 'request'" />
                 <WEmptyState
                   v-else
                   title="No response yet"
@@ -220,8 +247,6 @@ onUnmounted(() => stopListeningToMenu?.());
 
     <PreferencesModal :open="preferencesOpen" @close="preferencesOpen = false" />
 
-    <FolderAuthModal />
-
     <WToast />
 
     <WContextMenu
@@ -230,6 +255,14 @@ onUnmounted(() => stopListeningToMenu?.());
       :y="tree.contextMenuTarget?.y ?? 0"
       :items="contextMenuItems"
       @close="tree.closeContextMenu"
+    />
+
+    <WContextMenu
+      :open="createMenuOpen"
+      :x="createMenuPosition.x"
+      :y="createMenuPosition.y"
+      :items="createMenuItems"
+      @close="createMenuOpen = false"
     />
 
     <WModal

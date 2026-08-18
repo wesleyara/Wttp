@@ -187,15 +187,24 @@ function onContainerClick(event: MouseEvent): void {
   emit("update:selectedPath", null);
 }
 
-/** Pasta: sempre expande/recolhe. Request: preview no clique simples, fixa no duplo/Enter. */
+/**
+ * Pasta/collection: abre/ativa a aba de settings, igual a uma request (EP-07.1) — só
+ * o caret (`toggleExpanded`, abaixo) expande/recolhe a árvore, para o clique na linha
+ * poder abrir a aba sem ambiguidade, do jeito que o painel de collection do Postman
+ * separa as duas ações. Request: preview no clique simples, fixa no duplo/Enter — sem
+ * mudança.
+ */
 function activate(node: WorkspaceNode, mode: "preview" | "pinned"): void {
-  if (node.kind === "folder") toggleExpanded(node.path);
-  else emit("activate", node, mode);
+  emit("activate", node, mode);
 }
 
 function onRowClick(node: WorkspaceNode): void {
+  if (suppressNextClick) {
+    suppressNextClick = false;
+    return;
+  }
   select(node.path);
-  if (node.kind === "request") activate(node, "preview");
+  activate(node, node.kind === "request" ? "preview" : "pinned");
 }
 
 function scrollToIndex(index: number): void {
@@ -224,6 +233,8 @@ interface DropIndicator {
 const draggingNode = ref<WorkspaceNode | null>(null);
 const dropIndicator = ref<DropIndicator | null>(null);
 let dragCandidate: { node: WorkspaceNode; startX: number; startY: number } | null = null;
+/** Um pointerup que terminou um drag de verdade também dispara `click` no mesmo alvo (mousedown+mouseup no mesmo elemento) — sem isso, soltar um reorder abriria a aba da pasta largada. */
+let suppressNextClick = false;
 
 const DRAG_START_THRESHOLD_PX = 4;
 
@@ -280,6 +291,7 @@ onBeforeUnmount(endDrag);
 
 function onDragPointerUp(): void {
   const dragged = draggingNode.value;
+  if (dragged) suppressNextClick = true;
   const indicator = dropIndicator.value;
   if (!dragged || !indicator || indicator.invalid) {
     endDrag();

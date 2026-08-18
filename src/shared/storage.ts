@@ -176,6 +176,8 @@ export interface RecentWorkspace {
 export interface TabState {
   path: string;
   pinned: boolean;
+  /** `"folder"` = aba de settings de pasta/collection (EP-07.1). Ausente/`"request"` = aba de request, como sempre foi — arquivos antigos sem o campo continuam carregando como request. */
+  kind?: "request" | "folder";
 }
 
 /**

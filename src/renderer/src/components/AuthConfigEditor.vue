@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Editor de `AuthConfig` (EP-07-T03) — usado na Aba Auth de uma request
- * (`RequestConfigTabs.vue`) e no editor de pasta/collection (`FolderAuthModal.vue`),
+ * (`RequestConfigTabs.vue`) e na aba de settings de pasta/collection (`FolderConfigTabs.vue`),
  * mesmo componente nos dois níveis porque o formato (`AuthConfig`) e as regras (tipo
  * concreto vs. `inherit`, campo secreto mascarado) são idênticas.
  *
