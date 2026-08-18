@@ -49,6 +49,10 @@ function onClose(id: string, event: MouseEvent): void {
   event.stopPropagation();
   tabs.requestClose(id);
 }
+
+function onDoubleClick(id: string): void {
+  tabs.pin(id);
+}
 </script>
 
 <template>
@@ -67,6 +71,7 @@ function onClose(id: string, event: MouseEvent): void {
           : '',
       ]"
       @click="tabs.activate(tab.id)"
+      @dblclick="onDoubleClick(tab.id)"
       @pointerdown="onPointerDown(tab.id, $event)"
     >
       <span v-if="tab.dirty" class="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
