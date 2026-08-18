@@ -3,6 +3,7 @@ import type {
   AppSettings,
   CreateNodePayload,
   CreateWorkspacePayload,
+  DetectImportPayload,
   DiscoveredWorkspace,
   EnvironmentListItem,
   EnvironmentPathPayload,
@@ -10,6 +11,8 @@ import type {
   HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
+  ImportFormat,
+  ImportReport,
   ListWorkspacesInDirPayload,
   MenuAction,
   MoveNodeIntoPayload,
@@ -28,6 +31,7 @@ import type {
   ResolveRequestResultPayload,
   ResolveTextPayload,
   ResolveTextResultPayload,
+  RunImportPayload,
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
@@ -154,6 +158,11 @@ const wttp = {
       ipcRenderer.on("menu:action", listener);
       return () => ipcRenderer.off("menu:action", listener);
     },
+  },
+  import: {
+    detect: (payload: DetectImportPayload): Promise<ImportFormat | null> =>
+      invoke("import:detect", payload),
+    run: (payload: RunImportPayload): Promise<ImportReport> => invoke("import:run", payload),
   },
 };
 

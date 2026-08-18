@@ -4,6 +4,7 @@ import type {
   AppSettings,
   CreateNodePayload,
   CreateWorkspacePayload,
+  DetectImportPayload,
   DiscoveredWorkspace,
   EnvironmentListItem,
   EnvironmentPathPayload,
@@ -11,6 +12,8 @@ import type {
   HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
+  ImportFormat,
+  ImportReport,
   ListWorkspacesInDirPayload,
   MenuAction,
   MoveNodeIntoPayload,
@@ -29,6 +32,7 @@ import type {
   ResolveRequestResultPayload,
   ResolveTextPayload,
   ResolveTextResultPayload,
+  RunImportPayload,
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
@@ -107,6 +111,10 @@ interface WttpApi {
   };
   menu: {
     onAction: (callback: (action: MenuAction) => void) => () => void;
+  };
+  import: {
+    detect: (payload: DetectImportPayload) => Promise<ImportFormat | null>;
+    run: (payload: RunImportPayload) => Promise<ImportReport>;
   };
 }
 

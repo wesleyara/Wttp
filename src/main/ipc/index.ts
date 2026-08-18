@@ -2,6 +2,7 @@ import { registerAppHandlers } from "./app";
 import { registerDialogHandlers } from "./dialog";
 import { registerEnvironmentHandlers } from "./environment";
 import { registerHttpHandlers } from "./http";
+import { registerImportHandlers } from "./import";
 import { registerNodeHandlers } from "./node";
 import { registerSecretHandlers } from "./secrets";
 import { registerSettingsHandlers } from "./settings";
@@ -21,4 +22,5 @@ export function registerIpcHandlers(): void {
   registerSecretHandlers();
   registerEnvironmentHandlers();
   registerVariableHandlers();
+  registerImportHandlers();
 }
