@@ -5,12 +5,14 @@ import ImportModal from "@renderer/components/ImportModal.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WModal from "@renderer/components/WModal.vue";
+import { useImportStore } from "@renderer/stores/import";
 import { useSettingsStore } from "@renderer/stores/settings";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { onMounted, ref, watch } from "vue";
 
 const workspace = useWorkspaceStore();
 const settings = useSettingsStore();
+const importStore = useImportStore();
 
 const createModalOpen = ref(false);
 /** `null` quando a raiz de workspaces está configurada — o caminho é computado a partir do nome, sem picker. */
@@ -93,6 +95,11 @@ async function onCloseImportModal(): Promise<void> {
   importModalOpen.value = false;
   await refreshDiscovered();
 }
+
+function onOpenImportModal(): void {
+  importStore.startNewWorkspace();
+  importModalOpen.value = true;
+}
 </script>
 
 <template>
@@ -144,7 +151,7 @@ async function onCloseImportModal(): Promise<void> {
       <div class="flex justify-center gap-2">
         <WButton variant="primary" @click="onOpen">Open workspace</WButton>
         <WButton variant="secondary" @click="onStartCreate">Create workspace</WButton>
-        <WButton variant="ghost" @click="importModalOpen = true">Import</WButton>
+        <WButton variant="ghost" @click="onOpenImportModal">Import</WButton>
       </div>
 
       <p v-if="workspace.error" class="text-center font-inter text-sm text-status-5xx">

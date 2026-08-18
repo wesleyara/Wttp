@@ -1,6 +1,6 @@
 # EP-08 — Importadores
 
-**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-07
+**Status:** Concluída (verificação visual pendente) · **Alvo:** v0.1 · **Depende de:** EP-07
 
 Porta de entrada para adoção. Ninguém recomeça uma collection de 200 endpoints do zero — ou o Wttp importa, ou não é avaliado.
 
@@ -359,7 +359,7 @@ Mesma pendência de verificação visual (dark/light) das notas de outros épico
 
 ### EP-08-T07 — Import para dentro de um workspace já aberto
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-08-T06
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-08-T06
 
 **Objetivo.** A metade do escopo original de EP-08-T06 que só faz sentido com um
 workspace já aberto: importar para dentro de uma árvore existente, com conflito de
@@ -381,11 +381,59 @@ nome resolvido por item.
 
 **Critérios de aceite.**
 
-- [ ] "Import into this folder" aparece no menu de contexto de uma pasta/collection
-- [ ] Conflito de nome oferece renomear, substituir ou pular, por item
-- [ ] Import para dentro de uma pasta com filhos existentes não apaga nada que o
+- [x] "Import into this folder" aparece no menu de contexto de uma pasta/collection
+- [x] Conflito de nome oferece renomear, substituir ou pular, por item
+- [x] Import para dentro de uma pasta com filhos existentes não apaga nada que o
       usuário não tenha explicitamente escolhido substituir
 
 **Fora de escopo.** Reimportar a mesma origem para atualizar uma collection já
 importada (diff/sync) — isso é criar tudo de novo com resolução de conflito manual,
 não uma feature de sincronização.
+
+**Notas de implementação.** Diferença de fundo em relação a EP-08-T06: lá o destino é
+sempre um workspace vazio, então `emitImport` envolve tudo numa pasta-raiz nova (nome
+da collection) sem risco de colisão. Aqui o destino já tem conteúdo, e "cada nó do
+preview" (não um wrapper único) precisa poder colidir — então `emitImportMerge`
+(`src/main/importers/emit.ts`, nova) grava `ImportPreview.children` **direto** em
+`targetPath`, sem pasta-raiz. Sem essa pasta-raiz, `auth`/`docs`/`variables`/`scripts`
+de nível de collection não têm onde ir — em vez de silenciosamente perdidos ou de
+sobrescrever o `folder.yaml` do destino (arriscado, poderia apagar configuração já
+existente do usuário), viram entrada em `notConverted`, mesmo princípio do resto do
+épico.
+
+`runImport`/`import:run` (`pipeline.ts`, `RunImportPayload`/`RunImportInput` em
+`@shared`/`main/importers`) ganharam um `resolutions?: ImportConflictResolution[]`
+opcional — presente (mesmo `[]`) seleciona o caminho `emitImportMerge`, ausente mantém
+o `emitImport` de sempre; `import:preview` não mudou, EP-08-T06 continua exatamente
+como estava (13 testes de `pipeline.spec.ts` intactos, mais 5 novos cobrindo o modo
+`resolutions`).
+
+Detecção de conflito é **client-side**, não um canal IPC novo: como o escopo já sugeria
+("a única peça de infra nova é `import:run` aceitar resoluções"), o renderer já tem os
+nomes da árvore de destino (`window.wttp.node.read`) e os nomes do preview
+(`ImportPreview.children`) — comparar os dois é síncrono, sem round-trip extra. Como
+não existe "merge" (só renomear/substituir/pular o nó inteiro), um nó sem conflito
+nunca pode ter colisão nos próprios filhos — a pasta importada é sempre nova nesse caso
+— então a comparação só precisa olhar um nível (`useImportStore.loadConflicts`,
+`src/renderer/src/stores/import.ts`), nunca recursar.
+
+`useImportStore` ganhou dois modos (`newWorkspace`/`intoFolder`) no lugar de um único
+fluxo — `startNewWorkspace()` (botão "Import" da `WorkspaceLanding`, comportamento
+inalterado) e `startIntoFolder(root, parentPath, parentName)` (menu de contexto de
+pasta/collection em `AppShell.vue`, chamando `openImportIntoFolder`). `ImportModal.vue`
+é o mesmo componente nos dois casos, ramificando por `store.mode`: passo "workspace
+name/destino" só aparece no modo novo; passo de conflito (uma linha por item colidente,
+`WSelect` rename/replace/skip + `WInput` para o novo nome) só aparece no modo
+"para dentro de pasta", com o botão "Import" desabilitado enquanto sobrar uma resolução
+"rename" com nome vazio. O antigo `watch(() => props.open, ...)` que resetava a store
+implicitamente foi removido — cada ponto de entrada agora chama `startNewWorkspace`/
+`startIntoFolder` explicitamente antes de abrir o modal, para o modo escolhido não ser
+sobrescrito por um reset genérico dentro do próprio `ImportModal`.
+
+Coberto por teste (`pipeline.spec.ts`, main): sem conflito grava direto sem pasta-raiz;
+`skip` não cria nem apaga nada; `rename` preserva o existente e cria o importado com o
+nome novo; `replace` apaga o existente antes de criar; metadados de raiz (`variables`
+no teste) viram `notConverted` em vez de perdidos. **Não verificado**: UI dos dois
+modos do modal e o menu de contexto rodando de verdade — mesma pendência de
+verificação visual (dark/light) das notas de outros épicos, sem `xvfb`/`sudo` neste
+ambiente.

@@ -11,6 +11,7 @@ export function registerImportHandlers(): void {
       content: payload.content,
       root: payload.root,
       targetPath: payload.targetPath,
+      resolutions: payload.resolutions,
     }),
   );
   registerHandler("import:parseCurl", payload => parseCurlToRequest(payload.content));

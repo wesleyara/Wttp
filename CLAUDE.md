@@ -79,7 +79,7 @@ salvar uma aba, e diretório padrão de workspace configurável (`defaultWorkspa
 Mesma pendência de verificação visual das notas acima.
 
 **EP-09** (Scripts e testes) também está pronto, implementado fora da ordem recomendada
-do backlog — EP-08 (Importadores) ainda está `Pendente`, mas scripts não têm
+do backlog — EP-08 (Importadores) ainda estava `Pendente` na época, mas scripts não têm
 acoplamento funcional com importadores, decisão explícita do usuário. Código de usuário
 roda isolado num `utilityProcess` + `node:vm` (`src/main/scripts`, sem `require`/
 `process`/`fs`/`net` no contexto, timeout com backstop e recuperação de crash sem
@@ -107,10 +107,26 @@ foi possível promovê-la a direta no `package.json` porque `yarn install` neste
 falha num `@babel/generator` que exige Node mais novo, problema de ambiente sem relação
 com o épico. Mesma pendência de verificação visual das notas acima.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-08**
-(em andamento; T01–T06 concluídas — importadores Postman/Insomnia/OpenAPI/cURL e a UI
-de import, que só cria workspace novo — só **T07** pendente: import para dentro de um
-workspace já aberto, com conflito de nome por item, recomendado antes de EP-10).
+**EP-08** (Importadores) também está pronto: Postman Collection v2.1 (com environment),
+Insomnia v4, OpenAPI 3.x e cURL (`src/main/importers`, um módulo por formato sobre o
+pipeline comum `parse → normalize → emit` de EP-08-T01), a UI de import na tela sem
+workspace aberto (`ImportModal`, sempre cria um workspace novo) e, por último,
+**EP-08-T07**: import para dentro de uma pasta/collection já existente num workspace
+aberto, via "Import into this folder" no menu de contexto da `WTree`. Diferença de
+fundo em relação ao fluxo de workspace novo: sem uma pasta-raiz nova pra evitar
+colisão, `ImportPreview.children` é gravado direto na pasta de destino
+(`emitImportMerge`, `src/main/importers/emit.ts`), e cada nó cujo nome já existe lá
+precisa de uma resolução por item — renomear, substituir ou pular, nunca uma escolha
+global (`import:run` ganhou `resolutions?: ImportConflictResolution[]`, presente
+seleciona esse caminho). Conflito é detectado no renderer, sem canal IPC novo — como
+não há "merge" com uma pasta existente, só o nível imediato de `ImportPreview.children`
+pode colidir (`useImportStore.loadConflicts`). Metadados de nível de collection
+(`auth`/`docs`/`variables`/`scripts`) não têm onde ir sem a pasta-raiz — viram entrada
+no relatório em vez de perdidos em silêncio ou de sobrescrever o `folder.yaml` do
+destino. Mesma pendência de verificação visual das notas acima.
+
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → próximo épico do
+MVP é **EP-10** (Qualidade e CI), ainda `Pendente`.
 
 ---
 

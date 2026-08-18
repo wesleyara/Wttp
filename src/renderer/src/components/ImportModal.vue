@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import type { ImportFormat } from "@shared";
+import type { ImportConflictAction, ImportFormat } from "@shared";
 
 import ImportPreviewTree from "@renderer/components/ImportPreviewTree.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WCodeEditor from "@renderer/components/WCodeEditor.vue";
 import WIcon from "@renderer/components/WIcon.vue";
 import WInput from "@renderer/components/WInput.vue";
+import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import WModal from "@renderer/components/WModal.vue";
 import WSelect from "@renderer/components/WSelect.vue";
 import { useImportStore } from "@renderer/stores/import";
 import { useSettingsStore } from "@renderer/stores/settings";
-import { computed, watch } from "vue";
+import { computed } from "vue";
 
-const props = defineProps<{
+defineProps<{
   open: boolean;
 }>();
 
@@ -23,12 +24,11 @@ const emit = defineEmits<{
 const store = useImportStore();
 const settings = useSettingsStore();
 
-watch(
-  () => props.open,
-  isOpen => {
-    if (isOpen) store.reset();
-  },
-);
+const CONFLICT_ACTION_OPTIONS: { value: ImportConflictAction; label: string }[] = [
+  { value: "rename", label: "Rename" },
+  { value: "replace", label: "Replace" },
+  { value: "skip", label: "Skip" },
+];
 
 const destinationPath = computed(() => {
   const name = store.workspaceName.trim() || "…";
@@ -41,7 +41,9 @@ async function onPickDestination(): Promise<void> {
 }
 
 async function onConfirm(): Promise<void> {
-  if (settings.workspacesRootDir) store.workspaceDir = settings.workspacesContainerDir ?? null;
+  if (store.mode === "newWorkspace" && settings.workspacesRootDir) {
+    store.workspaceDir = settings.workspacesContainerDir ?? null;
+  }
   await store.confirm();
 }
 
@@ -54,9 +56,10 @@ async function onCopyReport(): Promise<void> {
 }
 
 const title = computed(() => {
-  if (store.step === "preview") return "Import — preview";
-  if (store.step === "report") return "Import — report";
-  return "Import";
+  const prefix = store.mode === "intoFolder" ? `Import into "${store.intoParentName}"` : "Import";
+  if (store.step === "preview") return `${prefix} — preview`;
+  if (store.step === "report") return `${prefix} — report`;
+  return prefix;
 });
 </script>
 
@@ -93,7 +96,7 @@ const title = computed(() => {
       </template>
 
       <template v-else-if="store.step === 'preview'">
-        <div class="flex flex-col gap-2">
+        <div v-if="store.mode === 'newWorkspace'" class="flex flex-col gap-2">
           <WInput v-model="store.workspaceName" placeholder="Workspace name" />
           <div class="flex items-center gap-2">
             <WButton
@@ -107,6 +110,65 @@ const title = computed(() => {
             <span class="truncate font-mono text-[11px] text-faint">
               {{ destinationPath ?? "Choose a folder to continue" }}
             </span>
+          </div>
+        </div>
+        <p v-else class="font-inter text-xs text-muted">
+          Destination:
+          <span class="font-mono text-[11px] text-faint">{{ store.intoParentPath || "/" }}</span>
+        </p>
+
+        <div
+          v-if="store.mode === 'intoFolder' && !store.conflictsLoaded"
+          class="font-inter text-xs text-faint"
+        >
+          Checking for name conflicts…
+        </div>
+
+        <div
+          v-if="store.conflictEntries.length > 0"
+          class="flex flex-col gap-2 rounded-md border border-status-4xx p-2"
+        >
+          <p class="flex items-center gap-1.5 font-inter text-xs font-medium text-status-4xx">
+            <WIcon name="triangle-alert" size="3.5" />
+            {{ store.conflictEntries.length }} name conflict{{
+              store.conflictEntries.length > 1 ? "s" : ""
+            }}
+            with existing items in the destination
+          </p>
+          <div
+            v-for="entry in store.conflictEntries"
+            :key="entry.index"
+            class="flex flex-wrap items-center gap-2"
+          >
+            <WIcon
+              v-if="entry.node.kind === 'folder'"
+              name="folder"
+              size="3.5"
+              class="shrink-0 text-faint"
+            />
+            <WMethodBadge
+              v-else
+              :method="entry.node.method ?? '?'"
+              class="w-10 shrink-0 text-[11px]"
+            />
+            <span class="min-w-0 flex-1 truncate font-inter text-sm text-1">{{
+              entry.node.name
+            }}</span>
+            <WSelect
+              :model-value="store.resolutions.get(entry.index)?.action ?? 'rename'"
+              :options="CONFLICT_ACTION_OPTIONS"
+              class="w-28 shrink-0"
+              @update:model-value="
+                value => store.setResolutionAction(entry.index, value as ImportConflictAction)
+              "
+            />
+            <WInput
+              v-if="store.resolutions.get(entry.index)?.action === 'rename'"
+              :model-value="store.resolutions.get(entry.index)?.newName ?? ''"
+              placeholder="New name"
+              class="w-40 shrink-0"
+              @update:model-value="value => store.setResolutionName(entry.index, value)"
+            />
           </div>
         </div>
 
@@ -205,7 +267,11 @@ const title = computed(() => {
         <WButton variant="ghost" @click="store.step = 'source'">Back</WButton>
         <WButton
           variant="primary"
-          :disabled="!store.canConfirm || !destinationPath || store.loading"
+          :disabled="
+            !store.canConfirm ||
+            (store.mode === 'newWorkspace' && !destinationPath) ||
+            store.loading
+          "
           @click="onConfirm"
         >
           Import
