@@ -31,6 +31,23 @@ function unwrap<T>(value: T): T {
   return JSON.parse(JSON.stringify(toRaw(value))) as T;
 }
 
+/**
+ * Como `unwrap`, mas sem passar por JSON — usado para `req`/`res` de `script:run`
+ * (EP-09-T03), cujo corpo (`res.body`) é um `Uint8Array` que um round-trip de JSON
+ * corrompe (vira `{ "0": 1, "1": 2, ... }`). Recursa em objeto/array reativos até achar
+ * um valor "de folha" (primitivo ou `Uint8Array`), preservado como está.
+ */
+function deepToRaw<T>(value: T): T {
+  const raw = toRaw(value) as unknown;
+  if (raw === null || typeof raw !== "object" || raw instanceof Uint8Array) return raw as T;
+  if (Array.isArray(raw)) return raw.map(item => deepToRaw(item)) as T;
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(raw as Record<string, unknown>)) {
+    result[key] = deepToRaw((raw as Record<string, unknown>)[key]);
+  }
+  return result as T;
+}
+
 /** `{}`/campos vazios não vão para o YAML — mesmo cuidado que `docs: tab.docs || undefined` já toma. */
 function cleanScripts(scripts: RequestScripts): RequestScripts | undefined {
   const preRequest = scripts.preRequest?.trim() ? scripts.preRequest : undefined;
@@ -442,7 +459,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         code: link.code,
         phase: "preRequest",
         vars: unwrap(scriptRuntime.vars),
-        req: spec,
+        req: deepToRaw(spec),
         timeoutMs,
       });
       consoleEntries.push(...result.console.map(entry => ({ ...entry, source: link.source })));
@@ -483,7 +500,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         code: link.code,
         phase: "tests",
         vars: unwrap(scriptRuntime.vars),
-        res,
+        res: deepToRaw(res),
         timeoutMs,
       });
       assertions.push(...result.assertions.map(a => ({ ...a, source: link.source })));
