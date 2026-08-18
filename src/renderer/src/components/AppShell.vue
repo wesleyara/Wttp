@@ -4,6 +4,7 @@ import type { WorkspaceNode } from "@shared";
 import CommandPalette from "@renderer/components/CommandPalette.vue";
 import EnvironmentEditorModal from "@renderer/components/EnvironmentEditorModal.vue";
 import FolderConfigTabs from "@renderer/components/FolderConfigTabs.vue";
+import ImportModal from "@renderer/components/ImportModal.vue";
 import PreferencesModal from "@renderer/components/PreferencesModal.vue";
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
@@ -20,6 +21,7 @@ import WorkspaceLanding from "@renderer/components/WorkspaceLanding.vue";
 import WSplitPane from "@renderer/components/WSplitPane.vue";
 import WToast from "@renderer/components/WToast.vue";
 import WTree from "@renderer/components/WTree.vue";
+import { useImportStore } from "@renderer/stores/import";
 import { useMenuStore } from "@renderer/stores/menu";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useTreeStore } from "@renderer/stores/tree";
@@ -34,6 +36,20 @@ const menu = useMenuStore();
 const workspace = useWorkspaceStore();
 const tree = useTreeStore();
 const requestTabs = useRequestTabsStore();
+const importStore = useImportStore();
+
+const importModalOpen = ref(false);
+
+function openImportIntoFolder(node: WorkspaceNode): void {
+  if (!workspace.root) return;
+  importStore.startIntoFolder(workspace.root, node.path, node.name);
+  importModalOpen.value = true;
+}
+
+async function onCloseImportModal(): Promise<void> {
+  importModalOpen.value = false;
+  await workspace.refreshTree();
+}
 
 function onActivate(node: WorkspaceNode, mode: "preview" | "pinned"): void {
   if (node.kind === "request") {
@@ -88,6 +104,11 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
         label: "Settings",
         icon: "settings",
         action: () => void requestTabs.openFolderTab(node.path),
+      },
+      {
+        label: "Import into this folder",
+        icon: "import",
+        action: () => openImportIntoFolder(node),
       },
     );
   }
@@ -246,6 +267,8 @@ onUnmounted(() => stopListeningToMenu?.());
     <EnvironmentEditorModal :open="environmentEditorOpen" @close="environmentEditorOpen = false" />
 
     <PreferencesModal :open="preferencesOpen" @close="preferencesOpen = false" />
+
+    <ImportModal :open="importModalOpen" @close="onCloseImportModal" />
 
     <WToast />
 

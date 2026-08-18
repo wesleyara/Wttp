@@ -36,12 +36,36 @@ export interface DetectImportPayload {
   filename?: string;
 }
 
+/** Ação escolhida pelo usuário para um nó de `ImportPreview.children` que colide com um nome já existente no destino (EP-08-T07). */
+export type ImportConflictAction = "rename" | "replace" | "skip";
+
+/**
+ * Resolução de um conflito de nome, por item — nunca uma escolha global para o import
+ * inteiro (docs/backlog EP-08-T07). `index` é a posição em `ImportPreview.children`
+ * (nível único: um nó sem conflito nunca tem colisão nos seus próprios filhos, porque
+ * não há "merge" com uma pasta existente — só renomear/substituir/pular o nó inteiro).
+ */
+export interface ImportConflictResolution {
+  index: number;
+  action: ImportConflictAction;
+  /** Obrigatório quando `action === "rename"`. */
+  newName?: string;
+}
+
 export interface RunImportPayload {
   format: ImportFormat;
   content: string;
   root: string;
   /** Pasta do workspace onde a árvore importada é criada — "" para a raiz. */
   targetPath: string;
+  /**
+   * Presente (mesmo vazio) quando o destino é uma pasta já existente dentro de um
+   * workspace aberto (EP-08-T07) — o pipeline então grava `ImportPreview.children`
+   * direto em `targetPath`, sem envolvê-los numa pasta-raiz nova, e aplica cada
+   * resolução de conflito antes de criar o nó correspondente. Ausente = fluxo de
+   * EP-08-T06 (sempre workspace novo, sempre envolvido numa pasta-raiz).
+   */
+  resolutions?: ImportConflictResolution[];
 }
 
 /**
