@@ -1,6 +1,6 @@
 # EP-07 — Autenticação
 
-**Status:** Pendente · **Alvo:** v0.1 · **Depende de:** EP-06
+**Status:** Concluída · **Alvo:** v0.1 · **Depende de:** EP-06
 
 Quase toda API real exige autenticação. Sem isto, o usuário monta o header `Authorization` à mão em cada request.
 
@@ -52,37 +52,42 @@ Referência: [file-format.md §4](../file-format.md)
 
 ### EP-07-T03 — Aba Auth
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-07-T02, EP-02-T03
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-07-T02, EP-02-T03
 
 **Objetivo.** Configurar auth pela interface, em qualquer nível.
 
 **Escopo.**
 
-- Aba Auth da request com seletor de tipo e campos correspondentes; suporte a `{{variáveis}}` em todos.
-- Mesma aba disponível em pasta e collection.
-- Modo `inherit` mostra de onde a auth vem e qual tipo será aplicado, em somente leitura.
-- Senhas e tokens mascarados por padrão.
+- `AuthConfigEditor.vue` — seletor de tipo (`inherit`/`none`/`bearer`/`basic`/`apikey`) e campos correspondentes, mesmo componente usado na Aba Auth da request (`RequestConfigTabs.vue`) e no editor de pasta/collection (`FolderAuthModal.vue`, novo — não existia nenhum editor de `folder.yaml` na UI antes desta task, então esta é a primeira forma de configurar variáveis/auth de uma pasta pela interface em vez de editar o YAML à mão; editar `variables`/`docs` de pasta continua fora do escopo de EP-07). Aberto pelo menu de contexto de uma pasta na árvore ("Edit auth").
+- `{{variáveis}}` com destaque/tooltip/autocomplete em todos os campos de texto (token, username, password, key, value) via `useVariablePreview` — mesmo composable de headers/body (EP-06-T05/EP-06.1).
+- Modo `inherit`: `useEffectiveAuth` (novo composable, `src/renderer/src/composables/useEffectiveAuth.ts`) resolve a herança via `useVariablesStore.resolveEffectiveAuth` (que por sua vez chama `variables:resolveAuthChain`, EP-07-T01) e mostra o nome da pasta/"This request"/"This folder" de onde a auth efetiva vem, mais os campos (mascarados) do tipo que será de fato aplicado — não só a palavra "inherit".
+- Trocar de tipo preserva o que já foi preenchido nos outros — um rascunho por tipo (`Map`) vivo enquanto o componente existir, mesmo padrão já usado para o tipo de body em `RequestConfigTabs.vue`.
+- Token/senha/valor de API key mascarados por padrão (`type="password"`), com botão de revelar por campo (nunca persistido, nunca revelado por padrão) — mesmo padrão de `WKeyValueTable`'s `withSecret`.
+- Um `Authorization` manual habilitado nos headers da request mostra um aviso explícito na Aba Auth quando a auth configurada é `bearer`/`basic` (a que esse header sobrescreve — EP-07-T02).
 
 **Critérios de aceite.**
 
-- [ ] `inherit` informa a origem efetiva, não só a palavra "inherit"
-- [ ] Trocar o tipo preserva o que já foi preenchido nos outros tipos
-- [ ] Campo mascarado tem botão revelar e não é copiado por acidente
+- [x] `inherit` informa a origem efetiva, não só a palavra "inherit" — `variables.spec.ts`, casos de `resolveEffectiveAuth`; UI em `AuthConfigEditor.vue` (bloco `v-if="authType === 'inherit'"`)
+- [x] Trocar o tipo preserva o que já foi preenchido nos outros tipos — `drafts` (`Map`) em `AuthConfigEditor.vue`, mesmo padrão de `bodyDrafts`
+- [x] Campo mascarado tem botão revelar e não é copiado por acidente — `type="password"` mais botão "Reveal"/"Hide" por campo; não há seleção automática do valor ao focar, então nada é copiado sem uma ação explícita do usuário
+- **Pendência:** verificação visual nos dois temas não foi feita (mesma limitação já registrada em EP-02/03/05/06 — sem `xvfb`/`sudo` neste ambiente para abrir uma janela Electron de verdade).
 
 ---
 
 ### EP-07-T04 — Indicador de auth na request
 
-**Status:** Pendente · **Tamanho:** P · **Depende de:** EP-07-T03
+**Status:** Concluída · **Tamanho:** P · **Depende de:** EP-07-T03
 
 **Objetivo.** Saber se a request está autenticada sem abrir a aba.
 
 **Escopo.**
 
-- Badge na aba Auth indicando o tipo efetivo e se é herdado.
-- Aviso quando a auth depende de variável não resolvida.
+- `WTabs.vue` ganhou dois campos opcionais por aba — `badge?: string` (rótulo curto, ex. "Bearer", "Bearer ↑" quando herdado) e `warning?: boolean` (ícone de alerta) — usados pela aba "Auth" de `RequestConfigTabs.vue`: o badge mostra o tipo efetivo (já resolvida a herança via `useEffectiveAuth`) sem precisar clicar na aba.
+- O mesmo `useEffectiveAuth` alimenta um `useVariablePreview` sobre os campos de texto da auth **efetiva** (não só a da própria request — uma `{{var}}` não resolvida numa pasta herdada precisa avisar tanto quanto uma da própria request), acendendo o ícone de aviso na aba antes de qualquer tentativa de envio.
+- `requestTabs.send()`/`confirmSendUnresolved()` (EP-07-T01/T02) já resolvem a auth efetiva antes de chamar `variables:resolveRequest`, então o fluxo de confirmação "variável não resolvida" que EP-06-T05 já tinha (`unresolvedSendId`/`unresolvedSendNames`, modal em `AppShell.vue`) cobre auth herdada automaticamente — nenhuma UI nova precisou ser criada para o aviso "antes do envio" além do já existente.
 
 **Critérios de aceite.**
 
-- [ ] O tipo efetivo é visível sem abrir a aba
-- [ ] Auth com variável não resolvida é sinalizada antes do envio
+- [x] O tipo efetivo é visível sem abrir a aba — badge em `WTabs`/`RequestConfigTabs.vue` (`authBadge`)
+- [x] Auth com variável não resolvida é sinalizada antes do envio — ícone de aviso live na aba (`authUnresolved`) e o modal de confirmação de `requestTabs.ts` (reaproveitado de EP-06-T05) na hora de enviar
+- **Pendência:** mesma verificação visual pendente de EP-07-T03.

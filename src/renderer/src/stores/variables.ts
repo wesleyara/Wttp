@@ -162,20 +162,29 @@ export const useVariablesStore = defineStore("variables", () => {
     return [requestAuth, ...folderChain(requestPath).map(folder => folder.data?.auth)];
   }
 
-  /** Resolve a herança de auth (EP-07-T01) e devolve também de onde ela veio, para o modo `inherit` da Aba Auth (EP-07-T03/T04) mostrar a origem em vez da palavra "inherit". */
+  /**
+   * Resolve a herança de auth (EP-07-T01) e devolve também de onde ela veio, para o
+   * modo `inherit` da Aba Auth (EP-07-T03/T04) mostrar a origem em vez da palavra
+   * "inherit". `ownPath` é o path do nó dono de `ownAuth` — uma request (`*.req.yaml`)
+   * ou uma pasta, ambos funcionam com o mesmo `folderChain` porque os dois já são
+   * "o último segmento do path, o resto é a cadeia de pastas acima". `selfLabel`
+   * troca o rótulo de `sourceIndex === 0` conforme o nível ("This request"/"This
+   * folder") — a own auth não é sempre de uma request.
+   */
   async function resolveEffectiveAuth(
-    requestPath: string,
-    requestAuth: AuthConfig,
+    ownPath: string,
+    ownAuth: AuthConfig,
+    selfLabel = "This request",
   ): Promise<{ resolution: ResolveAuthChainResultPayload; source: EffectiveAuthSource }> {
-    const folders = folderChain(requestPath);
-    const chain = authChain(requestPath, requestAuth);
+    const folders = folderChain(ownPath);
+    const chain = authChain(ownPath, ownAuth);
     const resolution = await window.wttp.variables.resolveAuthChain({ chain: unwrap(chain) });
 
     const source: EffectiveAuthSource =
       resolution.sourceIndex === null
         ? { kind: "none", label: "No auth configured" }
         : resolution.sourceIndex === 0
-          ? { kind: "request", label: "This request" }
+          ? { kind: "request", label: selfLabel }
           : {
               kind: "folder",
               label: folders[resolution.sourceIndex - 1]?.name ?? "Collection",

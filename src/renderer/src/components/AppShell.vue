@@ -3,6 +3,7 @@ import type { WorkspaceNode } from "@shared";
 
 import CommandPalette from "@renderer/components/CommandPalette.vue";
 import EnvironmentEditorModal from "@renderer/components/EnvironmentEditorModal.vue";
+import FolderAuthModal from "@renderer/components/FolderAuthModal.vue";
 import PreferencesModal from "@renderer/components/PreferencesModal.vue";
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
@@ -62,6 +63,7 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     items.push(
       { label: "New request", icon: "file-plus", action: () => void tree.createRequest(node.path) },
       { label: "New folder", icon: "folder-plus", action: () => void tree.createFolder(node.path) },
+      { label: "Edit auth", icon: "key", action: () => void tree.openAuthEditor(node) },
     );
   }
   items.push(
@@ -217,6 +219,8 @@ onUnmounted(() => stopListeningToMenu?.());
     <EnvironmentEditorModal :open="environmentEditorOpen" @close="environmentEditorOpen = false" />
 
     <PreferencesModal :open="preferencesOpen" @close="preferencesOpen = false" />
+
+    <FolderAuthModal />
 
     <WToast />
 
