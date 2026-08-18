@@ -21,14 +21,26 @@ const WTTP_MEMBERS: ApiMember[] = [
   {
     label: "setVar",
     type: "method",
-    info: "wttp.setVar(name, value) — set a runtime variable",
+    info: "wttp.setVar(name, value) — set a variable in the active environment",
     apply: "setVar(",
   },
   {
     label: "getVar",
     type: "method",
-    info: "wttp.getVar(name) — read a runtime variable",
+    info: "wttp.getVar(name) — read a variable from the active environment",
     apply: "getVar(",
+  },
+  {
+    label: "setCollectionVar",
+    type: "method",
+    info: "wttp.setCollectionVar(name, value) — set a variable in this request's collection",
+    apply: "setCollectionVar(",
+  },
+  {
+    label: "getCollectionVar",
+    type: "method",
+    info: "wttp.getCollectionVar(name) — read a variable from this request's collection",
+    apply: "getCollectionVar(",
   },
 ];
 
@@ -125,7 +137,7 @@ function snippetsFor(phase: ScriptPhase): Completion[] {
       snippetCompletion('wttp.setVar("${name}", ${value});', {
         label: "set-var",
         type: "text",
-        info: "Save a runtime variable",
+        info: "Save a variable to the active environment",
       }),
     ];
   }
@@ -140,7 +152,7 @@ function snippetsFor(phase: ScriptPhase): Completion[] {
       {
         label: "save-token",
         type: "text",
-        info: "Assert a token is present and save it as a runtime variable",
+        info: "Assert a token is present and save it to the active environment",
       },
     ),
   ];

@@ -165,7 +165,10 @@ function buildResponseView(spec: ScriptRunSpec): unknown {
 }
 
 export function executeScript(spec: ScriptRunSpec): ScriptRunResult {
-  const vars: Record<string, string> = { ...spec.vars };
+  const envVars: Record<string, string> | null = spec.envVars ? { ...spec.envVars } : null;
+  const collectionVars: Record<string, string> | null = spec.collectionVars
+    ? { ...spec.collectionVars }
+    : null;
   const consoleEntries: ScriptConsoleEntry[] = [];
   const assertions: ScriptAssertion[] = [];
   const req: HttpRequestSpec | undefined = spec.req ? structuredClone(spec.req) : undefined;
@@ -194,11 +197,29 @@ export function executeScript(spec: ScriptRunSpec): ScriptRunResult {
     },
   };
 
+  function coerce(value: unknown): string {
+    return value === undefined || value === null ? "" : String(value);
+  }
+
   const wttpApi = {
     setVar: (name: unknown, value: unknown) => {
-      vars[String(name)] = value === undefined || value === null ? "" : String(value);
+      if (!envVars) {
+        throw new Error(
+          "No active environment — pick one before running this script (wttp.setVar writes into it).",
+        );
+      }
+      envVars[String(name)] = coerce(value);
     },
-    getVar: (name: unknown) => vars[String(name)],
+    getVar: (name: unknown) => envVars?.[String(name)],
+    setCollectionVar: (name: unknown, value: unknown) => {
+      if (!collectionVars) {
+        throw new Error(
+          "This request isn't inside a collection — wttp.setCollectionVar has nowhere to write.",
+        );
+      }
+      collectionVars[String(name)] = coerce(value);
+    },
+    getCollectionVar: (name: unknown) => collectionVars?.[String(name)],
   };
 
   const testApi = (name: unknown, fn: unknown): void => {
@@ -239,7 +260,8 @@ export function executeScript(spec: ScriptRunSpec): ScriptRunResult {
   if (!run.ok) {
     return {
       ok: false,
-      vars,
+      envVars,
+      collectionVars,
       req: spec.phase === "preRequest" ? req : undefined,
       assertions,
       console: consoleEntries,
@@ -252,7 +274,8 @@ export function executeScript(spec: ScriptRunSpec): ScriptRunResult {
 
   return {
     ok: true,
-    vars,
+    envVars,
+    collectionVars,
     req: spec.phase === "preRequest" ? req : undefined,
     assertions,
     console: consoleEntries,

@@ -10,7 +10,6 @@ import type {
 } from "@shared";
 
 import { useEnvironmentStore } from "@renderer/stores/environment";
-import { useScriptRuntimeStore } from "@renderer/stores/scriptRuntime";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
 import { computed, ref, toRaw, watch } from "vue";
@@ -36,7 +35,6 @@ export interface EffectiveAuthSource {
 export const useVariablesStore = defineStore("variables", () => {
   const workspace = useWorkspaceStore();
   const environment = useEnvironmentStore();
-  const scriptRuntime = useScriptRuntimeStore();
 
   /** Valor real das variáveis `secret: true` do environment ativo, buscado no keychain (nunca no YAML). */
   const secretValues = ref<Map<string, string>>(new Map());
@@ -117,7 +115,6 @@ export const useVariablesStore = defineStore("variables", () => {
 
   function scopeFor(requestPath: string): VariableScopePayload {
     return {
-      runtime: scriptRuntime.vars,
       environment: environmentScope.value,
       collection: collectionScope(requestPath),
       workspace: workspace.tree?.data?.variables ?? [],
@@ -137,7 +134,6 @@ export const useVariablesStore = defineStore("variables", () => {
     ]) {
       names.add(entry.name);
     }
-    for (const name of Object.keys(scope.runtime ?? {})) names.add(name);
     return [...names];
   }
 

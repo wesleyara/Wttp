@@ -44,10 +44,12 @@ describe("scriptApiCompletionSource", () => {
     );
   });
 
-  it("completes wttp.* members", () => {
+  it("completes wttp.* members, including the collection variants", () => {
     const source = scriptApiCompletionSource("preRequest");
     const result = source(contextAt("wttp.set", 8));
-    expect(result?.options.map(o => o.label)).toEqual(expect.arrayContaining(["setVar", "getVar"]));
+    expect(result?.options.map(o => o.label)).toEqual(
+      expect.arrayContaining(["setVar", "getVar", "setCollectionVar", "getCollectionVar"]),
+    );
   });
 
   it("completes req.* members in preRequest", () => {

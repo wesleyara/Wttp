@@ -17,7 +17,7 @@ da resposta chegar, mesmo nome que Insomnia/Postman usam. O campo em disco e o v
 
 | Global   | `preRequest` | `tests` | Descrição                                              |
 | -------- | :-----------: | :-----: | ------------------------------------------------------- |
-| `wttp`   | ✓             | ✓       | `setVar`/`getVar` de variáveis de runtime                |
+| `wttp`   | ✓             | ✓       | `setVar`/`getVar` (environment ativo), `setCollectionVar`/`getCollectionVar` (collection) |
 | `req`    | ✓ (mutável)   | —       | a request resolvida, antes de disparar                  |
 | `res`    | —             | ✓ (congelada) | a resposta recebida                                |
 | `test`   | —             | ✓       | declara uma asserção                                     |
@@ -31,15 +31,38 @@ qualquer outra API do Node/browser.
 
 ## `wttp.setVar(name, value)` / `wttp.getVar(name)`
 
-Variáveis de runtime: o nível de maior precedência do resolvedor de `{{variável}}`
-([file-format.md](file-format.md), EP-06-T01). `value` é sempre convertido para string.
-Definidas num script, ficam disponíveis para os scripts e requests seguintes **na mesma
-sessão do app** — não persistem no YAML nem sobrevivem a fechar o workspace.
+Lê e grava uma variável do **environment ativo**. `value` é sempre convertido para
+string. Diferente de uma variável de runtime, isso **grava o arquivo
+`environments/<env>.yaml` no disco** assim que o script termina — não precisa salvar a
+aba do Environment manualmente, e o valor sobrevive a fechar o workspace.
 
 ```js
 wttp.setVar("access_token", res.json.token);
 const token = wttp.getVar("access_token");
 ```
+
+Duas regras de segurança:
+
+- **Sem environment ativo, `setVar` falha** com uma mensagem clara ("No active
+  environment…") em vez de gravar em qualquer lugar — escolha um no seletor da
+  `StatusBar` antes de rodar o script.
+- **Uma variável `secret: true` nunca é sobrescrita por um script.** `getVar` nela
+  sempre devolve `""` (o script não consegue ler o segredo de volta) e `setVar` nela é
+  silenciosamente ignorado na hora de persistir — o resto do que o script setou grava
+  normalmente.
+
+## `wttp.setCollectionVar(name, value)` / `wttp.getCollectionVar(name)`
+
+Igual a `setVar`/`getVar`, mas na **collection da request** — a pasta na raiz do
+workspace que contém a request (não a pasta mais próxima, se houver subpastas no meio).
+Grava em `folder.yaml` imediatamente, mesma lógica de persistência.
+
+```js
+wttp.setCollectionVar("base_url", "https://staging.example.com");
+```
+
+Sem collection (request solta na raiz do workspace), `setCollectionVar` falha com uma
+mensagem clara em vez de não fazer nada silenciosamente.
 
 ## `req` — mutável, só no pre-request
 

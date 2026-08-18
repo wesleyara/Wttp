@@ -1,6 +1,13 @@
-import type { FolderFile, FolderNode, HttpResponseResult, RequestFile, RequestNode } from "@shared";
+import type {
+  EnvironmentListItem,
+  FolderFile,
+  FolderNode,
+  HttpResponseResult,
+  RequestFile,
+  RequestNode,
+} from "@shared";
 
-import { useScriptRuntimeStore } from "@renderer/stores/scriptRuntime";
+import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -59,23 +66,66 @@ const resolveAuthChain = vi.fn(async ({ chain }: { chain: AuthLike[] }) => {
 type ScriptRunSpecLike = {
   code: string;
   phase: string;
-  vars: Record<string, string>;
+  envVars: Record<string, string> | null;
+  activeEnvironmentName?: string;
+  collectionVars: Record<string, string> | null;
+  collectionName?: string;
   req?: unknown;
   res?: unknown;
   timeoutMs?: number;
 };
 type ScriptRunResultLike = {
   ok: boolean;
-  vars: Record<string, string>;
+  envVars: Record<string, string> | null;
+  collectionVars: Record<string, string> | null;
   assertions: { name: string; passed: boolean; message?: string; durationMs: number }[];
   console: { level: string; message: string; phase: string }[];
+  error?: { code: string; message: string };
 };
-const scriptRun = vi.fn<(spec: ScriptRunSpecLike) => Promise<ScriptRunResultLike>>(async () => ({
+const scriptRun = vi.fn<(spec: ScriptRunSpecLike) => Promise<ScriptRunResultLike>>(async spec => ({
   ok: true,
-  vars: {},
+  envVars: spec.envVars,
+  collectionVars: spec.collectionVars,
   assertions: [],
   console: [],
 }));
+
+// `env:save`/`env:list` com estado — permite testar wttp.setVar persistindo de verdade,
+// e o próximo `refresh()` (que `environment.save` já chama) enxergar o valor novo.
+let environments: EnvironmentListItem[] = [];
+const envList = vi.fn(async () => environments);
+const envSave = vi.fn(
+  async (payload: {
+    root: string;
+    path?: string;
+    name: string;
+    variables: {
+      name: string;
+      value?: string;
+      enabled: boolean;
+      description?: string;
+      secret?: boolean;
+    }[];
+  }) => {
+    const path = payload.path ?? `environments/${payload.name}.yaml`;
+    const item: EnvironmentListItem = {
+      path,
+      data: {
+        wttp: 1,
+        name: payload.name,
+        variables: payload.variables.map(v => ({
+          name: v.name,
+          value: v.secret ? "" : (v.value ?? ""),
+          enabled: v.enabled,
+          description: v.description,
+          secret: v.secret,
+        })),
+      },
+    };
+    environments = [...environments.filter(e => e.path !== path), item];
+    return item;
+  },
+);
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -86,7 +136,16 @@ beforeEach(() => {
   resolveRequest.mockClear();
   resolveAuthChain.mockClear();
   scriptRun.mockClear();
-  scriptRun.mockImplementation(async () => ({ ok: true, vars: {}, assertions: [], console: [] }));
+  scriptRun.mockImplementation(async spec => ({
+    ok: true,
+    envVars: spec.envVars,
+    collectionVars: spec.collectionVars,
+    assertions: [],
+    console: [],
+  }));
+  environments = [];
+  envList.mockClear();
+  envSave.mockClear();
 
   vi.stubGlobal("window", {
     wttp: {
@@ -106,7 +165,7 @@ beforeEach(() => {
       },
       http: { send: httpSend, cancel: vi.fn() },
       dialog: { saveFile: vi.fn() },
-      env: { list: vi.fn(async () => []) },
+      env: { list: envList, save: envSave, delete: vi.fn(), duplicate: vi.fn() },
       secret: { get: vi.fn(async () => null) },
       variables: { resolveText: vi.fn(), resolveRequest, resolveAuthChain },
       script: { run: scriptRun },
@@ -337,9 +396,15 @@ describe("useRequestTabsStore", () => {
       }));
 
       const order: string[] = [];
-      scriptRun.mockImplementation(async ({ code, phase }: { code: string; phase: string }) => {
-        order.push(`${phase}:${code}`);
-        return { ok: true, vars: {}, assertions: [], console: [] };
+      scriptRun.mockImplementation(async spec => {
+        order.push(`${spec.phase}:${spec.code}`);
+        return {
+          ok: true,
+          envVars: spec.envVars,
+          collectionVars: spec.collectionVars,
+          assertions: [],
+          console: [],
+        };
       });
 
       const tabs = useRequestTabsStore();
@@ -365,7 +430,8 @@ describe("useRequestTabsStore", () => {
       }));
       scriptRun.mockImplementationOnce(async () => ({
         ok: false,
-        vars: {},
+        envVars: null,
+        collectionVars: null,
         assertions: [],
         console: [],
         error: { code: "UNKNOWN" as const, message: "boom" },
@@ -392,7 +458,8 @@ describe("useRequestTabsStore", () => {
       }));
       scriptRun.mockImplementationOnce(async () => ({
         ok: false,
-        vars: {},
+        envVars: null,
+        collectionVars: null,
         assertions: [],
         console: [],
         error: { code: "UNKNOWN" as const, message: "assert boom" },
@@ -411,7 +478,19 @@ describe("useRequestTabsStore", () => {
       ]);
     });
 
-    it("carries wttp.setVar across sends via the runtime var store", async () => {
+    it("persists wttp.setVar into the active environment's YAML (env:save)", async () => {
+      environments = [
+        { path: "environments/dev.yaml", data: { wttp: 1, name: "Dev", variables: [] } },
+      ];
+      const workspace = useWorkspaceStore();
+      workspace.uiState = {
+        expandedPaths: [],
+        openTabs: [],
+        activeTabPath: null,
+        activeEnvironment: "environments/dev.yaml",
+      };
+      await useEnvironmentStore().refresh();
+
       nodeRead.mockImplementationOnce(async () => ({
         kind: "request",
         path: "login.req.yaml",
@@ -419,9 +498,10 @@ describe("useRequestTabsStore", () => {
         seq: 1,
         data: { ...requestFile("login"), scripts: { tests: "save-token" } },
       }));
-      scriptRun.mockImplementationOnce(async ({ vars }: { vars: Record<string, string> }) => ({
+      scriptRun.mockImplementationOnce(async spec => ({
         ok: true,
-        vars: { ...vars, access_token: "abc123" },
+        envVars: { ...spec.envVars, access_token: "abc123" },
+        collectionVars: spec.collectionVars,
         assertions: [],
         console: [],
       }));
@@ -430,7 +510,139 @@ describe("useRequestTabsStore", () => {
       await tabs.openPinned("login.req.yaml");
       await tabs.send();
 
-      expect(useScriptRuntimeStore().vars).toEqual({ access_token: "abc123" });
+      expect(envSave).toHaveBeenCalledOnce();
+      const saved = envSave.mock.calls[0][0];
+      expect(saved.variables).toEqual([
+        {
+          name: "access_token",
+          value: "abc123",
+          enabled: true,
+          description: undefined,
+          secret: undefined,
+        },
+      ]);
+    });
+
+    it("never overwrites a secret environment variable through wttp.setVar", async () => {
+      environments = [
+        {
+          path: "environments/dev.yaml",
+          data: {
+            wttp: 1,
+            name: "Dev",
+            variables: [{ name: "api_key", value: "", enabled: true, secret: true }],
+          },
+        },
+      ];
+      const workspace = useWorkspaceStore();
+      workspace.uiState = {
+        expandedPaths: [],
+        openTabs: [],
+        activeTabPath: null,
+        activeEnvironment: "environments/dev.yaml",
+      };
+      await useEnvironmentStore().refresh();
+
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "a.req.yaml",
+        name: "a",
+        seq: 1,
+        data: { ...requestFile("a"), scripts: { tests: "leak" } },
+      }));
+      scriptRun.mockImplementationOnce(async spec => ({
+        ok: true,
+        envVars: { ...spec.envVars, api_key: "leaked-plaintext" },
+        collectionVars: spec.collectionVars,
+        assertions: [],
+        console: [],
+      }));
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      await tabs.send();
+
+      // O script "vazou" o valor no envVars devolvido, mas a persistência recusa —
+      // `api_key` continua secreto, sem o valor em texto puro escrito no YAML.
+      expect(envSave).toHaveBeenCalledOnce();
+      const saved = envSave.mock.calls[0][0];
+      expect(saved.variables).toHaveLength(1);
+      expect(saved.variables[0]).toMatchObject({ name: "api_key", secret: true });
+      expect(saved.variables[0].value).toBeUndefined();
+    });
+
+    it("persists wttp.setCollectionVar into the collection's folder.yaml (node:write)", async () => {
+      const workspace = useWorkspaceStore();
+      workspace.tree = {
+        root: ROOT,
+        data: { wttp: 1, name: "Test" },
+        environments: [],
+        children: [
+          {
+            kind: "folder",
+            path: "SGA",
+            name: "SGA",
+            seq: 1,
+            data: { wttp: 1, name: "SGA", seq: 1, variables: [] },
+            children: [],
+          },
+        ],
+      };
+
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "SGA/a.req.yaml",
+        name: "a",
+        seq: 1,
+        data: { ...requestFile("a"), scripts: { tests: "save-base-url" } },
+      }));
+      scriptRun.mockImplementationOnce(async spec => ({
+        ok: true,
+        envVars: spec.envVars,
+        collectionVars: { ...spec.collectionVars, base_url: "https://staging.example.com" },
+        assertions: [],
+        console: [],
+      }));
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("SGA/a.req.yaml");
+      await tabs.send();
+
+      const written = nodeWrite.mock.calls.find(([args]) => args.path === "SGA")?.[0]
+        .node as FolderNode;
+      expect(written?.data?.variables).toEqual([
+        { name: "base_url", value: "https://staging.example.com", enabled: true },
+      ]);
+    });
+
+    it("fails the script clearly when wttp.setVar runs with no active environment", async () => {
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "a.req.yaml",
+        name: "a",
+        seq: 1,
+        data: { ...requestFile("a"), scripts: { tests: "no-env" } },
+      }));
+      scriptRun.mockImplementationOnce(async () => ({
+        ok: false,
+        envVars: null,
+        collectionVars: null,
+        assertions: [],
+        console: [],
+        error: { code: "UNKNOWN" as const, message: "No active environment — pick one first." },
+      }));
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      await tabs.send();
+
+      expect(envSave).not.toHaveBeenCalled();
+      const active = tabs.active;
+      if (!isRequestTab(active)) throw new Error("expected a request tab");
+      expect(active.scriptRun?.assertions[0]).toMatchObject({
+        passed: false,
+        message: "No active environment — pick one first.",
+      });
     });
 
     it("passes a structured-clone-safe res to script:run — reactive tab state must not leak across the IPC boundary", async () => {
