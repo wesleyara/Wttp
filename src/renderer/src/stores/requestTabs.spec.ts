@@ -362,6 +362,19 @@ describe("useRequestTabsStore", () => {
     expect((tabs.active as { sending?: boolean } | null)?.sending).toBe(false);
   });
 
+  it("uma falha em history:append não deixa o spinner de sending preso", async () => {
+    historyAppend.mockRejectedValueOnce(new Error("disk full"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+    await tabs.send();
+
+    expect((tabs.active as { sending?: boolean } | null)?.sending).toBe(false);
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
   it("send() com variável não resolvida pausa e pede confirmação em vez de disparar", async () => {
     resolveRequest.mockResolvedValueOnce({
       url: "https://example.com/{{missing}}",

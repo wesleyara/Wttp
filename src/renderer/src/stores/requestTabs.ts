@@ -778,24 +778,34 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         console: [...preRequest.console, ...tests.console],
       };
     } finally {
-      tab.requestId = null;
-      // Persiste o que `wttp.setVar`/`setCollectionVar` mudou (EP-09.2) — mesmo quando
-      // o pre-request abortou o envio, o que rodou antes da falha ainda vale.
-      await persistEnvVars(scope.envVars);
-      await persistCollectionVars(tab.path, scope.collectionVars);
-      if (sentSpec && tab.lastResult && workspace.root) {
-        // Antes de `tab.sending = false` — `ResponsePanel` recarrega o histórico assim
-        // que `sending` vira `false` (EP-08.1-T04); virar antes daqui é uma corrida que
-        // recarrega a lista antes desta entrada existir em disco.
-        await window.wttp.history.append({
-          root: workspace.root,
-          path: tab.path,
-          request: sentSpec,
-          response: tab.lastResult,
-          secrets: secretsUsedIn(resolved),
-        });
+      // `tab.sending = false` sempre roda, não importa o que aconteça acima — uma falha
+      // em `history:append` (ou em qualquer coisa aqui) nunca pode deixar o spinner de
+      // "Sending..." preso pra sempre.
+      try {
+        tab.requestId = null;
+        // Persiste o que `wttp.setVar`/`setCollectionVar` mudou (EP-09.2) — mesmo quando
+        // o pre-request abortou o envio, o que rodou antes da falha ainda vale.
+        await persistEnvVars(scope.envVars);
+        await persistCollectionVars(tab.path, scope.collectionVars);
+        if (sentSpec && tab.lastResult && workspace.root) {
+          // Antes de `tab.sending = false` — `ResponsePanel` recarrega o histórico assim
+          // que `sending` vira `false` (EP-08.1-T04); virar antes daqui é uma corrida que
+          // recarrega a lista antes desta entrada existir em disco.
+          await window.wttp.history.append({
+            root: workspace.root,
+            path: tab.path,
+            request: sentSpec,
+            response: tab.lastResult,
+            secrets: secretsUsedIn(resolved),
+          });
+        }
+      } catch (error) {
+        // Histórico é best-effort — perder uma entrada não pode derrubar o envio, que
+        // já terminou (com sucesso ou erro) por essa altura.
+        console.error("wttp: failed to persist post-send state", error);
+      } finally {
+        tab.sending = false;
       }
-      tab.sending = false;
     }
   }
 
