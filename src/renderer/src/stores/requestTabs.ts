@@ -19,7 +19,7 @@ import type {
 
 import { suggestedFileName } from "@renderer/lib/content-type";
 import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/scriptChain";
-import { useScriptRuntimeStore } from "@renderer/stores/scriptRuntime";
+import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useToastStore } from "@renderer/stores/toast";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
@@ -194,6 +194,7 @@ function isCollectionPath(path: string): boolean {
 export const useRequestTabsStore = defineStore("requestTabs", () => {
   const workspace = useWorkspaceStore();
   const variables = useVariablesStore();
+  const environment = useEnvironmentStore();
   const toast = useToastStore();
 
   const tabs = ref<OpenTab[]>([]);
@@ -429,13 +430,126 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   }
 
   /**
+   * Escopo de `wttp.setVar`/`setCollectionVar` para um `dispatch()` (EP-09-T03/EP-09.2)
+   * — `envVars`/`collectionVars` evoluem a cada elo da cadeia (pre-request e tests
+   * compartilham o mesmo objeto, então um valor setado no pre-request já aparece pro
+   * script de tests). `null` = não há onde escrever (sem environment ativo / request
+   * fora de qualquer collection); `wttp.setVar`/`setCollectionVar` viram falha de
+   * script nesse caso, no próprio `executeScript`.
+   */
+  interface ScriptScope {
+    envVars: Record<string, string> | null;
+    envName: string | undefined;
+    collectionVars: Record<string, string> | null;
+    collectionName: string | undefined;
+  }
+
+  /** Pasta raiz da cadeia (a "collection" da request, docs/file-format.md) — `undefined` se a request está solta na raiz do workspace. */
+  function rootCollectionFolder(requestPath: string): FolderNode | undefined {
+    const chain = variables.folderChain(requestPath);
+    return chain[chain.length - 1];
+  }
+
+  function buildScriptScope(requestPath: string): ScriptScope {
+    const active = environment.active;
+    const envVars = active
+      ? Object.fromEntries(
+          (active.data.variables ?? []).map(v => [v.name, v.secret ? "" : v.value]),
+        )
+      : null;
+
+    const collection = rootCollectionFolder(requestPath);
+    const collectionVars = collection
+      ? Object.fromEntries((collection.data?.variables ?? []).map(v => [v.name, v.value]))
+      : null;
+
+    return {
+      envVars,
+      envName: active?.data.name,
+      collectionVars,
+      collectionName: collection?.name,
+    };
+  }
+
+  function shallowEqualRecord(a: Record<string, string>, b: Record<string, string>): boolean {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    return aKeys.length === bKeys.length && aKeys.every(key => a[key] === b[key]);
+  }
+
+  /** Grava `wttp.setVar` no environment ativo (EP-09.2) — nunca sobrescreve uma variável `secret: true`, só cria/atualiza as demais. No-op se nada mudou. */
+  async function persistEnvVars(finalVars: Record<string, string> | null): Promise<void> {
+    const active = environment.active;
+    if (!finalVars || !active) return;
+    const existing = active.data.variables ?? [];
+    if (shallowEqualRecord(Object.fromEntries(existing.map(v => [v.name, v.value])), finalVars)) {
+      return;
+    }
+
+    const byName = new Map(existing.map(v => [v.name, v]));
+    for (const [name, value] of Object.entries(finalVars)) {
+      const current = byName.get(name);
+      if (current?.secret) continue;
+      byName.set(name, { ...current, name, value, enabled: current?.enabled ?? true });
+    }
+
+    await environment.save(
+      active.path,
+      active.data.name,
+      [...byName.values()].map(v => ({
+        name: v.name,
+        enabled: v.enabled,
+        description: v.description,
+        secret: v.secret,
+        value: v.secret ? undefined : v.value,
+      })),
+    );
+  }
+
+  /** Grava `wttp.setCollectionVar` em `folder.yaml` da collection (EP-09.2). No-op se nada mudou. */
+  async function persistCollectionVars(
+    requestPath: string,
+    finalVars: Record<string, string> | null,
+  ): Promise<void> {
+    const collection = rootCollectionFolder(requestPath);
+    if (!finalVars || !collection || !workspace.root) return;
+    const existing = collection.data?.variables ?? [];
+    if (shallowEqualRecord(Object.fromEntries(existing.map(v => [v.name, v.value])), finalVars)) {
+      return;
+    }
+
+    const byName = new Map(existing.map(v => [v.name, v]));
+    for (const [name, value] of Object.entries(finalVars)) {
+      const current = byName.get(name);
+      byName.set(name, { ...current, name, value, enabled: current?.enabled ?? true });
+    }
+
+    const data: FolderFile = {
+      ...(collection.data ?? { wttp: 1, name: collection.name, seq: collection.seq }),
+      variables: [...byName.values()],
+    };
+    const node: FolderNode = {
+      kind: "folder",
+      path: collection.path,
+      name: data.name,
+      seq: data.seq,
+      data,
+      children: [],
+    };
+    await window.wttp.node.write({ root: workspace.root, path: collection.path, node });
+    await workspace.refreshTree();
+  }
+
+  /**
    * Roda a cadeia de pre-request (EP-09-T03) — collection mais distante primeiro,
-   * request por último, logo antes do envio — mutando `spec` a cada elo. Aborta no
-   * primeiro elo que falhar: um pre-request quebrado nunca deixa a request sair.
+   * request por último, logo antes do envio — mutando `spec` e `scope` a cada elo.
+   * Aborta no primeiro elo que falhar: um pre-request quebrado nunca deixa a request
+   * sair.
    */
   async function runPreRequestChain(
     tab: RequestTabState,
     initialSpec: HttpRequestSpec,
+    scope: ScriptScope,
   ): Promise<
     | { ok: true; spec: HttpRequestSpec; console: ScriptConsoleEntryWithSource[] }
     | {
@@ -444,7 +558,6 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         error: { source: string; error: WttpError };
       }
   > {
-    const scriptRuntime = useScriptRuntimeStore();
     const chain = orderForPhase(
       buildScriptChain(tab.scripts, variables.folderChain(tab.path)),
       "preRequest",
@@ -458,12 +571,16 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       const result = await window.wttp.script.run({
         code: link.code,
         phase: "preRequest",
-        vars: unwrap(scriptRuntime.vars),
+        envVars: scope.envVars,
+        activeEnvironmentName: scope.envName,
+        collectionVars: scope.collectionVars,
+        collectionName: scope.collectionName,
         req: deepToRaw(spec),
         timeoutMs,
       });
       consoleEntries.push(...result.console.map(entry => ({ ...entry, source: link.source })));
-      scriptRuntime.setAll(result.vars);
+      scope.envVars = result.envVars;
+      scope.collectionVars = result.collectionVars;
       if (!result.ok) {
         return {
           ok: false,
@@ -484,8 +601,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   async function runTestsChain(
     tab: RequestTabState,
     res: HttpResponseResult,
+    scope: ScriptScope,
   ): Promise<{ assertions: ScriptAssertionWithSource[]; console: ScriptConsoleEntryWithSource[] }> {
-    const scriptRuntime = useScriptRuntimeStore();
     const chain = orderForPhase(
       buildScriptChain(tab.scripts, variables.folderChain(tab.path)),
       "tests",
@@ -499,13 +616,17 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       const result = await window.wttp.script.run({
         code: link.code,
         phase: "tests",
-        vars: unwrap(scriptRuntime.vars),
+        envVars: scope.envVars,
+        activeEnvironmentName: scope.envName,
+        collectionVars: scope.collectionVars,
+        collectionName: scope.collectionName,
         res: deepToRaw(res),
         timeoutMs,
       });
       assertions.push(...result.assertions.map(a => ({ ...a, source: link.source })));
       consoleEntries.push(...result.console.map(entry => ({ ...entry, source: link.source })));
-      scriptRuntime.setAll(result.vars);
+      scope.envVars = result.envVars;
+      scope.collectionVars = result.collectionVars;
       if (!result.ok && result.error) {
         assertions.push({
           name: `${link.source} script`,
@@ -529,6 +650,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     tab.sending = true;
     tab.scriptRun = null;
 
+    const scope = buildScriptScope(tab.path);
+
     try {
       const initialSpec: HttpRequestSpec = {
         requestId: id,
@@ -540,7 +663,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         body: resolved.body,
       };
 
-      const preRequest = await runPreRequestChain(tab, initialSpec);
+      const preRequest = await runPreRequestChain(tab, initialSpec, scope);
       if (!preRequest.ok) {
         tab.scriptRun = {
           assertions: [],
@@ -556,7 +679,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
 
       tab.lastResult = await window.wttp.http.send(preRequest.spec);
 
-      const tests = await runTestsChain(tab, tab.lastResult);
+      const tests = await runTestsChain(tab, tab.lastResult, scope);
       tab.scriptRun = {
         assertions: tests.assertions,
         console: [...preRequest.console, ...tests.console],
@@ -564,6 +687,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     } finally {
       tab.sending = false;
       tab.requestId = null;
+      // Persiste o que `wttp.setVar`/`setCollectionVar` mudou (EP-09.2) — mesmo quando
+      // o pre-request abortou o envio, o que rodou antes da falha ainda vale.
+      await persistEnvVars(scope.envVars);
+      await persistCollectionVars(tab.path, scope.collectionVars);
     }
   }
 

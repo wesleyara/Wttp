@@ -13,8 +13,14 @@ class FakeChild extends EventEmitter {
   kill = vi.fn(() => this.emit("exit"));
 }
 
-function okResult(): { ok: true; vars: Record<string, string>; assertions: []; console: [] } {
-  return { ok: true, vars: {}, assertions: [], console: [] };
+function okResult(): {
+  ok: true;
+  envVars: Record<string, string>;
+  collectionVars: Record<string, string>;
+  assertions: [];
+  console: [];
+} {
+  return { ok: true, envVars: {}, collectionVars: {}, assertions: [], console: [] };
 }
 
 beforeEach(() => {
@@ -30,7 +36,12 @@ describe("runScript", () => {
       queueMicrotask(() => child.emit("message", { id: message.id, result: okResult() }));
     });
 
-    const result = await runScript({ code: "1", phase: "preRequest", vars: {} });
+    const result = await runScript({
+      code: "1",
+      phase: "preRequest",
+      envVars: {},
+      collectionVars: {},
+    });
 
     expect(result.ok).toBe(true);
     expect(fork).toHaveBeenCalledTimes(1);
@@ -43,8 +54,8 @@ describe("runScript", () => {
       queueMicrotask(() => child.emit("message", { id: message.id, result: okResult() }));
     });
 
-    await runScript({ code: "1", phase: "preRequest", vars: {} });
-    await runScript({ code: "2", phase: "preRequest", vars: {} });
+    await runScript({ code: "1", phase: "preRequest", envVars: {}, collectionVars: {} });
+    await runScript({ code: "2", phase: "preRequest", envVars: {}, collectionVars: {} });
 
     expect(fork).toHaveBeenCalledTimes(1);
   });
@@ -58,7 +69,8 @@ describe("runScript", () => {
       const promise = runScript({
         code: "while(true){}",
         phase: "preRequest",
-        vars: {},
+        envVars: {},
+        collectionVars: {},
         timeoutMs: 50,
       });
       await vi.advanceTimersByTimeAsync(600);
@@ -76,7 +88,12 @@ describe("runScript", () => {
     const crashingChild = new FakeChild();
     fork.mockReturnValue(crashingChild);
 
-    const promise = runScript({ code: "process.exit()", phase: "preRequest", vars: {} });
+    const promise = runScript({
+      code: "process.exit()",
+      phase: "preRequest",
+      envVars: {},
+      collectionVars: {},
+    });
     crashingChild.emit("exit");
     const result = await promise;
 
@@ -89,7 +106,12 @@ describe("runScript", () => {
       queueMicrotask(() => freshChild.emit("message", { id: message.id, result: okResult() }));
     });
 
-    const second = await runScript({ code: "1", phase: "preRequest", vars: {} });
+    const second = await runScript({
+      code: "1",
+      phase: "preRequest",
+      envVars: {},
+      collectionVars: {},
+    });
 
     expect(second.ok).toBe(true);
     expect(fork).toHaveBeenCalledTimes(2);

@@ -83,14 +83,19 @@ do backlog — EP-08 (Importadores) ainda está `Pendente`, mas scripts não tê
 acoplamento funcional com importadores, decisão explícita do usuário. Código de usuário
 roda isolado num `utilityProcess` + `node:vm` (`src/main/scripts`, sem `require`/
 `process`/`fs`/`net` no contexto, timeout com backstop e recuperação de crash sem
-restart do app — `runner.ts`/`sandbox.ts`/`worker.ts`), com a API `wttp.setVar/getVar`,
-`req` mutável, `res` congelada, `test`/`expect` com os seis matchers documentados e
-`console.*` capturado (`api.ts`, `docs/scripting.md`). A integração no fluxo da request
-(`useRequestTabsStore.dispatch`) roda a cadeia de pre-request de fora pra dentro
-(collection → pasta → request) antes do envio e a de tests de dentro pra fora depois,
-com `wttp.setVar` persistindo entre envios via `useScriptRuntimeStore` — é o que faz
-"login guarda token, request seguinte autentica sozinha" funcionar; falha no pre-request
-aborta o envio com mensagem clara. `folder.yaml` ganhou um campo `scripts` opcional para
+restart do app — `runner.ts`/`sandbox.ts`/`worker.ts`), com a API `wttp.setVar/getVar`
+(environment ativo) e `wttp.setCollectionVar/getCollectionVar` (collection da request) —
+os dois pares gravam no YAML em disco assim que o script termina (`persistEnvVars`/
+`persistCollectionVars` em `requestTabs.ts`, via `env:save`/`node:write`), nunca
+sobrescrevem uma variável `secret: true`, e falham com mensagem clara sem environment
+ativo/collection — mais `req` mutável, `res` congelada, `test`/`expect` com os seis
+matchers documentados e `console.*` capturado (`api.ts`, `docs/scripting.md`). A
+integração no fluxo da request (`useRequestTabsStore.dispatch`) roda a cadeia de
+pre-request de fora pra dentro (collection → pasta → request) antes do envio e a de
+tests de dentro pra fora depois, threadando o mesmo escopo de env/collection vars entre
+os elos — é o que faz "login guarda token, request seguinte autentica sozinha"
+funcionar (o token cai no environment ativo, que já é a fonte natural de `{{token}}`);
+falha no pre-request aborta o envio com mensagem clara. `folder.yaml` ganhou um campo `scripts` opcional para
 herança de collection/pasta, editável tanto na request (`RequestConfigTabs`) quanto na
 pasta/collection (`FolderConfigTabs`) — os dois com dois `WCodeEditor` (pre-request/
 tests), autocomplete da API inteira, snippets e sinalização de erro de sintaxe via

@@ -59,6 +59,17 @@ Referência: [architecture.md §5](../architecture.md)
 - [x] Falha de asserção é reportada com valor esperado e recebido — mensagem do matcher inclui os dois lados (`toBe`/`toEqual`/etc.), `api.spec.ts`
 - [x] Exceção não tratada no script vira falha da request, não crash — `ScriptRunResult.ok: false` com `error`, nunca lança, `api.spec.ts`
 
+**Nota (redesenho pós-lançamento):** o escopo original tinha `wttp.setVar`/`getVar`
+como variáveis de **runtime** (só em memória, precedência máxima no resolvedor). A
+pedido do usuário depois do épico fechado, viraram: `setVar`/`getVar` grava/lê no
+**environment ativo** (persistido em `environments/<env>.yaml` imediatamente); um par
+novo, `setCollectionVar`/`getCollectionVar`, grava/lê na **collection** (pasta raiz)
+da request, em `folder.yaml`. Sem environment ativo ou sem collection, a chamada falha
+com mensagem clara em vez de não ter onde escrever. Uma variável `secret: true` nunca é
+sobrescrita por um script. Ver `docs/scripting.md` para a API atual — `main/scripts/
+api.ts` e `renderer/stores/requestTabs.ts` (`persistEnvVars`/`persistCollectionVars`)
+têm os detalhes; `useScriptRuntimeStore` (o conceito de runtime) foi removido.
+
 ---
 
 ### EP-09-T03 — Integração no fluxo da request
@@ -76,7 +87,7 @@ Referência: [architecture.md §5](../architecture.md)
 
 **Critérios de aceite.**
 
-- [x] Encadeamento funciona: login guarda token, request seguinte autentica sozinha — `useScriptRuntimeStore` persiste `wttp.setVar` entre envios e entra no escopo `runtime` do resolvedor (`variables.ts` `scopeFor`), `requestTabs.spec.ts`
+- [x] Encadeamento funciona: login guarda token, request seguinte autentica sozinha — `wttp.setVar` grava no environment ativo (`persistEnvVars`, `env:save`), que já é a fonte natural de `{{token}}` na próxima resolução, `requestTabs.spec.ts`
 - [x] Ordem verificada por teste, incluindo herança de pasta — pre-request de fora pra dentro (collection → pasta → request), tests de dentro pra fora, `scriptChain.spec.ts` + `requestTabs.spec.ts`
 - [x] Erro no pre-request impede o envio, com mensagem clara — `runPreRequestChain` aborta no primeiro elo que falhar, toast com a origem e a mensagem, `requestTabs.spec.ts`
 

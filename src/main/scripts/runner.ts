@@ -29,7 +29,8 @@ const pending = new Map<string, PendingRun>();
 function crashedResult(): ScriptRunResult {
   return {
     ok: false,
-    vars: {},
+    envVars: null,
+    collectionVars: null,
     assertions: [],
     console: [],
     error: { code: "UNKNOWN", message: "Script runner crashed" },
@@ -39,7 +40,8 @@ function crashedResult(): ScriptRunResult {
 function timeoutResult(timeoutMs: number): ScriptRunResult {
   return {
     ok: false,
-    vars: {},
+    envVars: null,
+    collectionVars: null,
     assertions: [],
     console: [],
     error: { code: "SCRIPT_TIMEOUT", message: `Script exceeded ${timeoutMs}ms timeout` },
