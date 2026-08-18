@@ -143,7 +143,7 @@ const tabs = computed(() => [
         v-model="scriptsSubTab"
         :tabs="[
           { value: 'preRequest', label: 'Pre-request' },
-          { value: 'tests', label: 'Tests' },
+          { value: 'tests', label: 'Post-response' },
         ]"
       />
       <div v-if="scriptsSubTab === 'preRequest'" class="h-48">
