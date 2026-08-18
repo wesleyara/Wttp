@@ -111,19 +111,18 @@ com o épico. Mesma pendência de verificação visual das notas acima.
 Insomnia v4, OpenAPI 3.x e cURL (`src/main/importers`, um módulo por formato sobre o
 pipeline comum `parse → normalize → emit` de EP-08-T01), a UI de import na tela sem
 workspace aberto (`ImportModal`, sempre cria um workspace novo) e, por último,
-**EP-08-T07**: import para dentro de uma pasta/collection já existente num workspace
-aberto, via "Import into this folder" no menu de contexto da `WTree`. Diferença de
-fundo em relação ao fluxo de workspace novo: sem uma pasta-raiz nova pra evitar
-colisão, `ImportPreview.children` é gravado direto na pasta de destino
-(`emitImportMerge`, `src/main/importers/emit.ts`), e cada nó cujo nome já existe lá
-precisa de uma resolução por item — renomear, substituir ou pular, nunca uma escolha
-global (`import:run` ganhou `resolutions?: ImportConflictResolution[]`, presente
-seleciona esse caminho). Conflito é detectado no renderer, sem canal IPC novo — como
-não há "merge" com uma pasta existente, só o nível imediato de `ImportPreview.children`
-pode colidir (`useImportStore.loadConflicts`). Metadados de nível de collection
-(`auth`/`docs`/`variables`/`scripts`) não têm onde ir sem a pasta-raiz — viram entrada
-no relatório em vez de perdidos em silêncio ou de sobrescrever o `folder.yaml` do
-destino. Mesma pendência de verificação visual das notas acima.
+**EP-08-T07**: import direto num workspace já aberto, via item "Import" no menu "+" da
+toolbar da árvore (`AppShell.vue`), ao lado de "New collection"/"New folder"/
+"New request". Sempre grava na raiz do workspace aberto (`targetPath: ""`), como uma
+collection nova — a raiz de um workspace só pode conter collections e uma collection
+nunca fica dentro de outra (nem de uma pasta), então não existe "importar pra dentro de
+uma pasta escolhida" nem menu de contexto de pasta para isso; `useImportStore` ganhou
+um segundo modo (`intoWorkspace`, ao lado do `newWorkspace` de EP-08-T06) que só troca
+o destino do mesmo `import:run`/`runImport`/`emitImport` de sempre — nenhuma mudança
+de infraestrutura no pipeline, e como a raiz nunca tem uma pasta pra colidir (mesmo
+motivo por que "New collection" clicado duas vezes nunca pergunta nada), não há
+resolução de conflito nem passo extra no modal. Mesma pendência de verificação visual
+das notas acima.
 
 Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → próximo épico do
 MVP é **EP-10** (Qualidade e CI), ainda `Pendente`.

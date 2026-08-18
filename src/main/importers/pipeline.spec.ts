@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { Importer, NormalizedImport } from "./types";
 
-import { createNode, readNode, scanWorkspace } from "../storage/tree";
+import { readNode, scanWorkspace } from "../storage/tree";
 import { detectImportFormat, previewImport, runImport } from "./pipeline";
 
 let root: string;
@@ -144,111 +144,6 @@ describe("runImport", () => {
     await expect(
       runImport({ format: "postman", content: "garbage", root, targetPath: "" }, [brokenImporter]),
     ).rejects.toMatchObject({ code: "IMPORT_FORMAT_UNRECOGNIZED" });
-  });
-});
-
-describe("runImport com resolutions (EP-08-T07 — para dentro de pasta existente)", () => {
-  it("sem conflito, grava os filhos direto em targetPath, sem pasta-raiz nova", async () => {
-    const report = await runImport(
-      { format: "postman", content: "FAKE:users", root, targetPath: "", resolutions: [] },
-      [fakeImporter()],
-    );
-
-    expect(report.createdFolders).toBe(1); // só "Users" — sem pasta "Imported collection" envolvendo
-    const tree = await scanWorkspace(root);
-    expect(tree.children.map(node => node.name)).toEqual(["Users"]);
-  });
-
-  it("conflito com action 'skip' não cria nem apaga nada", async () => {
-    await createNode(root, "", "folder", "Users");
-
-    const report = await runImport(
-      {
-        format: "postman",
-        content: "FAKE:users",
-        root,
-        targetPath: "",
-        resolutions: [{ index: 0, action: "skip" }],
-      },
-      [fakeImporter()],
-    );
-
-    expect(report.createdFolders).toBe(0);
-    expect(report.createdRequests).toBe(0);
-    const tree = await scanWorkspace(root);
-    expect(tree.children).toHaveLength(1);
-    const usersFolder = tree.children[0];
-    expect(usersFolder.kind === "folder" ? usersFolder.children : null).toEqual([]);
-  });
-
-  it("conflito com action 'rename' preserva o existente e cria o importado com o novo nome", async () => {
-    await createNode(root, "", "folder", "Users");
-
-    const report = await runImport(
-      {
-        format: "postman",
-        content: "FAKE:users",
-        root,
-        targetPath: "",
-        resolutions: [{ index: 0, action: "rename", newName: "Users (imported)" }],
-      },
-      [fakeImporter()],
-    );
-
-    expect(report.createdFolders).toBe(1);
-    expect(report.createdRequests).toBe(1);
-    const tree = await scanWorkspace(root);
-    const names = tree.children.map(node => node.name).sort();
-    expect(names).toEqual(["Users", "Users (imported)"]);
-  });
-
-  it("conflito com action 'replace' apaga o existente antes de criar o importado", async () => {
-    const existing = await createNode(root, "", "folder", "Users");
-    await createNode(root, existing.path, "request", "Old request");
-
-    const report = await runImport(
-      {
-        format: "postman",
-        content: "FAKE:users",
-        root,
-        targetPath: "",
-        resolutions: [{ index: 0, action: "replace" }],
-      },
-      [fakeImporter()],
-    );
-
-    expect(report.createdFolders).toBe(1);
-    expect(report.createdRequests).toBe(1);
-    const tree = await scanWorkspace(root);
-    expect(tree.children).toHaveLength(1);
-    const usersFolder = tree.children[0];
-    const childNames =
-      usersFolder.kind === "folder" ? usersFolder.children.map(child => child.name) : [];
-    expect(childNames).toEqual(["Get user"]); // "Old request" foi substituída, não convive com ela
-  });
-
-  it("metadados de nível de collection viram entrada no relatório em vez de perdidos em silêncio", async () => {
-    const importerWithRootMetadata = fakeImporter({
-      normalize: () => ({
-        name: "Imported collection",
-        variables: [{ name: "token", value: "abc", enabled: true }],
-        children: [],
-        environments: [],
-        notConverted: [],
-      }),
-    });
-
-    const report = await runImport(
-      { format: "postman", content: "FAKE:x", root, targetPath: "", resolutions: [] },
-      [importerWithRootMetadata],
-    );
-
-    expect(report.notConverted).toEqual([
-      {
-        path: "Imported collection",
-        reason: "collection-level variables not applied when importing into an existing folder",
-      },
-    ]);
   });
 });
 

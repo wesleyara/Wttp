@@ -40,9 +40,9 @@ const importStore = useImportStore();
 
 const importModalOpen = ref(false);
 
-function openImportIntoFolder(node: WorkspaceNode): void {
+function openImportIntoWorkspace(): void {
   if (!workspace.root) return;
-  importStore.startIntoFolder(workspace.root, node.path, node.name);
+  importStore.startIntoWorkspace(workspace.root);
   importModalOpen.value = true;
 }
 
@@ -88,6 +88,7 @@ const createMenuItems = computed<ContextMenuItem[]>(() => [
   { label: "New collection", icon: "layers", action: () => void tree.createCollection() },
   { label: "New folder", icon: "folder-plus", action: () => void tree.createFolder() },
   { label: "New request", icon: "file-plus", action: () => void tree.createRequest() },
+  { label: "Import", icon: "import", separatorBefore: true, action: openImportIntoWorkspace },
 ]);
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
@@ -104,11 +105,6 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
         label: "Settings",
         icon: "settings",
         action: () => void requestTabs.openFolderTab(node.path),
-      },
-      {
-        label: "Import into this folder",
-        icon: "import",
-        action: () => openImportIntoFolder(node),
       },
     );
   }
