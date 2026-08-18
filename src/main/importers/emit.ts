@@ -30,11 +30,13 @@ async function emitNode(
     const created = (await createNode(root, parentPath, "folder", node.name)) as FolderNode;
     counts.folders += 1;
 
-    if (node.auth || node.docs) {
+    if (node.auth || node.docs || node.variables || node.scripts) {
       const data: FolderFile = {
         ...(created.data as FolderFile),
         auth: node.auth,
         docs: node.docs,
+        variables: node.variables,
+        scripts: node.scripts,
       };
       await writeNode(root, created.path, { ...created, data });
     }
@@ -57,6 +59,7 @@ async function emitNode(
     headers: node.headers,
     auth: node.auth,
     body: node.body,
+    scripts: node.scripts,
     docs: node.docs,
   };
   await writeNode(root, created.path, { ...created, data });
@@ -69,11 +72,38 @@ export async function emitImport(
 ): Promise<ImportReport> {
   const counts: EmitCounts = { folders: 0, requests: 0, environments: 0 };
 
-  const rootFolder = await createNode(root, targetPath, "folder", normalized.name);
-  counts.folders += 1;
+  // Import só de environment (ex.: Postman Environment, EP-08-T02) não tem nada para
+  // pendurar numa pasta raiz — criar uma vazia seria ruído na árvore do usuário.
+  const hasRootContent =
+    normalized.children.length > 0 ||
+    Boolean(normalized.auth) ||
+    Boolean(normalized.docs) ||
+    Boolean(normalized.variables?.length) ||
+    Boolean(normalized.scripts);
 
-  for (const child of normalized.children) {
-    await emitNode(root, rootFolder.path, child, counts);
+  if (hasRootContent) {
+    const rootFolder = (await createNode(
+      root,
+      targetPath,
+      "folder",
+      normalized.name,
+    )) as FolderNode;
+    counts.folders += 1;
+
+    if (normalized.auth || normalized.docs || normalized.variables || normalized.scripts) {
+      const data: FolderFile = {
+        ...(rootFolder.data as FolderFile),
+        auth: normalized.auth,
+        docs: normalized.docs,
+        variables: normalized.variables,
+        scripts: normalized.scripts,
+      };
+      await writeNode(root, rootFolder.path, { ...rootFolder, data });
+    }
+
+    for (const child of normalized.children) {
+      await emitNode(root, rootFolder.path, child, counts);
+    }
   }
 
   for (const environment of normalized.environments) {

@@ -14,6 +14,7 @@ import type {
   ImportReportItem,
   KeyValueEntry,
   RequestBody,
+  RequestScripts,
 } from "@shared";
 
 export interface NormalizedRequest {
@@ -26,6 +27,8 @@ export interface NormalizedRequest {
   headers?: KeyValueEntry[];
   auth?: AuthConfig;
   body?: RequestBody;
+  /** Adicionado em EP-08-T02 — herança de scripts do Postman (`folder.yaml`/`*.req.yaml`). */
+  scripts?: RequestScripts;
   docs?: string;
 }
 
@@ -33,6 +36,9 @@ export interface NormalizedFolder {
   kind: "folder";
   name: string;
   auth?: AuthConfig;
+  /** Adicionado em EP-08-T02 — variáveis de collection/pasta do Postman. */
+  variables?: KeyValueEntry[];
+  scripts?: RequestScripts;
   docs?: string;
   children: NormalizedNode[];
 }
@@ -48,6 +54,11 @@ export interface NormalizedEnvironment {
 export interface NormalizedImport {
   /** Nome da collection/coleção de origem — vira a pasta raiz criada em `targetPath`. */
   name: string;
+  /** Metadados da collection em si (EP-08-T02) — mesmo shape de `NormalizedFolder`, sem `children`. */
+  auth?: AuthConfig;
+  variables?: KeyValueEntry[];
+  scripts?: RequestScripts;
+  docs?: string;
   children: NormalizedNode[];
   environments: NormalizedEnvironment[];
   /** Tudo que não teve equivalente — docs/backlog EP-08: nunca descartado em silêncio. */

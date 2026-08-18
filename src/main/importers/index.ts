@@ -5,9 +5,11 @@
  */
 
 import { curlImporter } from "./curl";
+import { postmanImporter } from "./postman";
 import { registerImporter } from "./registry";
 
 registerImporter(curlImporter);
+registerImporter(postmanImporter);
 
 export { looksLikeCurlCommand, parseCurlCommand, parseCurlToRequest } from "./curl";
 export { detectImportFormat, runImport } from "./pipeline";
