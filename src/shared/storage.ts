@@ -43,6 +43,11 @@ export interface WorkspaceFile extends UnknownFields {
 }
 
 /** `folder.yaml` — pasta / collection. Opcional em disco. */
+export interface RequestScripts {
+  preRequest?: string;
+  tests?: string;
+}
+
 export interface FolderFile extends UnknownFields {
   wttp: SchemaVersion;
   name: string;
@@ -50,12 +55,9 @@ export interface FolderFile extends UnknownFields {
   auth?: AuthConfig;
   /** Variáveis de collection/pasta (EP-06) — nível "collection/pasta" da precedência do resolvedor. */
   variables?: KeyValueEntry[];
+  /** Herdados por toda request abaixo (EP-09-T03) — pasta mais próxima primeiro no pre-request, ordem inversa nos tests. */
+  scripts?: RequestScripts;
   docs?: string;
-}
-
-export interface RequestScripts {
-  preRequest?: string;
-  tests?: string;
 }
 
 /** `*.req.yaml` — uma request. */

@@ -85,11 +85,16 @@ export function serializeWorkspace(workspace: WorkspaceFile): string {
 }
 
 export function serializeFolder(folder: FolderFile): string {
+  const scripts = folder.scripts
+    ? orderFields(folder.scripts as Record<string, unknown>, SCRIPTS_FIELD_ORDER)
+    : undefined;
+
   const known = orderFields(
     {
       ...folder,
       auth: orderAuth(folder.auth),
       variables: orderEntries(folder.variables, KEY_VALUE_ENTRY_FIELD_ORDER),
+      scripts,
     },
     FOLDER_FIELD_ORDER,
   );

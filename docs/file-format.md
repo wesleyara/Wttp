@@ -62,6 +62,11 @@ auth:
   type: none
 variables: # variáveis de collection/pasta (EP-06) — nível "collection/pasta" da precedência
   - { name: scope, value: openid profile, enabled: true }
+scripts: # rodam em volta dos scripts da request (EP-09) — pasta mais próxima primeiro no pre-request, ordem inversa nos tests
+  preRequest: |
+    wttp.setVar("run_started_at", Date.now());
+  tests: |
+    test("no server error", () => expect(res.status).toBeTruthy());
 docs: |
   Endpoints de autenticação e renovação de sessão.
 ```

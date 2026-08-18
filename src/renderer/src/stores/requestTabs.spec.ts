@@ -1,5 +1,6 @@
 import type { FolderFile, FolderNode, RequestFile, RequestNode } from "@shared";
 
+import { useScriptRuntimeStore } from "@renderer/stores/scriptRuntime";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -53,6 +54,19 @@ const resolveAuthChain = vi.fn(async ({ chain }: { chain: AuthLike[] }) => {
     ? { auth: { type: "none" }, sourceIndex: null }
     : { auth: chain[index], sourceIndex: index };
 });
+type ScriptRunSpecLike = { code: string; phase: string; vars: Record<string, string> };
+type ScriptRunResultLike = {
+  ok: boolean;
+  vars: Record<string, string>;
+  assertions: { name: string; passed: boolean; message?: string; durationMs: number }[];
+  console: { level: string; message: string; phase: string }[];
+};
+const scriptRun = vi.fn<(spec: ScriptRunSpecLike) => Promise<ScriptRunResultLike>>(async () => ({
+  ok: true,
+  vars: {},
+  assertions: [],
+  console: [],
+}));
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -62,6 +76,8 @@ beforeEach(() => {
   httpSend.mockClear();
   resolveRequest.mockClear();
   resolveAuthChain.mockClear();
+  scriptRun.mockClear();
+  scriptRun.mockImplementation(async () => ({ ok: true, vars: {}, assertions: [], console: [] }));
 
   vi.stubGlobal("window", {
     wttp: {
@@ -84,6 +100,7 @@ beforeEach(() => {
       env: { list: vi.fn(async () => []) },
       secret: { get: vi.fn(async () => null) },
       variables: { resolveText: vi.fn(), resolveRequest, resolveAuthChain },
+      script: { run: scriptRun },
     },
   });
 
@@ -261,5 +278,135 @@ describe("useRequestTabsStore", () => {
       { name: "base", value: "https://api.test", enabled: true },
     ]);
     expect(tabs.active?.dirty).toBe(false);
+  });
+
+  describe("scripts (EP-09-T03)", () => {
+    it("runs preRequest outside-in (folder then request) and tests inside-out (request then folder)", async () => {
+      const workspace = useWorkspaceStore();
+      workspace.tree = {
+        root: ROOT,
+        data: { wttp: 1, name: "Test" },
+        environments: [],
+        children: [
+          {
+            kind: "folder",
+            path: "Users",
+            name: "Users",
+            seq: 1,
+            data: {
+              wttp: 1,
+              name: "Users",
+              seq: 1,
+              scripts: { preRequest: "folder-pre", tests: "folder-tests" },
+            },
+            children: [],
+          },
+        ],
+      };
+
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "Users/a.req.yaml",
+        name: "a",
+        seq: 1,
+        data: { ...requestFile("a"), scripts: { preRequest: "own-pre", tests: "own-tests" } },
+      }));
+
+      const order: string[] = [];
+      scriptRun.mockImplementation(async ({ code, phase }: { code: string; phase: string }) => {
+        order.push(`${phase}:${code}`);
+        return { ok: true, vars: {}, assertions: [], console: [] };
+      });
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("Users/a.req.yaml");
+      await tabs.send();
+
+      expect(order).toEqual([
+        "preRequest:folder-pre",
+        "preRequest:own-pre",
+        "tests:own-tests",
+        "tests:folder-tests",
+      ]);
+      expect(httpSend).toHaveBeenCalledOnce();
+    });
+
+    it("aborts the send when a pre-request script fails, with a clear error", async () => {
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "a.req.yaml",
+        name: "a",
+        seq: 1,
+        data: { ...requestFile("a"), scripts: { preRequest: "throw new Error('boom')" } },
+      }));
+      scriptRun.mockImplementationOnce(async () => ({
+        ok: false,
+        vars: {},
+        assertions: [],
+        console: [],
+        error: { code: "UNKNOWN" as const, message: "boom" },
+      }));
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      await tabs.send();
+
+      expect(httpSend).not.toHaveBeenCalled();
+      const active = tabs.active;
+      if (!isRequestTab(active)) throw new Error("expected a request tab");
+      expect(active.scriptRun?.preRequestError?.error.message).toBe("boom");
+      expect(active.scriptRun?.preRequestError?.source).toBe("This request");
+    });
+
+    it("does not fail the request when a tests script fails — the response still shows", async () => {
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "a.req.yaml",
+        name: "a",
+        seq: 1,
+        data: { ...requestFile("a"), scripts: { tests: "throw new Error('assert boom')" } },
+      }));
+      scriptRun.mockImplementationOnce(async () => ({
+        ok: false,
+        vars: {},
+        assertions: [],
+        console: [],
+        error: { code: "UNKNOWN" as const, message: "assert boom" },
+      }));
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      await tabs.send();
+
+      expect(httpSend).toHaveBeenCalledOnce();
+      const active = tabs.active;
+      if (!isRequestTab(active)) throw new Error("expected a request tab");
+      expect(active.lastResult).toEqual({ ok: true });
+      expect(active.scriptRun?.assertions).toEqual([
+        expect.objectContaining({ passed: false, message: "assert boom" }),
+      ]);
+    });
+
+    it("carries wttp.setVar across sends via the runtime var store", async () => {
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "login.req.yaml",
+        name: "login",
+        seq: 1,
+        data: { ...requestFile("login"), scripts: { tests: "save-token" } },
+      }));
+      scriptRun.mockImplementationOnce(async ({ vars }: { vars: Record<string, string> }) => ({
+        ok: true,
+        vars: { ...vars, access_token: "abc123" },
+        assertions: [],
+        console: [],
+      }));
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("login.req.yaml");
+      await tabs.send();
+
+      expect(useScriptRuntimeStore().vars).toEqual({ access_token: "abc123" });
+    });
   });
 });

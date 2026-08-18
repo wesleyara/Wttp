@@ -221,11 +221,14 @@ export function executeScript(spec: ScriptRunSpec): ScriptRunResult {
   const globals: Record<string, unknown> = {
     console: consoleApi,
     wttp: wttpApi,
-    test: testApi,
-    expect: createExpect(),
   };
-  if (spec.phase === "preRequest") globals.req = req;
-  if (spec.phase === "tests") globals.res = buildResponseView(spec);
+  if (spec.phase === "preRequest") {
+    globals.req = req;
+  } else {
+    globals.res = buildResponseView(spec);
+    globals.test = testApi;
+    globals.expect = createExpect();
+  }
 
   const run = runInSandbox({
     code: spec.code,

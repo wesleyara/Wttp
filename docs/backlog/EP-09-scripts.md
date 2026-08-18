@@ -58,7 +58,7 @@ Referência: [architecture.md §5](../architecture.md)
 
 ### EP-09-T03 — Integração no fluxo da request
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-09-T02, EP-06-T01
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-09-T02, EP-06-T01
 
 **Objetivo.** Scripts rodam na ordem correta do ciclo de vida.
 
@@ -71,9 +71,11 @@ Referência: [architecture.md §5](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] Encadeamento funciona: login guarda token, request seguinte autentica sozinha
-- [ ] Ordem verificada por teste, incluindo herança de pasta
-- [ ] Erro no pre-request impede o envio, com mensagem clara
+- [x] Encadeamento funciona: login guarda token, request seguinte autentica sozinha — `useScriptRuntimeStore` persiste `wttp.setVar` entre envios e entra no escopo `runtime` do resolvedor (`variables.ts` `scopeFor`), `requestTabs.spec.ts`
+- [x] Ordem verificada por teste, incluindo herança de pasta — pre-request de fora pra dentro (collection → pasta → request), tests de dentro pra fora, `scriptChain.spec.ts` + `requestTabs.spec.ts`
+- [x] Erro no pre-request impede o envio, com mensagem clara — `runPreRequestChain` aborta no primeiro elo que falhar, toast com a origem e a mensagem, `requestTabs.spec.ts`
+
+**Nota:** scripts de pasta/collection existem no formato de arquivo e são herdados na execução, mas ainda não têm editor próprio na UI (só a request tem "Aba Scripts", EP-09-T04) — editar `folder.yaml` à mão é o caminho até uma task de UI dedicada, mesmo padrão que `auth` de pasta seguiu entre EP-07-T01 e EP-07-T02.
 
 ---
 
