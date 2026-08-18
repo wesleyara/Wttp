@@ -2,17 +2,20 @@
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
 import type { ViewUpdate } from "@codemirror/view";
+import type { ScriptPhase } from "@shared";
 
 import { autocompletion, completionKeymap, completionStatus } from "@codemirror/autocomplete";
 import { html } from "@codemirror/lang-html";
 import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
 import { xml } from "@codemirror/lang-xml";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
+import { type Diagnostic, linter, lintGutter } from "@codemirror/lint";
 import { Compartment, EditorState, Prec } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, keymap, ViewPlugin } from "@codemirror/view";
 import { placeholder as placeholderExtension } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { scriptApiCompletionSource } from "@renderer/lib/scriptCompletions";
 import { basicSetup, minimalSetup } from "codemirror";
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from "vue";
 
@@ -40,6 +43,8 @@ const props = withDefaults(
     highlightPathParams?: boolean;
     /** Nomes de path param sem valor — ficam em vermelho em vez da cor padrão (EP-06.1). */
     emptyPathParams?: string[];
+    /** Autocomplete de `wttp`/`req`/`res`/`test`/`expect` (EP-09-T04) — só a aba Scripts usa isso, uma fase por editor. */
+    scriptPhase?: ScriptPhase;
   }>(),
   {
     language: "text",
@@ -53,6 +58,7 @@ const props = withDefaults(
     bare: false,
     highlightPathParams: false,
     emptyPathParams: () => [],
+    scriptPhase: undefined,
   },
 );
 
@@ -160,8 +166,33 @@ function variableCompletionSource(names: string[]) {
   };
 }
 
-function autocompleteExtension(names: string[]): Extension {
-  return autocompletion({ override: [variableCompletionSource(names)] });
+function autocompleteExtension(names: string[], scriptPhase?: ScriptPhase): Extension {
+  const sources = [variableCompletionSource(names)];
+  if (scriptPhase) sources.push(scriptApiCompletionSource(scriptPhase));
+  return autocompletion({ override: sources });
+}
+
+/** Sinaliza erro de sintaxe antes do envio (EP-09-T04) — nós de erro da árvore do lezer, sem precisar de um linter JS completo. */
+function jsSyntaxLintExtension(): Extension {
+  return [
+    linter(view => {
+      const diagnostics: Diagnostic[] = [];
+      syntaxTree(view.state)
+        .cursor()
+        .iterate(node => {
+          if (node.type.isError) {
+            diagnostics.push({
+              from: node.from,
+              to: Math.max(node.to, node.from + 1),
+              severity: "error",
+              message: "Syntax error",
+            });
+          }
+        });
+      return diagnostics;
+    }),
+    lintGutter(),
+  ];
 }
 
 function languageExtension(language: WCodeEditorLanguage): Extension {
@@ -316,10 +347,11 @@ onMounted(() => {
       readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
       placeholderCompartment.of(props.placeholder ? placeholderExtension(props.placeholder) : []),
       variableHighlightCompartment.of(variableHighlightExtension(props.unresolvedVariables)),
-      autocompleteCompartment.of(autocompleteExtension(props.variableNames)),
+      autocompleteCompartment.of(autocompleteExtension(props.variableNames, props.scriptPhase)),
       pathParamHighlightCompartment.of(
         props.highlightPathParams ? pathParamHighlightExtension(props.emptyPathParams) : [],
       ),
+      props.scriptPhase ? jsSyntaxLintExtension() : [],
       buildEditorTheme(props.bare),
       syntaxTheme,
       EditorView.updateListener.of(update => {
@@ -384,7 +416,7 @@ watch(
   () => props.variableNames,
   names => {
     view.value?.dispatch({
-      effects: autocompleteCompartment.reconfigure(autocompleteExtension(names)),
+      effects: autocompleteCompartment.reconfigure(autocompleteExtension(names, props.scriptPhase)),
     });
   },
 );

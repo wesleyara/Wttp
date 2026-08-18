@@ -81,7 +81,7 @@ Referência: [architecture.md §5](../architecture.md)
 
 ### EP-09-T04 — Editor de scripts
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-09-T02, EP-03-T04
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-09-T02, EP-03-T04
 
 **Objetivo.** Escrever scripts confortavelmente.
 
@@ -94,9 +94,13 @@ Referência: [architecture.md §5](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] Autocomplete cobre toda a API documentada
-- [ ] Erro de sintaxe é sinalizado antes do envio
-- [ ] Scripts persistem no YAML como bloco literal legível
+- [x] Autocomplete cobre toda a API documentada — `wttp.*`/`req.*`/`res.*`/`console.*`/matchers de `expect`, restrito ao que existe em cada fase, `scriptCompletions.spec.ts`
+- [x] Erro de sintaxe é sinalizado antes do envio — `@codemirror/lint` com os nós de erro da árvore do lezer, gutter vermelho na aba Scripts
+- [x] Scripts persistem no YAML como bloco literal legível — reaproveita o serializer de `scripts` já testado em EP-04 (`SCRIPTS_FIELD_ORDER`, round-trip byte a byte)
+
+**Nota:** `@codemirror/lint` (usado pelo linter de sintaxe) já vem transitivo via `codemirror`/`@codemirror/lang-javascript`, mas eu não consegui promovê-lo a dependência direta no `package.json` — `yarn install` neste ambiente falha em `@babel/generator@8.0.0` (exige Node ≥22.18, o ambiente tem 22.13.1), um problema de ambiente sem relação com EP-09. Fica como pendência de infra, não deste épico.
+
+**Nota:** verificação visual (dois temas, abrir a aba Scripts numa janela de verdade) não foi feita — mesma pendência de `xvfb`/`sudo` já registrada em EP-02/03/05/06/07.
 
 ---
 

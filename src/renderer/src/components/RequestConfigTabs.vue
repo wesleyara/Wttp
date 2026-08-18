@@ -80,6 +80,28 @@ const { unresolved: multipartUnresolved, tooltips: multipartTooltips } = useVari
 
 const { unresolved: docsUnresolved, tooltips: docsTooltips } = useVariablePreview(docs, path);
 
+// --- Scripts (EP-09-T04) ------------------------------------------------------------
+const { scripts } = storeToRefs(store);
+const scriptsSubTab = ref<"preRequest" | "tests">("preRequest");
+
+const preRequestScript = computed<string>({
+  get: () => scripts.value.preRequest ?? "",
+  set: value => {
+    scripts.value = { ...scripts.value, preRequest: value };
+  },
+});
+
+const testsScript = computed<string>({
+  get: () => scripts.value.tests ?? "",
+  set: value => {
+    scripts.value = { ...scripts.value, tests: value };
+  },
+});
+
+const hasScripts = computed(
+  () => Boolean(scripts.value.preRequest?.trim()) || Boolean(scripts.value.tests?.trim()),
+);
+
 // --- Auth (EP-07-T03/T04): badge/aviso na própria WTabs, sem precisar abrir a aba ---
 const selfLabel = computed(() => "This request");
 const { effective: effectiveAuth, inherited: authInherited } = useEffectiveAuth(
@@ -159,7 +181,12 @@ const tabs = computed(() => [
     badge: authBadge.value,
     warning: authUnresolved.value.length > 0,
   },
-  { value: "scripts", label: "Scripts" },
+  {
+    value: "scripts",
+    label: "Scripts",
+    badge: hasScripts.value ? "●" : undefined,
+    warning: Boolean(store.scriptRun?.preRequestError),
+  },
   { value: "docs", label: "Docs" },
 ]);
 
@@ -448,11 +475,30 @@ useAutoContentType(body, headers);
       <AuthConfigEditor v-model="auth" :path="path" :headers="headers" />
     </div>
 
-    <div v-else-if="activeTab === 'scripts'" class="pt-2">
-      <WEmptyState
-        title="No scripts"
-        description="Pre-request and test scripts are coming in a future release."
+    <div v-else-if="activeTab === 'scripts'" class="flex flex-col gap-2 pt-2">
+      <WTabs
+        v-model="scriptsSubTab"
+        :tabs="[
+          { value: 'preRequest', label: 'Pre-request' },
+          { value: 'tests', label: 'Tests' },
+        ]"
       />
+      <div v-if="scriptsSubTab === 'preRequest'" class="h-48">
+        <WCodeEditor
+          v-model="preRequestScript"
+          language="javascript"
+          script-phase="preRequest"
+          placeholder='wttp.setVar("ts", Date.now());'
+        />
+      </div>
+      <div v-else class="h-48">
+        <WCodeEditor
+          v-model="testsScript"
+          language="javascript"
+          script-phase="tests"
+          placeholder='test("status 200", () =&gt; expect(res.status).toBe(200));'
+        />
+      </div>
     </div>
 
     <div v-else-if="activeTab === 'docs'" class="h-40 pt-2">

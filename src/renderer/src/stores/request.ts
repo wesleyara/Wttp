@@ -4,10 +4,15 @@ import type {
   HttpResponseResult,
   KeyValueEntry,
   RequestBody,
+  RequestScripts,
   SaveFileResult,
 } from "@shared";
 
-import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
+import {
+  isRequestTab,
+  type ScriptRunSummary,
+  useRequestTabsStore,
+} from "@renderer/stores/requestTabs";
 import { useToastStore } from "@renderer/stores/toast";
 import { defineStore } from "pinia";
 import { computed } from "vue";
@@ -108,8 +113,18 @@ export const useRequestStore = defineStore("request", () => {
     },
   });
 
+  const scripts = computed<RequestScripts>({
+    get: () => active.value?.scripts ?? {},
+    set: value => {
+      if (!active.value) return;
+      active.value.scripts = value;
+      tabs.markActiveDirty();
+    },
+  });
+
   const sending = computed(() => active.value?.sending ?? false);
   const lastResult = computed<HttpResponseResult | null>(() => active.value?.lastResult ?? null);
+  const scriptRun = computed<ScriptRunSummary | null>(() => active.value?.scriptRun ?? null);
 
   function send(): Promise<void> {
     return tabs.send();
@@ -161,8 +176,10 @@ export const useRequestStore = defineStore("request", () => {
     body,
     auth,
     docs,
+    scripts,
     sending,
     lastResult,
+    scriptRun,
     send,
     cancel,
     saveResponseToFile,
