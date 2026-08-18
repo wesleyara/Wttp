@@ -115,7 +115,7 @@ normalizada inteira.
 
 ### EP-08-T03 — Insomnia v4
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-08-T01
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-08-T01
 
 **Objetivo.** Importar export do Insomnia.
 
@@ -127,9 +127,55 @@ normalizada inteira.
 
 **Critérios de aceite.**
 
-- [ ] Hierarquia de request groups preservada
-- [ ] Environment com herança resolvido corretamente
-- [ ] Fixture real com teste de snapshot
+- [x] Hierarquia de request groups preservada
+- [x] Environment com herança resolvido corretamente
+- [x] Fixture real com teste de snapshot
+
+**Notas de implementação.** `src/main/importers/insomnia.ts`. Diferença estrutural do
+Postman: o export do Insomnia não tem uma árvore aninhada — é uma lista plana de
+`resources` ligados por `parentId` (o workspace é a raiz; `request_group` e `request`
+compartilham o mesmo espaço de `parentId`, então a árvore de pastas é reconstruída
+indexando por `parentId` e ordenando irmãos por `metaSortKey`). `detect`/`parse` tentam
+`JSON.parse` e caem para `parse` do pacote `yaml` (a mesma lib de `storage/parser.ts`)
+sem lançar em nenhum dos dois casos — cobre JSON e YAML com o mesmo código, já que o
+Insomnia serializa o mesmo shape nos dois formatos.
+
+Environments formam sua **própria** árvore de herança via `parentId`, separada da
+árvore de pastas: só ambientes "folha" (nenhum outro os aponta como pai) viram um
+environment do Wttp — o environment base do Insomnia é só um molde, nunca ativado
+sozinho na prática — e cada folha resolve a cadeia inteira até a raiz, valor mais
+específico vencendo o mais genérico, a mesma regra do próprio Insomnia
+(`normalizeEnvironments`). Variável cujo nome sugere segredo (`token`/`secret`/
+`password`/`api[_-]?key`, case-insensitive) vira `secret: true` automaticamente, com
+aviso no relatório — guiado pela tabela "Mapeamentos que exigem atenção" da skill
+`wttp-importer` ("token hardcoded... vira variável marcada `secret: true`"). Isso expôs
+uma lacuna real na infra de EP-08-T01: `emitImport`/`runImport` chamavam
+`saveEnvironment` sem repassar `encryption`, então qualquer formato que emitisse uma
+variável secreta quebraria em teste (fora do Electron, `safeStorage` não existe) — em
+produção sempre funcionou, porque o processo main real tem `safeStorage`. Corrigido
+threading um `SecretEncryption` opcional (default `osKeychainEncryption`, mesma
+convenção de `saveEnvironment` em `storage/environments.ts`) por `runImport` →
+`emitImport` → `saveEnvironment`; `postman.ts`/`curl.ts` não precisaram mudar porque
+nunca emitem `secret: true`.
+
+Tags `{% ... %}` (Nunjucks) sem equivalente ficam no valor tal como estão — não dá pra
+"comentar" um pedaço de URL ou header como se faz com uma linha de script — e a
+ocorrência entra no relatório para o usuário resolver manualmente. Scripts
+`preRequestScript`/`afterResponseScript` (API `insomnia.*`, adicionada em versões mais
+recentes do app) não estão no escopo desta task — a fixture real usada não os tem
+(export de 2021, anterior a esse recurso) — mas por precaução contra descarte
+silencioso, presença de qualquer um dos dois campos ainda vira uma entrada no relatório
+em vez de ser ignorada.
+
+Fixture real: "Insomnia Documenter Demo"
+(github.com/insodoc/insomnia-documenter, MIT, exportada pelo Insomnia Desktop
+v2021.3.0) — 15 requests em 5 pastas aninhadas até 4 níveis de profundidade, um
+environment base com dois sub-environments (Production/Development, cobrindo a herança
+do critério de aceite). Mesma situação de EP-08-T02: gerar a fixture a partir do app
+desktop de verdade não foi possível neste ambiente headless sem conta configurável; um
+export público real de terceiros é o substituto mais próximo, registrado aqui em vez de
+tratado como equivalente em silêncio. `insomnia.integration.spec.ts` também verifica que
+a mesma fixture, re-serializada em YAML, produz a árvore normalizada idêntica.
 
 ---
 

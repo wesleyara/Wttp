@@ -11,6 +11,7 @@ import type { FolderFile, FolderNode, ImportReport, RequestFile, RequestNode } f
 
 import type { NormalizedImport, NormalizedNode } from "./types";
 
+import { osKeychainEncryption, type SecretEncryption } from "../secrets/encryption";
 import { saveEnvironment } from "../storage/environments";
 import { createNode, writeNode } from "../storage/tree";
 
@@ -69,6 +70,7 @@ export async function emitImport(
   root: string,
   targetPath: string,
   normalized: NormalizedImport,
+  encryption: SecretEncryption = osKeychainEncryption,
 ): Promise<ImportReport> {
   const counts: EmitCounts = { folders: 0, requests: 0, environments: 0 };
 
@@ -107,7 +109,10 @@ export async function emitImport(
   }
 
   for (const environment of normalized.environments) {
-    await saveEnvironment({ root, name: environment.name, variables: environment.variables });
+    await saveEnvironment(
+      { root, name: environment.name, variables: environment.variables },
+      encryption,
+    );
     counts.environments += 1;
   }
 

@@ -9,6 +9,7 @@ import type { ImportFormat, ImportReport } from "@shared";
 import type { Importer } from "./types";
 
 import { DomainError } from "../ipc/errors";
+import { osKeychainEncryption, type SecretEncryption } from "../secrets/encryption";
 import { emitImport } from "./emit";
 import { importers as defaultImporters } from "./registry";
 
@@ -31,6 +32,7 @@ export interface RunImportInput {
 export async function runImport(
   input: RunImportInput,
   registry: Importer[] = defaultImporters,
+  encryption: SecretEncryption = osKeychainEncryption,
 ): Promise<ImportReport> {
   const importer = registry.find(candidate => candidate.format === input.format);
   if (!importer) {
@@ -53,5 +55,5 @@ export async function runImport(
   }
 
   const normalized = importer.normalize(parsed);
-  return emitImport(input.root, input.targetPath, normalized);
+  return emitImport(input.root, input.targetPath, normalized, encryption);
 }
