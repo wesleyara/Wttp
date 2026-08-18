@@ -1,6 +1,6 @@
 # EP-08 — Importadores
 
-**Status:** Pendente · **Alvo:** v0.1 · **Depende de:** EP-07
+**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-07
 
 Porta de entrada para adoção. Ninguém recomeça uma collection de 200 endpoints do zero — ou o Wttp importa, ou não é avaliado.
 
@@ -45,7 +45,7 @@ Código de erro novo: `IMPORT_FORMAT_UNRECOGNIZED`.
 
 ### EP-08-T02 — Postman Collection v2.1
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-08-T01
+**Status:** Concluída · **Tamanho:** G · **Depende de:** EP-08-T01
 
 **Objetivo.** Importar o formato mais comum do mercado.
 
@@ -58,10 +58,58 @@ Código de erro novo: `IMPORT_FORMAT_UNRECOGNIZED`.
 
 **Critérios de aceite.**
 
-- [ ] Collection real com mais de 50 requests importa com a hierarquia preservada
-- [ ] Os cinco tipos de auth do Postman viram equivalente ou entrada no relatório
-- [ ] Script não convertido é preservado como comentário, nunca descartado
-- [ ] Teste de snapshot sobre a fixture
+- [x] Collection real com mais de 50 requests importa com a hierarquia preservada
+- [x] Os cinco tipos de auth do Postman viram equivalente ou entrada no relatório
+- [x] Script não convertido é preservado como comentário, nunca descartado
+- [x] Teste de snapshot sobre a fixture
+
+**Notas de implementação.** Um único módulo (`src/main/importers/postman.ts`) cobre
+collection **e** environment do Postman — mesmo botão "Import" no app deles, mesmo
+`ImportFormat: "postman"` aqui; `detect`/`normalize` decidem pelo shape do JSON
+(`info.schema` contendo `collection/v2` vs. `_postman_variable_scope`). Um environment
+normaliza direto para `NormalizedEnvironment` sem pasta nenhuma — `emitImport`
+(`emit.ts`) foi ajustado para não criar mais uma pasta raiz vazia quando não há
+`children`/`auth`/`docs`/`variables`/`scripts` no nível da collection, só efeito
+colateral para o caso "importei só um environment". `variable[]` de nível de collection
+no Postman virou `variables` na pasta raiz criada (nível "collection/pasta" do
+resolvedor de EP-06), não um environment do Wttp — é o escopo que de fato corresponde.
+Isso exigiu estender `NormalizedFolder`/`NormalizedImport` (`types.ts`) com `variables`
+e `scripts` opcionais, e `emitNode`/`emitImport` (`emit.ts`) a escrevê-los — extensão
+aditiva, sem mudar o comportamento dos formatos existentes (`pipeline.spec.ts`,
+`curl.spec.ts` continuam passando sem alteração).
+
+Auth: os quatro tipos com equivalente direto (`noauth`→`none`, `bearer`, `basic`,
+`apikey`) convertem 1:1; qualquer outro (`oauth2`, `digest`, `awsv4`, `hawk`, `ntlm`,
+`oauth1`) vira entrada no relatório em vez de gerar um `AuthConfig` quebrado — "os cinco
+tipos" do critério de aceite são os quatro convertíveis mais o grupo "sem equivalente"
+tratado uniformemente.
+
+Scripts são convertidos linha a linha (`convertScriptLine`/`convertScript`): um
+conjunto pequeno de substituições textuais (`pm.environment.set`→`wttp.setVar`,
+`pm.test`→`test`, `pm.response.code`→`res.status`, `pm.response.json()`→`res.json`, os
+matchers Chai mais comuns como `.to.eql`/`.to.equal`/`.to.have.property`→os matchers de
+`expect` documentados em `docs/scripting.md`) cobre os casos mais frequentes; qualquer
+linha que ainda contenha `pm.` depois da substituição não tem conversão segura o
+bastante e vira comentário (`// linha original`) mais uma entrada em `notConverted` —
+nunca é silenciosamente descartada nem reescrita de forma que pareça funcionar sem
+funcionar. **Limitação conhecida, não coberta por teste**: a conversão é por linha, não
+por AST — uma expressão Chai encadeada em múltiplas linhas (`pm.expect(x)\n  .to.eql(y)`)
+não é reconhecida como uma unidade e cada linha é avaliada isoladamente.
+
+Fixture real: a collection pública "Auth0 Management API"
+(github.com/auth0/postman-collections, schema v2.1.0, MIT-like — publicada pela Auth0
+para importação livre no Postman), 69 requests em 17 pastas —
+`src/main/importers/__fixtures__/auth0-management-api.postman_collection.json`. Não foi
+possível gerar a fixture exportando do app desktop do Postman porque este ambiente é
+headless e sem conta configurável; usar um export real e público de terceiros é o
+substituto mais próximo do "real" pedido no escopo, registrado aqui em vez de
+silenciosamente tratado como equivalente. A fixture não exercita auth nem scripts (a
+collection original não usa nenhum dos dois) — essas duas áreas têm cobertura própria
+em `postman.spec.ts` com snippets Postman válidos construídos à mão, mesmo padrão que
+`curl.spec.ts` já usa para casos que não vêm de uma captura real do DevTools.
+`postman.integration.spec.ts` cobre o pipeline completo (`detect`→`run`→gravação via
+`storage/tree`) contra a fixture, incluindo um teste de snapshot sobre a árvore
+normalizada inteira.
 
 ---
 
