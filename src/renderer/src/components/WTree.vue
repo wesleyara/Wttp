@@ -414,12 +414,14 @@ function onKeydown(event: KeyboardEvent): void {
           :aria-selected="row.node.path === selectedPath"
           :aria-expanded="row.node.kind === 'folder' ? row.expanded : undefined"
           :style="{ height: `${ROW_HEIGHT}px`, paddingLeft: `${row.depth * 16 + 4}px` }"
-          class="relative flex cursor-pointer items-center gap-1 pr-2 font-inter text-xs"
+          class="relative flex cursor-grab select-none items-center gap-1 pr-2 font-inter text-xs"
           :class="[
             row.node.path === selectedPath
               ? 'bg-surface-3 text-1'
               : 'text-muted hover:bg-surface-3/50',
-            draggingNode?.path === row.node.path ? 'opacity-40' : '',
+            draggingNode?.path === row.node.path
+              ? 'cursor-grabbing opacity-40 outline-dashed outline-1 -outline-offset-1 outline-accent'
+              : '',
             dropIndicator?.mode === 'into' &&
             !dropIndicator.invalid &&
             rows[dropIndicator.index]?.node.path === row.node.path
