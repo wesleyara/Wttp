@@ -181,7 +181,7 @@ a mesma fixture, re-serializada em YAML, produz a árvore normalizada idêntica.
 
 ### EP-08-T04 — OpenAPI 3.x
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-08-T01
+**Status:** Concluída · **Tamanho:** G · **Depende de:** EP-08-T01
 
 **Objetivo.** Gerar uma collection navegável a partir de uma spec.
 
@@ -196,10 +196,59 @@ a mesma fixture, re-serializada em YAML, produz a árvore normalizada idêntica.
 
 **Critérios de aceite.**
 
-- [ ] Spec real (ex.: Petstore) importa com todos os endpoints
-- [ ] Body gerado é JSON válido e coerente com o schema
-- [ ] Cada servidor vira um environment
-- [ ] `$ref` circular não trava o importador
+- [x] Spec real (ex.: Petstore) importa com todos os endpoints
+- [x] Body gerado é JSON válido e coerente com o schema
+- [x] Cada servidor vira um environment
+- [x] `$ref` circular não trava o importador
+
+**Notas de implementação.** `src/main/importers/openapi.ts` — o mais diferente dos
+quatro formatos: uma spec OpenAPI não descreve requests prontas, descreve um contrato;
+`normalize` gera um endpoint por operação (`method`+`path`), agrupado em pastas por
+`tags[0]` ou, na ausência de tag, pelo primeiro segmento do path
+(`groupName`/`firstPathSegment`). `{param}` no path vira `:param` — mesma sintaxe que o
+resolvedor de path params já usa desde EP-06.1, nenhuma conversão adicional necessária
+no lado do Wttp.
+
+`$ref` interno resolvido via ponteiro JSON manual (`resolveJsonPointer`, só
+`#/...`, sem suporte a `$ref` remoto/externo — fora do escopo). Duas resoluções
+diferentes por necessidade: `deref` segue uma cadeia simples com limite de 50 saltos
+(parâmetros, request bodies — ciclo aqui seria um bug da spec, não um caso real
+esperado) e `generateExample` rastreia um `Set` dos ponteiros já abertos no ramo de
+recursão atual (`visiting`), cortando com `null` ao reencontrar um — é a função que
+efetivamente pode ciclar de verdade (`Pet.friends: Pet[]`), coberta por teste com um
+schema `Node { children: Node[] }` autorreferente.
+
+Geração de exemplo (`generateExample`) prioriza `schema.example` → primeiro item de
+`schema.examples` (3.1) → primeiro valor de `enum` → gera por `type`
+(object/array/string com heurística de `format`/integer/number/boolean); `allOf` faz
+merge dos sub-schemas gerados, `oneOf`/`anyOf` usa o primeiro. Só `application/json` tem
+geração automática — outro content-type sem `application/json` no `requestBody.content`
+vira entrada no relatório em vez de corpo inventado (`petstore-3.0.4.json` tem um caso
+real: upload de imagem em `application/octet-stream`).
+
+`securitySchemes`: `apiKey` (header/query) e `http` `basic`/`bearer` convertem direto —
+o valor gerado referencia `{{<nomeDoScheme>}}` (ex.: `{{api_key}}`) para o usuário saber
+exatamente qual variável setar; `apiKey` em cookie, `oauth2`, `openIdConnect` e demais
+vão para o relatório. `security` no nível da operação (mesmo `[]` explícito, que vira
+`{type: "none"}`) sobrescreve o `security` global do documento; ausência do campo na
+operação = herda o auth da collection (`auth: undefined`, mesmo mecanismo de `inherit`
+que o resto do app já usa) — só o primeiro requirement/primeiro scheme de cada é
+mapeado, o mesmo recorte de "auth simples" que Postman/Insomnia já adotam.
+
+`servers[]` → um `NormalizedEnvironment` por servidor com variável `base_url`; variável
+de servidor (`{host}`) é substituída pelo `default` quando presente. Servidor com URL
+relativa (`petstore3.swagger.io` usa `/api/v3`, sem host) é mantido como está — o
+usuário completa a URL absoluta depois, comportamento verificado contra a fixture real.
+
+Fixtures reais (nenhum spec sintético): `petstore-3.0.4.json`
+(petstore3.swagger.io/api/v3/openapi.json — OpenAPI 3.0.4, JSON, 19 operações com
+`tags`, dois security schemes reais incluindo um oauth2 não convertível, um servidor de
+URL relativa) e `petstore-expanded-3.0.0.yaml`
+(github.com/OAI/OpenAPI-Specification, Apache-2.0 — OpenAPI 3.0.0, YAML, 4 operações
+**sem** `tags`, cobrindo o fallback de agrupamento pelo primeiro segmento do path, e
+schemas com `$ref`). As duas juntas são literalmente o "ex.: Petstore" do critério de
+aceite. Swagger 2.0 (`swagger: "2.0"`) é explicitamente rejeitado por `detect` — fora do
+escopo desta task, que é só OpenAPI 3.x.
 
 ---
 
