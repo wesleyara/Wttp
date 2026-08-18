@@ -10,7 +10,7 @@ Porta de entrada para adoção. Ninguém recomeça uma collection de 200 endpoin
 
 ### EP-08-T01 — Infraestrutura de importação
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-04-T04
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-04-T04
 
 **Objetivo.** Um contrato comum para todos os formatos.
 
@@ -23,9 +23,23 @@ Porta de entrada para adoção. Ninguém recomeça uma collection de 200 endpoin
 
 **Critérios de aceite.**
 
-- [ ] Adicionar um formato novo não altera a infraestrutura
-- [ ] Arquivo irreconhecível retorna erro claro em vez de importar lixo
-- [ ] Toda perda de informação vira uma entrada no relatório
+- [x] Adicionar um formato novo não altera a infraestrutura
+- [x] Arquivo irreconhecível retorna erro claro em vez de importar lixo
+- [x] Toda perda de informação vira uma entrada no relatório
+
+**Notas de implementação.** `Importer` (`src/main/importers/types.ts`) só declara
+`detect`/`parse`/`normalize` — a árvore normalizada (`NormalizedImport`, em memória,
+nada em disco ainda) é o que cada formato produz. `emitImport` (`emit.ts`) é a única
+parte que escreve, sempre via `storage/tree.ts#createNode`/`writeNode` e
+`storage/environments.ts#saveEnvironment`, nunca hand-rolled YAML — sequencial de
+propósito porque `createNode` calcula `seq` a partir dos irmãos já gravados.
+`detectImportFormat`/`runImport` (`pipeline.ts`) recebem o registro de importadores por
+parâmetro (default: o singleton de `registry.ts`), o que deixou testar a infra inteira
+com um `Importer` de mentira (`pipeline.spec.ts`) sem esperar por EP-08-T02..T05. Canal
+`import:detect`/`import:run` seguem o padrão dos demais domínios (`ipc/import.ts`,
+exposto em `preload/index.ts`); `docs/architecture.md` §2 atualizado com o shape real
+dos payloads (`content`/`root`/`targetPath`, não o placeholder genérico que estava lá).
+Código de erro novo: `IMPORT_FORMAT_UNRECOGNIZED`.
 
 ---
 

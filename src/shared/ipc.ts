@@ -14,6 +14,7 @@ import type {
   KeyValueEntry,
   RequestBody,
 } from "./http";
+import type { DetectImportPayload, ImportFormat, ImportReport, RunImportPayload } from "./import";
 import type {
   EnvironmentListItem,
   FolderNode,
@@ -361,6 +362,9 @@ export interface IpcContract {
     payload: ResolveAuthChainPayload;
     result: ResolveAuthChainResultPayload;
   };
+  /** Reconhecimento heurístico de formato pelo conteúdo (EP-08-T01) — `null` quando nenhum importador reconhece. */
+  "import:detect": { payload: DetectImportPayload; result: ImportFormat | null };
+  "import:run": { payload: RunImportPayload; result: ImportReport };
 }
 
 export type IpcChannel = keyof IpcContract;
@@ -388,6 +392,7 @@ export type WttpErrorCode =
   | "TIMEOUT"
   | "CANCELLED"
   | "CONNECTION_REFUSED"
+  | "IMPORT_FORMAT_UNRECOGNIZED"
   | "UNKNOWN";
 
 /**
