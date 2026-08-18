@@ -12,6 +12,7 @@ import type {
   HttpRequestSpec,
   HttpResponseResult,
   ImportFormat,
+  ImportPreview,
   ImportReport,
   ListWorkspacesInDirPayload,
   MenuAction,
@@ -21,8 +22,11 @@ import type {
   OpenWorkspacePayload,
   ParseCurlPayload,
   ParsedCurlRequest,
+  PickFilePayload,
+  PickFileResult,
   PickFolderPayload,
   PickFolderResult,
+  PreviewImportPayload,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
@@ -86,6 +90,8 @@ const wttp = {
       invoke("dialog:saveFile", payload),
     pickFolder: (payload: PickFolderPayload = {}): Promise<PickFolderResult> =>
       invoke("dialog:pickFolder", payload),
+    pickFile: (payload: PickFilePayload = {}): Promise<PickFileResult> =>
+      invoke("dialog:pickFile", payload),
   },
   workspace: {
     open: (payload: OpenWorkspacePayload = {}): Promise<WorkspaceTree | null> =>
@@ -169,6 +175,8 @@ const wttp = {
     run: (payload: RunImportPayload): Promise<ImportReport> => invoke("import:run", payload),
     parseCurl: (payload: ParseCurlPayload): Promise<ParsedCurlRequest | null> =>
       invoke("import:parseCurl", payload),
+    preview: (payload: PreviewImportPayload): Promise<ImportPreview> =>
+      invoke("import:preview", payload),
   },
   script: {
     run: (payload: ScriptRunSpec): Promise<ScriptRunResult> => invoke("script:run", payload),

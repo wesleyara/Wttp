@@ -63,3 +63,35 @@ export interface ParsedCurlRequest {
 export interface ParseCurlPayload {
   content: string;
 }
+
+/** Payload de `import:preview` (EP-08-T06) — mesma entrada de `import:run`, sem `root`/`targetPath`: nada é gravado. */
+export interface PreviewImportPayload {
+  format: ImportFormat;
+  content: string;
+}
+
+/**
+ * Um nó da árvore de `ImportPreview` — só o que a UI de preview precisa mostrar
+ * (nome, tipo, método). Não é `NormalizedNode` (tipo interno de `main/importers`,
+ * carrega `RequestBody`/`AuthConfig` inteiros) porque o preview nunca edita nada, só
+ * exibe — nenhum motivo para cruzar o IPC com mais dado do que a UI lê.
+ */
+export interface ImportPreviewNode {
+  kind: "folder" | "request";
+  name: string;
+  method?: HttpMethod;
+  children?: ImportPreviewNode[];
+}
+
+export interface ImportPreviewEnvironment {
+  name: string;
+  variableCount: number;
+}
+
+/** Resultado de `import:preview` — a árvore que `import:run` criaria, sem tocar disco. */
+export interface ImportPreview {
+  name: string;
+  children: ImportPreviewNode[];
+  environments: ImportPreviewEnvironment[];
+  notConverted: ImportReportItem[];
+}

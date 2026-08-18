@@ -17,9 +17,11 @@ import type {
 import type {
   DetectImportPayload,
   ImportFormat,
+  ImportPreview,
   ImportReport,
   ParseCurlPayload,
   ParsedCurlRequest,
+  PreviewImportPayload,
   RunImportPayload,
 } from "./import";
 import type { ScriptRunResult, ScriptRunSpec } from "./scripting";
@@ -158,6 +160,18 @@ export interface PickFolderPayload {
 export interface PickFolderResult {
   canceled: boolean;
   path?: string;
+}
+
+/** Payload de `dialog:pickFile` (EP-08-T06) — abrir um arquivo e já devolver o conteúdo como texto. */
+export interface PickFilePayload {
+  /** Extensões sugeridas no filtro do diálogo (sem o ponto), ex.: `["json", "yaml", "yml"]`. */
+  extensions?: string[];
+}
+
+export interface PickFileResult {
+  canceled: boolean;
+  path?: string;
+  content?: string;
 }
 
 /** Payload de `workspace:removeRecent` (EP-05-T01). */
@@ -332,6 +346,7 @@ export interface IpcContract {
   "http:cancel": { payload: string; result: void };
   "dialog:saveFile": { payload: SaveFilePayload; result: SaveFileResult };
   "dialog:pickFolder": { payload: PickFolderPayload; result: PickFolderResult };
+  "dialog:pickFile": { payload: PickFilePayload; result: PickFileResult };
   "workspace:open": { payload: OpenWorkspacePayload; result: WorkspaceTree | null };
   "workspace:create": { payload: CreateWorkspacePayload; result: WorkspaceTree };
   "workspace:recent": { payload: void; result: RecentWorkspace[] };
@@ -375,6 +390,8 @@ export interface IpcContract {
   "import:run": { payload: RunImportPayload; result: ImportReport };
   /** `null` quando o conteúdo não parece um comando cURL (EP-08-T05). */
   "import:parseCurl": { payload: ParseCurlPayload; result: ParsedCurlRequest | null };
+  /** Parse + normalize sem `emit` (EP-08-T06) — nada é gravado em disco. */
+  "import:preview": { payload: PreviewImportPayload; result: ImportPreview };
   /**
    * Nunca rejeita por falha do script — `ScriptRunResult.ok: false` é o resultado
    * normal para timeout ou exceção não tratada (EP-09-T01/T02).

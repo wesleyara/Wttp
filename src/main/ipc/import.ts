@@ -1,4 +1,4 @@
-import { detectImportFormat, parseCurlToRequest, runImport } from "../importers";
+import { detectImportFormat, parseCurlToRequest, previewImport, runImport } from "../importers";
 import { registerHandler } from "./registry";
 
 export function registerImportHandlers(): void {
@@ -14,4 +14,7 @@ export function registerImportHandlers(): void {
     }),
   );
   registerHandler("import:parseCurl", payload => parseCurlToRequest(payload.content));
+  registerHandler("import:preview", payload =>
+    previewImport({ format: payload.format, content: payload.content }),
+  );
 }

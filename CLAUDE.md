@@ -108,8 +108,9 @@ falha num `@babel/generator` que exige Node mais novo, problema de ambiente sem 
 com o épico. Mesma pendência de verificação visual das notas acima.
 
 Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-08**
-(em andamento; T01/T02/T03/T04/T05 concluídas, só **T06** — a UI de importação —
-pendente, recomendado antes de EP-10).
+(em andamento; T01–T06 concluídas — importadores Postman/Insomnia/OpenAPI/cURL e a UI
+de import, que só cria workspace novo — só **T07** pendente: import para dentro de um
+workspace já aberto, com conflito de nome por item, recomendado antes de EP-10).
 
 ---
 

@@ -13,6 +13,7 @@ import type {
   HttpRequestSpec,
   HttpResponseResult,
   ImportFormat,
+  ImportPreview,
   ImportReport,
   ListWorkspacesInDirPayload,
   MenuAction,
@@ -22,8 +23,11 @@ import type {
   OpenWorkspacePayload,
   ParseCurlPayload,
   ParsedCurlRequest,
+  PickFilePayload,
+  PickFileResult,
   PickFolderPayload,
   PickFolderResult,
+  PreviewImportPayload,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
@@ -71,6 +75,7 @@ interface WttpApi {
   dialog: {
     saveFile: (payload: SaveFilePayload) => Promise<SaveFileResult>;
     pickFolder: (payload?: PickFolderPayload) => Promise<PickFolderResult>;
+    pickFile: (payload?: PickFilePayload) => Promise<PickFileResult>;
   };
   workspace: {
     open: (payload?: OpenWorkspacePayload) => Promise<WorkspaceTree | null>;
@@ -120,6 +125,7 @@ interface WttpApi {
     detect: (payload: DetectImportPayload) => Promise<ImportFormat | null>;
     run: (payload: RunImportPayload) => Promise<ImportReport>;
     parseCurl: (payload: ParseCurlPayload) => Promise<ParsedCurlRequest | null>;
+    preview: (payload: PreviewImportPayload) => Promise<ImportPreview>;
   };
   script: {
     run: (payload: ScriptRunSpec) => Promise<ScriptRunResult>;
