@@ -62,8 +62,8 @@ auth (própria ou herdada) depende de `{{var}}` não resolvida — o mesmo fluxo
 confirmação de EP-06-T05 cobre isso antes do envio, sem UI nova. Os três tipos de auth
 foram verificados só por teste unitário, não contra um servidor de teste real — não há
 harness de servidor HTTP de integração no repo, registrado como pendência em
-[EP-07](docs/backlog/EP-07-autenticacao.md). Scripts ainda são placeholder — chegam em
-EP-09. Mesma pendência de verificação visual das notas acima.
+[EP-07](docs/backlog/EP-07-autenticacao.md). Mesma pendência de verificação visual das
+notas acima.
 
 **EP-06.1** (não planejado, aberto após feedback de uso real) também está pronto:
 `@iconify/vue` com o set Lucide empacotado offline (`WIcon`, sem SVG duplicado nos
@@ -78,7 +78,31 @@ o token `stripe` (novo em `docs/design-system.md`), a árvore sincronizando apó
 salvar uma aba, e diretório padrão de workspace configurável (`defaultWorkspaceDir`).
 Mesma pendência de verificação visual das notas acima.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-08**.
+**EP-09** (Scripts e testes) também está pronto, implementado fora da ordem recomendada
+do backlog — EP-08 (Importadores) ainda está `Pendente`, mas scripts não têm
+acoplamento funcional com importadores, decisão explícita do usuário. Código de usuário
+roda isolado num `utilityProcess` + `node:vm` (`src/main/scripts`, sem `require`/
+`process`/`fs`/`net` no contexto, timeout com backstop e recuperação de crash sem
+restart do app — `runner.ts`/`sandbox.ts`/`worker.ts`), com a API `wttp.setVar/getVar`,
+`req` mutável, `res` congelada, `test`/`expect` com os seis matchers documentados e
+`console.*` capturado (`api.ts`, `docs/scripting.md`). A integração no fluxo da request
+(`useRequestTabsStore.dispatch`) roda a cadeia de pre-request de fora pra dentro
+(collection → pasta → request) antes do envio e a de tests de dentro pra fora depois,
+com `wttp.setVar` persistindo entre envios via `useScriptRuntimeStore` — é o que faz
+"login guarda token, request seguinte autentica sozinha" funcionar; falha no pre-request
+aborta o envio com mensagem clara. `folder.yaml` ganhou um campo `scripts` opcional para
+herança de collection/pasta, mas ainda sem editor próprio na UI — só a request tem a
+aba Scripts (`RequestConfigTabs`, dois `WCodeEditor` com autocomplete da API inteira,
+snippets e sinalização de erro de sintaxe via `@codemirror/lint`). `ResponsePanel` ganhou
+a aba Tests (`ScriptResultsPanel`) com asserções passou/falhou e o console de scripts
+por fase, e o `StatusBar` mostra um resumo de falhas da aba ativa. `@codemirror/lint`
+segue como dependência transitiva (via `codemirror`/`@codemirror/lang-javascript`) — não
+foi possível promovê-la a direta no `package.json` porque `yarn install` neste ambiente
+falha num `@babel/generator` que exige Node mais novo, problema de ambiente sem relação
+com o épico. Mesma pendência de verificação visual das notas acima.
+
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-08**
+(ainda pendente, recomendado antes de EP-10).
 
 ---
 

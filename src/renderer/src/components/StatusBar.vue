@@ -5,6 +5,7 @@ import WEnvironmentPicker, {
 import WIcon from "@renderer/components/WIcon.vue";
 import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useMenuStore } from "@renderer/stores/menu";
+import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useSettingsStore } from "@renderer/stores/settings";
 import { useUiStore } from "@renderer/stores/ui";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
@@ -15,6 +16,20 @@ const menu = useMenuStore();
 const workspace = useWorkspaceStore();
 const environment = useEnvironmentStore();
 const ui = useUiStore();
+const requestTabs = useRequestTabsStore();
+
+/** Resumo dos scripts do último envio da aba ativa (EP-09-T05) — `null` quando não há nada a resumir. */
+const scriptSummary = computed(() => {
+  const tab = requestTabs.active;
+  if (!isRequestTab(tab) || !tab.scriptRun) return null;
+  const { assertions, preRequestError } = tab.scriptRun;
+  if (preRequestError) return { text: "Pre-request script failed", failed: true };
+  if (assertions.length === 0) return null;
+  const failedCount = assertions.filter(a => !a.passed).length;
+  return failedCount > 0
+    ? { text: `${failedCount}/${assertions.length} tests failed`, failed: true }
+    : { text: `${assertions.length} tests passed`, failed: false };
+});
 
 const emit = defineEmits<{
   "open-environment-editor": [];
@@ -107,6 +122,14 @@ function cycleTheme(): void {
       <WIcon name="settings" size="3.5" />
       Manage
     </button>
+    <span
+      v-if="scriptSummary"
+      class="flex items-center gap-1"
+      :class="scriptSummary.failed ? 'text-status-5xx' : 'text-status-2xx'"
+    >
+      <WIcon :name="scriptSummary.failed ? 'x' : 'check'" size="3.5" />
+      {{ scriptSummary.text }}
+    </span>
     <span class="flex-1" role="status" aria-live="polite">{{ menu.statusMessage }}</span>
     <button
       type="button"

@@ -19,7 +19,7 @@ Para executar uma task, use a skill `wttp-task`.
 | [EP-06.1](EP-06.1-refinamentos-ux.md)    | Correções e refinamentos de UX (não planejado) | Concluída (verificação visual pendente) |
 | [EP-07](EP-07-autenticacao.md)           | Autenticação                      | Concluída (verificação visual pendente) |
 | [EP-08](EP-08-importadores.md)           | Importadores                      | Pendente  |
-| [EP-09](EP-09-scripts.md)                | Scripts e testes                  | Pendente  |
+| [EP-09](EP-09-scripts.md)                | Scripts e testes                  | Concluída (verificação visual pendente) |
 | [EP-10](EP-10-qualidade-ci.md)           | Qualidade e CI                    | Pendente  |
 | [EP-11](EP-11-distribuicao.md)           | Empacotamento e distribuição      | Pendente  |
 
