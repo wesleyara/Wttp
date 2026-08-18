@@ -4,13 +4,13 @@
  * para permitir testar a infra com um `Importer` de mentira, sem tocar o registro real.
  */
 
-import type { ImportConflictResolution, ImportFormat, ImportPreview, ImportReport } from "@shared";
+import type { ImportFormat, ImportPreview, ImportReport } from "@shared";
 
 import type { Importer, NormalizedImport, NormalizedNode } from "./types";
 
 import { DomainError } from "../ipc/errors";
 import { osKeychainEncryption, type SecretEncryption } from "../secrets/encryption";
-import { emitImport, emitImportMerge } from "./emit";
+import { emitImport } from "./emit";
 import { importers as defaultImporters } from "./registry";
 
 export function detectImportFormat(
@@ -56,8 +56,6 @@ export interface RunImportInput {
   content: string;
   root: string;
   targetPath: string;
-  /** Presente (mesmo vazio) → EP-08-T07: grava direto em `targetPath`, resolvendo conflito por item. Ausente → EP-08-T06: sempre workspace novo, envolvido numa pasta-raiz. */
-  resolutions?: ImportConflictResolution[];
 }
 
 export async function runImport(
@@ -66,9 +64,7 @@ export async function runImport(
   encryption: SecretEncryption = osKeychainEncryption,
 ): Promise<ImportReport> {
   const normalized = parseAndNormalize(input.format, input.content, registry);
-  return input.resolutions
-    ? emitImportMerge(input.root, input.targetPath, normalized, input.resolutions, encryption)
-    : emitImport(input.root, input.targetPath, normalized, encryption);
+  return emitImport(input.root, input.targetPath, normalized, encryption);
 }
 
 export interface PreviewImportInput {

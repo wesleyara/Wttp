@@ -1,11 +1,4 @@
-import type {
-  ImportConflictAction,
-  ImportConflictResolution,
-  ImportFormat,
-  ImportPreview,
-  ImportReport,
-  WttpError,
-} from "@shared";
+import type { ImportFormat, ImportPreview, ImportReport, WttpError } from "@shared";
 
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
@@ -14,13 +7,8 @@ import { useWorkspaceStore } from "./workspace";
 
 export type ImportStep = "source" | "preview" | "report";
 
-/** Para dentro de um workspace novo (EP-08-T06) ou de uma pasta já aberta (EP-08-T07). */
-export type ImportMode = "newWorkspace" | "intoFolder";
-
-interface ConflictResolutionState {
-  action: ImportConflictAction;
-  newName: string;
-}
+/** Para dentro de um workspace novo (EP-08-T06) ou na raiz de um já aberto (EP-08-T07). */
+export type ImportMode = "newWorkspace" | "intoWorkspace";
 
 const FORMAT_OPTIONS: { value: ImportFormat; label: string }[] = [
   { value: "postman", label: "Postman Collection" },
@@ -32,14 +20,17 @@ const FORMAT_OPTIONS: { value: ImportFormat; label: string }[] = [
 /**
  * Fluxo do modal de import. Dois modos:
  *
- * - `newWorkspace` (EP-08-T06): destino é sempre um workspace **novo** — sem nó pra
- *   colidir, sem conflito possível. Ponto de entrada: botão "Import" da
- *   `WorkspaceLanding`.
- * - `intoFolder` (EP-08-T07): destino é uma pasta já existente num workspace aberto —
- *   `ImportPreview.children` é gravado direto nela (sem a pasta-raiz que o modo
- *   `newWorkspace` sempre cria), e cada nó cujo nome já existe no destino precisa de
- *   uma resolução (renomear/substituir/pular), nunca uma escolha global. Ponto de
- *   entrada: "Import into this folder" no menu de contexto de uma pasta/collection.
+ * - `newWorkspace` (EP-08-T06): sem workspace aberto ainda — cria um novo (mesmo
+ *   `workspace:create` do botão "Create workspace"). Ponto de entrada: botão "Import"
+ *   da `WorkspaceLanding`.
+ * - `intoWorkspace` (EP-08-T07): workspace já aberto — grava direto na raiz dele, o
+ *   mesmo `targetPath: ""` que "New collection" usa. A raiz de um workspace só pode
+ *   conter collections e uma collection nunca fica dentro de outra (`WTree`), então
+ *   isso é sempre uma pasta nova (nome da collection de origem) — nenhum nó existente
+ *   pode colidir, o mesmo motivo pelo qual "New collection" clicado duas vezes nunca
+ *   precisa perguntar nada ao usuário. Ponto de entrada: item "Import" no menu "+" da
+ *   toolbar da árvore (`AppShell`), nunca por pasta — importar "dentro" de uma pasta
+ *   específica romperia essa regra.
  *
  * `loadPreview()` só faz `parse`+`normalize` (via `import:preview`) — nada é gravado
  * até `confirm()`.
@@ -59,44 +50,18 @@ export const useImportStore = defineStore("import", () => {
   const workspaceName = ref("");
   const workspaceDir = ref<string | null>(null);
 
-  // Modo "intoFolder"
+  // Modo "intoWorkspace"
   const intoRoot = ref<string | null>(null);
-  const intoParentPath = ref<string | null>(null);
-  const intoParentName = ref("");
-  /** Só os índices de `preview.children` que colidem com um nome já existente no destino. */
-  const resolutions = ref<Map<number, ConflictResolutionState>>(new Map());
-  const conflictsLoaded = ref(false);
 
   const formatOptions = computed(() => FORMAT_OPTIONS);
   const canPreview = computed(() => content.value.trim().length > 0 && format.value !== null);
-
-  const hasInvalidResolution = computed(() =>
-    [...resolutions.value.values()].some(
-      resolution => resolution.action === "rename" && !resolution.newName.trim(),
-    ),
-  );
-
   const canConfirm = computed(() => {
     if (!preview.value) return false;
-    if (mode.value === "intoFolder") {
-      return conflictsLoaded.value && !hasInvalidResolution.value;
-    }
+    if (mode.value === "intoWorkspace") return true;
     return workspaceName.value.trim().length > 0;
   });
 
-  const conflictEntries = computed(() =>
-    preview.value
-      ? [...resolutions.value.keys()]
-          .sort((a, b) => a - b)
-          .map(index => ({ index, node: preview.value!.children[index] }))
-      : [],
-  );
-
-  const reportTitle = computed(() =>
-    mode.value === "intoFolder"
-      ? intoParentName.value || "folder"
-      : workspaceName.value || "workspace",
-  );
+  const reportTitle = computed(() => workspaceName.value || preview.value?.name || "workspace");
 
   /** Relatório legível (EP-08-T06, critério "relatório exportável") — copiável ou salvável como está. */
   const reportText = computed(() => {
@@ -125,8 +90,6 @@ export const useImportStore = defineStore("import", () => {
     preview.value = null;
     report.value = null;
     error.value = null;
-    resolutions.value = new Map();
-    conflictsLoaded.value = false;
   }
 
   /** Abre o modal no modo "workspace novo" (EP-08-T06) — botão "Import" da `WorkspaceLanding`. */
@@ -137,13 +100,11 @@ export const useImportStore = defineStore("import", () => {
     workspaceDir.value = null;
   }
 
-  /** Abre o modal no modo "para dentro desta pasta" (EP-08-T07) — menu de contexto de uma pasta/collection. */
-  function startIntoFolder(root: string, parentPath: string, parentName: string): void {
+  /** Abre o modal no modo "na raiz do workspace aberto" (EP-08-T07) — item "Import" do menu "+" da toolbar. */
+  function startIntoWorkspace(root: string): void {
     resetCore();
-    mode.value = "intoFolder";
+    mode.value = "intoWorkspace";
     intoRoot.value = root;
-    intoParentPath.value = parentPath;
-    intoParentName.value = parentName;
   }
 
   async function detectFormat(): Promise<void> {
@@ -181,43 +142,6 @@ export const useImportStore = defineStore("import", () => {
     if (!result.canceled && result.path) workspaceDir.value = result.path;
   }
 
-  /** Compara `preview.children` com os filhos atuais de `intoParentPath` — só o nível único onde conflito é possível (sem merge, ver comentário do módulo). */
-  async function loadConflicts(): Promise<void> {
-    if (!intoRoot.value || intoParentPath.value === null || !preview.value) return;
-    const destination = await window.wttp.node.read({
-      root: intoRoot.value,
-      path: intoParentPath.value,
-    });
-    const existingNames = new Set(
-      destination.kind === "folder" ? destination.children.map(child => child.name) : [],
-    );
-
-    const next = new Map<number, ConflictResolutionState>();
-    preview.value.children.forEach((node, index) => {
-      if (existingNames.has(node.name)) {
-        next.set(index, { action: "rename", newName: `${node.name} copy` });
-      }
-    });
-    resolutions.value = next;
-    conflictsLoaded.value = true;
-  }
-
-  function setResolutionAction(index: number, action: ImportConflictAction): void {
-    const current = resolutions.value.get(index);
-    if (!current) return;
-    const next = new Map(resolutions.value);
-    next.set(index, { ...current, action });
-    resolutions.value = next;
-  }
-
-  function setResolutionName(index: number, newName: string): void {
-    const current = resolutions.value.get(index);
-    if (!current) return;
-    const next = new Map(resolutions.value);
-    next.set(index, { ...current, newName });
-    resolutions.value = next;
-  }
-
   async function loadPreview(): Promise<void> {
     if (!format.value) return;
     loading.value = true;
@@ -227,11 +151,7 @@ export const useImportStore = defineStore("import", () => {
         format: format.value,
         content: content.value,
       });
-      if (mode.value === "newWorkspace") {
-        workspaceName.value = preview.value.name;
-      } else {
-        await loadConflicts();
-      }
+      if (mode.value === "newWorkspace") workspaceName.value = preview.value.name;
       step.value = "preview";
     } catch (e) {
       error.value = e as WttpError;
@@ -269,26 +189,17 @@ export const useImportStore = defineStore("import", () => {
     }
   }
 
-  /** Grava direto em `intoParentPath`, aplicando a resolução escolhida por item (EP-08-T07). */
-  async function confirmIntoFolder(): Promise<void> {
-    if (!format.value || !intoRoot.value || intoParentPath.value === null) return;
+  /** Grava na raiz do workspace já aberto — mesmo `targetPath: ""` de "New collection" (EP-08-T07). */
+  async function confirmIntoWorkspace(): Promise<void> {
+    if (!format.value || !intoRoot.value) return;
     loading.value = true;
     error.value = null;
     try {
-      const resolutionsPayload: ImportConflictResolution[] = [...resolutions.value.entries()].map(
-        ([index, resolution]) => ({
-          index,
-          action: resolution.action,
-          newName: resolution.action === "rename" ? resolution.newName.trim() : undefined,
-        }),
-      );
-
       report.value = await window.wttp.import.run({
         format: format.value,
         content: content.value,
         root: intoRoot.value,
-        targetPath: intoParentPath.value,
-        resolutions: resolutionsPayload,
+        targetPath: "",
       });
       await useWorkspaceStore().refreshTree();
       step.value = "report";
@@ -300,7 +211,7 @@ export const useImportStore = defineStore("import", () => {
   }
 
   async function confirm(): Promise<void> {
-    if (mode.value === "intoFolder") await confirmIntoFolder();
+    if (mode.value === "intoWorkspace") await confirmIntoWorkspace();
     else await confirmNewWorkspace();
   }
 
@@ -325,24 +236,17 @@ export const useImportStore = defineStore("import", () => {
     error,
     workspaceName,
     workspaceDir,
-    intoParentPath,
-    intoParentName,
-    resolutions,
-    conflictEntries,
-    conflictsLoaded,
     formatOptions,
     canPreview,
     canConfirm,
     reportText,
     startNewWorkspace,
-    startIntoFolder,
+    startIntoWorkspace,
     setContent,
     loadFromFile,
     setFormat,
     pickWorkspaceDir,
     loadPreview,
-    setResolutionAction,
-    setResolutionName,
     confirm,
     saveReportToFile,
   };
