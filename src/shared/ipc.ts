@@ -7,6 +7,7 @@
  * um único byte de JavaScript.
  */
 
+import type { HistoryEntry } from "./history";
 import type {
   AuthConfig,
   HttpRequestSpec,
@@ -197,6 +198,24 @@ export interface SetWorkspaceDraftsPayload {
   drafts: WorkspaceDrafts;
 }
 
+/** Payload de `history:list`/`history:clear` (EP-08.1-T03) — `path` da request dona do histórico. */
+export interface RequestHistoryPayload {
+  root: string;
+  path: string;
+}
+
+/**
+ * Payload de `history:append` (EP-08.1-T03) — `request`/`response` como saíram de
+ * `http:send` (o `main` reaplica `applyAuth` para capturar também o `Authorization`
+ * injetado); `secrets` são os valores reais de variável `secret: true` usados nesta
+ * request, para o main mascarar antes de gravar — nunca gravados como vieram.
+ */
+export interface AppendHistoryPayload extends RequestHistoryPayload {
+  request: HttpRequestSpec;
+  response: HttpResponseResult;
+  secrets: string[];
+}
+
 /** Payload de `workspace:setVariables` (EP-06-T03) — aba de variáveis globais do editor de environments. */
 export interface SetWorkspaceVariablesPayload {
   root: string;
@@ -362,6 +381,9 @@ export interface IpcContract {
   "workspace:setUiState": { payload: SetWorkspaceUiStatePayload; result: void };
   "workspace:getDrafts": { payload: WorkspaceRootPayload; result: WorkspaceDrafts };
   "workspace:setDrafts": { payload: SetWorkspaceDraftsPayload; result: void };
+  "history:list": { payload: RequestHistoryPayload; result: HistoryEntry[] };
+  "history:append": { payload: AppendHistoryPayload; result: void };
+  "history:clear": { payload: RequestHistoryPayload; result: void };
   "workspace:setVariables": { payload: SetWorkspaceVariablesPayload; result: WorkspaceTree };
   /** Rescan sem efeitos colaterais (não toca recentes nem reinicia o watcher) — usado depois de um `node:*` que a store já sabe que aconteceu. */
   "workspace:rescan": { payload: WorkspaceRootPayload; result: WorkspaceTree };

@@ -1,6 +1,7 @@
 import { registerAppHandlers } from "./app";
 import { registerDialogHandlers } from "./dialog";
 import { registerEnvironmentHandlers } from "./environment";
+import { registerHistoryHandlers } from "./history";
 import { registerHttpHandlers } from "./http";
 import { registerImportHandlers } from "./import";
 import { registerNodeHandlers } from "./node";
@@ -25,4 +26,5 @@ export function registerIpcHandlers(): void {
   registerVariableHandlers();
   registerImportHandlers();
   registerScriptHandlers();
+  registerHistoryHandlers();
 }
