@@ -105,7 +105,30 @@ async function onInitializeHere(): Promise<void> {
     </div>
 
     <div v-else class="flex w-full max-w-md flex-col gap-6">
-      <div class="flex flex-col gap-1 text-center">
+      <div class="flex flex-col items-center gap-2 text-center">
+        <svg viewBox="0 0 1024 1024" class="size-10" aria-hidden="true">
+          <path
+            d="M 180 360 L 342 664 L 512 450 L 682 664 L 844 360"
+            fill="none"
+            stroke="url(#wttp-mark-gradient)"
+            stroke-width="72"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <defs>
+            <linearGradient
+              id="wttp-mark-gradient"
+              x1="180"
+              y1="360"
+              x2="844"
+              y2="360"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0" stop-color="#40bef0" />
+              <stop offset="1" stop-color="#18aae5" />
+            </linearGradient>
+          </defs>
+        </svg>
         <p class="font-barlow text-lg font-semibold text-1">Wttp</p>
         <p class="font-inter text-sm text-muted">Open or create a workspace to get started.</p>
       </div>
