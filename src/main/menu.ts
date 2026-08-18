@@ -18,6 +18,12 @@ export function buildMenu(win: BrowserWindow): Menu {
             submenu: [
               { role: "about" },
               { type: "separator" },
+              {
+                label: "Preferences…",
+                accelerator: "CmdOrCtrl+,",
+                click: () => send(win, "preferences:open"),
+              },
+              { type: "separator" },
               { role: "services" },
               { type: "separator" },
               { role: "hide" },
@@ -59,6 +65,16 @@ export function buildMenu(win: BrowserWindow): Menu {
           accelerator: "CmdOrCtrl+Tab",
           click: () => send(win, "tab:next"),
         },
+        ...(isMac
+          ? []
+          : ([
+              { type: "separator" },
+              {
+                label: "Preferences…",
+                accelerator: "CmdOrCtrl+,",
+                click: () => send(win, "preferences:open"),
+              },
+            ] satisfies MenuItemConstructorOptions[])),
         { type: "separator" },
         isMac ? { role: "close" } : { role: "quit" },
       ],

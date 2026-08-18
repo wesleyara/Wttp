@@ -16,8 +16,10 @@ import {
   duplicateEnvironment,
   duplicateNode,
   getEnvironment,
+  hasWorkspaceManifest,
   initWorkspace,
   listEnvironments,
+  listWorkspacesInDir,
   moveNode,
   moveNodeInto,
   readNode,
@@ -306,6 +308,44 @@ describe("initWorkspace", () => {
     const gitignore = await fs.readFile(join(root, ".gitignore"), "utf-8");
     expect(gitignore).toContain(".wttp/");
     await expect(fs.access(join(root, "environments"))).resolves.toBeUndefined();
+  });
+});
+
+describe("hasWorkspaceManifest", () => {
+  it("true quando a pasta tem wttp.yaml", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await expect(hasWorkspaceManifest(root)).resolves.toBe(true);
+  });
+
+  it("false quando a pasta existe mas não tem wttp.yaml", async () => {
+    await expect(hasWorkspaceManifest(root)).resolves.toBe(false);
+  });
+
+  it("false quando a pasta não existe", async () => {
+    await expect(hasWorkspaceManifest(join(root, "does-not-exist"))).resolves.toBe(false);
+  });
+});
+
+describe("listWorkspacesInDir", () => {
+  it("marca valid conforme a presença de wttp.yaml, ignora arquivos soltos", async () => {
+    await writeYaml("valid-ws/wttp.yaml", workspaceYaml);
+    await fs.mkdir(join(root, "empty-dir"), { recursive: true });
+    await fs.writeFile(join(root, "stray-file.txt"), "not a dir", "utf-8");
+
+    const result = await listWorkspacesInDir(root);
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { path: join(root, "valid-ws"), name: "valid-ws", valid: true },
+        { path: join(root, "empty-dir"), name: "empty-dir", valid: false },
+      ]),
+    );
+    expect(result.find(entry => entry.name === "stray-file.txt")).toBeUndefined();
+    expect(result).toHaveLength(2);
+  });
+
+  it("resolve [] para um diretório inexistente, sem lançar", async () => {
+    await expect(listWorkspacesInDir(join(root, "does-not-exist"))).resolves.toEqual([]);
   });
 });
 
