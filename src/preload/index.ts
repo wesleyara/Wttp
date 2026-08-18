@@ -14,6 +14,7 @@ import type {
   MoveNodePayload,
   NodePathPayload,
   OpenWorkspacePayload,
+  PickFolderPayload,
   PickFolderResult,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
@@ -71,7 +72,8 @@ const wttp = {
   dialog: {
     saveFile: (payload: SaveFilePayload): Promise<SaveFileResult> =>
       invoke("dialog:saveFile", payload),
-    pickFolder: (): Promise<PickFolderResult> => invoke("dialog:pickFolder"),
+    pickFolder: (payload: PickFolderPayload = {}): Promise<PickFolderResult> =>
+      invoke("dialog:pickFolder", payload),
   },
   workspace: {
     open: (payload: OpenWorkspacePayload = {}): Promise<WorkspaceTree | null> =>

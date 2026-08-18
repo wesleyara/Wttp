@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import WIcon from "./WIcon.vue";
+
 const props = withDefaults(
   defineProps<{
     modelValue: string;
@@ -42,19 +44,6 @@ function onChange(event: Event): void {
         {{ option.label }}
       </option>
     </select>
-    <svg
-      class="pointer-events-none size-4 shrink-0 text-faint"
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M6 8l4 4 4-4"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
+    <WIcon name="chevron-down" size="4" class="pointer-events-none text-faint" />
   </div>
 </template>

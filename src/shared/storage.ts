@@ -65,6 +65,8 @@ export interface RequestFile extends UnknownFields {
   seq: number;
   method: HttpMethod;
   url: string;
+  /** Valor de cada segmento `:nome` na URL — substituídos antes da resolução de `{{var}}` (EP-06.1). */
+  pathParams?: KeyValueEntry[];
   query?: KeyValueEntry[];
   headers?: KeyValueEntry[];
   auth?: AuthConfig;

@@ -3,6 +3,7 @@ import type { EnvironmentListItem, KeyValueEntry, WttpError } from "@shared";
 import { defineStore } from "pinia";
 import { computed, ref, toRaw, watch } from "vue";
 
+import { useToastStore } from "./toast";
 import { useWorkspaceStore } from "./workspace";
 
 /** Tira a reatividade do Pinia/componente antes de cruzar a ponte de IPC — Proxy reativo não é clonável pelo Electron. */
@@ -25,6 +26,7 @@ export interface SaveVariableInput {
  */
 export const useEnvironmentStore = defineStore("environment", () => {
   const workspace = useWorkspaceStore();
+  const toast = useToastStore();
 
   const items = ref<EnvironmentListItem[]>([]);
   const loading = ref(false);
@@ -88,6 +90,7 @@ export const useEnvironmentStore = defineStore("environment", () => {
       });
       await refresh();
       error.value = null;
+      toast.push(`"${saved.data.name}" saved`, "success");
       return saved;
     } catch (e) {
       error.value = e as WttpError;
@@ -97,11 +100,13 @@ export const useEnvironmentStore = defineStore("environment", () => {
 
   async function remove(path: string): Promise<void> {
     if (!workspace.root) return;
+    const name = items.value.find(item => item.path === path)?.data.name ?? "Environment";
     try {
       await window.wttp.env.delete({ root: workspace.root, path });
       if (activePath.value === path) setActive(null);
       await refresh();
       error.value = null;
+      toast.push(`"${name}" deleted`, "warning");
     } catch (e) {
       error.value = e as WttpError;
     }
@@ -130,6 +135,7 @@ export const useEnvironmentStore = defineStore("environment", () => {
         variables: unwrap(variables),
       });
       error.value = null;
+      toast.push("Workspace variables saved", "success");
     } catch (e) {
       error.value = e as WttpError;
     }

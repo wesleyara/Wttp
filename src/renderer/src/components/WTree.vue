@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceNode } from "@shared";
 
+import WIcon from "@renderer/components/WIcon.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
@@ -428,21 +429,12 @@ function onKeydown(event: KeyboardEvent): void {
             @pointerdown.stop
             @click.stop="toggleExpanded(row.node.path)"
           >
-            <svg
-              class="size-3 transition-transform"
+            <WIcon
+              name="chevron-right"
+              size="3"
+              class="transition-transform"
               :class="{ 'rotate-90': row.expanded }"
-              viewBox="0 0 20 20"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M7 5l6 5-6 5"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
+            />
           </button>
           <span v-else class="size-4 shrink-0" />
 
@@ -464,27 +456,13 @@ function onKeydown(event: KeyboardEvent): void {
           />
           <span v-else class="truncate">{{ row.node.name }}</span>
 
-          <svg
+          <WIcon
             v-if="row.node.issues && row.node.issues.length > 0"
-            class="ml-auto size-3.5 shrink-0 text-status-5xx"
-            viewBox="0 0 20 20"
-            fill="none"
-            aria-hidden="true"
-          >
-            <title>{{ row.node.issues.map(issue => issue.message).join("; ") }}</title>
-            <path
-              d="M10 3l8 14H2l8-14z"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linejoin="round"
-            />
-            <path
-              d="M10 8v4M10 14.5v.01"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-            />
-          </svg>
+            name="triangle-alert"
+            size="3.5"
+            class="ml-auto text-status-5xx"
+            :title="row.node.issues.map(issue => issue.message).join('; ')"
+          />
         </div>
       </div>
     </div>

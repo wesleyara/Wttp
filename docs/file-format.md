@@ -75,6 +75,9 @@ seq: 1
 method: POST
 url: "{{base_url}}/auth/login"
 
+pathParams: # segmentos `:nome` na URL (EP-06.1) — substituídos antes da resolução de `{{var}}`
+  - { name: id, value: "{{user_id}}", enabled: true }
+
 query:
   - { name: verbose, value: "true", enabled: true }
   - { name: debug, value: "1", enabled: false, description: "só em dev" }

@@ -181,6 +181,8 @@ export function resolveText(template: string, scope: VariableScope): ResolveText
 
 export interface ResolveRequestInput {
   url: string;
+  /** Valor de cada segmento `:nome` na URL — consumidos na própria URL, não sobram no resultado (EP-06.1). */
+  pathParams?: KeyValueEntry[];
   query: KeyValueEntry[];
   headers: KeyValueEntry[];
   auth: AuthConfig;
@@ -196,6 +198,32 @@ export interface ResolveRequestResult {
   unresolved: string[];
   used: ResolvedVariable[];
   cycles: string[][];
+}
+
+/** `:nome` — mesmo padrão usado no parser da UI (`url-path-params-sync.ts`). */
+const PATH_PARAM_PATTERN = /:([A-Za-z_][A-Za-z0-9_]*)/g;
+
+/**
+ * Troca cada `:nome` da URL pelo valor do pathParam habilitado de mesmo nome, resolvendo
+ * `{{var}}` dentro desse valor primeiro. `:nome` sem pathParam correspondente (ou
+ * desabilitado) fica intacto — mesmo comportamento de hoje, texto inerte.
+ */
+function substitutePathParams(
+  url: string,
+  pathParams: KeyValueEntry[],
+  map: Map<string, ResolvedVariable>,
+  ctx: ResolveContext,
+): string {
+  const values = new Map(
+    pathParams
+      .filter(param => param.enabled && param.name !== "")
+      .map(param => [param.name, param.value]),
+  );
+  return url.replace(PATH_PARAM_PATTERN, (match, name: string) => {
+    const value = values.get(name);
+    if (value === undefined) return match;
+    return encodeURIComponent(substitute(value, map, ctx));
+  });
 }
 
 function resolveEntries(
@@ -274,7 +302,8 @@ export function resolveRequest(
   const map = buildVariableMap(scope);
   const ctx = createContext();
 
-  const url = substitute(input.url, map, ctx);
+  const urlWithPathParams = substitutePathParams(input.url, input.pathParams ?? [], map, ctx);
+  const url = substitute(urlWithPathParams, map, ctx);
   const query = resolveEntries(input.query, map, ctx);
   const headers = resolveEntries(input.headers, map, ctx);
   const auth = resolveAuth(input.auth, map, ctx);

@@ -301,6 +301,7 @@ export function validateRequest(raw: string): ValidationResult<RequestFile> {
       checker.required(["seq"], "number");
       checker.enumField(["method"], HTTP_METHODS, true, "um método HTTP válido");
       checker.required(["url"], "string");
+      checker.keyValueArray(["pathParams"]);
       checker.keyValueArray(["query"]);
       checker.keyValueArray(["headers"]);
       checker.authConfig(["auth"]);

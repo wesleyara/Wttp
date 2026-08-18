@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { type SaveVariableInput, useEnvironmentStore } from "@renderer/stores/environment";
+import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, ref, watch } from "vue";
 
@@ -20,6 +22,7 @@ const emit = defineEmits<{
 
 const environment = useEnvironmentStore();
 const workspace = useWorkspaceStore();
+const variablesStore = useVariablesStore();
 
 const WORKSPACE_SELECTION = "__workspace__";
 
@@ -28,6 +31,16 @@ const selected = ref<string>(WORKSPACE_SELECTION);
 const draftName = ref("");
 const draftVariables = ref<KeyValueRow[]>([]);
 const duplicateWarning = ref<string | null>(null);
+
+// Não há request associada aqui, então resolve contra a raiz do workspace (sem escopo
+// de collection/pasta) — o suficiente para destacar `{{var}}` não resolvido (EP-06.1).
+const draftPath = ref("");
+const draftText = computed(() => draftVariables.value.map(row => row.value).join("\n"));
+const { unresolved: draftUnresolved, tooltips: draftTooltips } = useVariablePreview(
+  draftText,
+  draftPath,
+);
+const draftVariableNames = computed(() => variablesStore.variableNamesFor(draftPath.value));
 
 const selectedEnvironment = computed(() =>
   environment.items.find(item => item.path === selected.value),
@@ -220,6 +233,9 @@ async function duplicateEnvironment(): Promise<void> {
           <WKeyValueTable
             v-model="draftVariables"
             :with-secret="selected !== WORKSPACE_SELECTION"
+            :unresolved-variables="draftUnresolved"
+            :variable-tooltips="draftTooltips"
+            :variable-names="draftVariableNames"
           />
         </div>
       </div>

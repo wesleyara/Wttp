@@ -33,8 +33,10 @@ export function useVariablePreview(
   const tooltips = ref<Record<string, string>>({});
 
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let generation = 0;
 
   async function refresh(): Promise<void> {
+    const requestGeneration = ++generation;
     const value = text.value;
     if (!value.includes("{{")) {
       unresolved.value = [];
@@ -44,6 +46,10 @@ export function useVariablePreview(
     }
 
     const result = await variables.resolveText(value, requestPath.value);
+    // Uma resolução mais recente pode ter começado (e talvez já terminado) enquanto esta
+    // estava em voo — ex. troca de aba durante o IPC. Descarta a resposta velha em vez de
+    // sobrescrever o estado da aba atual com o resultado de outra request/escopo.
+    if (requestGeneration !== generation) return;
     unresolved.value = result.unresolved;
 
     const perName: Record<string, string> = {};
@@ -58,7 +64,7 @@ export function useVariablePreview(
   }
 
   watch(
-    [text, requestPath],
+    [text, requestPath, () => variables.scopeSignal],
     () => {
       clearTimeout(timer);
       timer = setTimeout(() => void refresh(), DEBOUNCE_MS);

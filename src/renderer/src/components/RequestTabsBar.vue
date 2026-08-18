@@ -2,6 +2,8 @@
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { ref } from "vue";
 
+import WIcon from "./WIcon.vue";
+
 const tabs = useRequestTabsStore();
 
 const DRAG_START_THRESHOLD_PX = 4;
@@ -72,14 +74,7 @@ function onClose(id: string, event: MouseEvent): void {
         class="flex size-4 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-2 hover:text-1"
         @click="onClose(tab.id, $event)"
       >
-        <svg class="size-3" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <path
-            d="M5 5l10 10M15 5L5 15"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-          />
-        </svg>
+        <WIcon name="x" size="3" />
       </button>
     </div>
   </div>

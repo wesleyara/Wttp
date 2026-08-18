@@ -76,6 +76,8 @@ Tokens definidos como CSS custom properties e expostos ao Tailwind via `rgb(var(
 
 **Hierarquia de superfície:** `surface-1` é o fundo da aplicação; `surface-2` são os painéis (sidebar, área de request, painel de resposta); `surface-3` é hover, linha selecionada e aba ativa.
 
+Tabelas e listas (`WTree`, `WKeyValueTable`) são monocromáticas — sem zebra striping. Testado em EP-06.1-T07 e revertido no mesmo épico: o overlay de baixa opacidade deixava as linhas com aparência "desabilitada".
+
 ---
 
 ## 3. Cores de domínio

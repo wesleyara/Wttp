@@ -110,6 +110,7 @@ export function serializeRequest(request: RequestFile): string {
   const known = orderFields(
     {
       ...request,
+      pathParams: orderEntries(request.pathParams, KEY_VALUE_ENTRY_FIELD_ORDER),
       query: orderEntries(request.query, KEY_VALUE_ENTRY_FIELD_ORDER),
       headers: orderEntries(request.headers, KEY_VALUE_ENTRY_FIELD_ORDER),
       auth: orderAuth(request.auth),
@@ -121,6 +122,7 @@ export function serializeRequest(request: RequestFile): string {
   );
 
   const doc = buildDocument({ ...known, ...request.unknown }, [
+    ["pathParams"],
     ["query"],
     ["headers"],
     ["body", "urlencoded"],

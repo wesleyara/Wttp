@@ -43,6 +43,19 @@ task em [EP-03](docs/backlog/EP-03-nucleo-http.md),
 [EP-05](docs/backlog/EP-05-workspaces-collections.md) e
 [EP-06](docs/backlog/EP-06-environments-variaveis.md).
 
+**EP-06.1** (não planejado, aberto após feedback de uso real) também está pronto:
+`@iconify/vue` com o set Lucide empacotado offline (`WIcon`, sem SVG duplicado nos
+componentes), os bugs de `WKeyValueTable` (linha fantasma criando linhas vazias ao
+marcar o checkbox, watcher de Content-Type sobrescrevendo header ao trocar o tipo de
+body) corrigidos, path params (`:nome` na URL) separados de query params com campo
+novo no formato de arquivo (`pathParams`, resolvido pelo `resolver.ts` antes de
+`{{var}}`), highlight/tooltip de variável estendido a Docs/environments/body
+urlencoded/multipart, sistema de toast (`useToastStore`/`WToast`) cobrindo save/
+create/delete em request, folder, environment e linhas de tabela, zebra striping via
+o token `stripe` (novo em `docs/design-system.md`), a árvore sincronizando após
+salvar uma aba, e diretório padrão de workspace configurável (`defaultWorkspaceDir`).
+Mesma pendência de verificação visual das notas acima.
+
 Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-07**.
 
 ---

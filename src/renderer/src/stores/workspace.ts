@@ -130,9 +130,13 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     }
   }
 
-  /** Abre o diálogo nativo de pasta — usado pelo fluxo de "Criar workspace" antes de nomear. */
-  async function pickFolder(): Promise<string | null> {
-    const result = await window.wttp.dialog.pickFolder();
+  /**
+   * Abre o diálogo nativo de pasta — usado pelo fluxo de "Criar workspace" antes de
+   * nomear. `defaultPath` (EP-06.1) é o diretório padrão configurado em Settings, se
+   * houver — sem ele, o diálogo abre onde o SO decidir, comportamento de sempre.
+   */
+  async function pickFolder(defaultPath?: string): Promise<string | null> {
+    const result = await window.wttp.dialog.pickFolder({ defaultPath });
     return result.canceled ? null : (result.path ?? null);
   }
 

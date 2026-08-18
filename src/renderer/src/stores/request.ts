@@ -43,6 +43,15 @@ export const useRequestStore = defineStore("request", () => {
     },
   });
 
+  const pathParams = computed<KeyValueEntry[]>({
+    get: () => tabs.active?.pathParams ?? [],
+    set: value => {
+      if (!tabs.active) return;
+      tabs.active.pathParams = value;
+      tabs.markActiveDirty();
+    },
+  });
+
   const query = computed<KeyValueEntry[]>({
     get: () => tabs.active?.query ?? [],
     set: value => {
@@ -107,6 +116,7 @@ export const useRequestStore = defineStore("request", () => {
     path,
     method,
     url,
+    pathParams,
     query,
     headers,
     body,

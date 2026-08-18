@@ -163,6 +163,42 @@ describe("resolveRequest — aplicado a URL, query, headers, body e auth", () =>
     expect(result.headers[0].value).toBe("Bearer secret-token");
   });
 
+  it("substitui :nome pelo pathParam habilitado correspondente, resolvendo {{var}} dentro dele", () => {
+    const result = resolveRequest(
+      { ...baseInput(), url: "{{base_url}}/users/:id", pathParams: [entry("id", "{{token}}")] },
+      scope,
+    );
+    expect(result.url).toBe("https://api.example.com/users/secret-token");
+  });
+
+  it(":nome sem pathParam correspondente fica intacto na URL", () => {
+    const result = resolveRequest(
+      { ...baseInput(), url: "{{base_url}}/users/:id", pathParams: [] },
+      scope,
+    );
+    expect(result.url).toBe("https://api.example.com/users/:id");
+  });
+
+  it("pathParam desabilitado não substitui o segmento", () => {
+    const result = resolveRequest(
+      {
+        ...baseInput(),
+        url: "{{base_url}}/users/:id",
+        pathParams: [entry("id", "42", false)],
+      },
+      scope,
+    );
+    expect(result.url).toBe("https://api.example.com/users/:id");
+  });
+
+  it("url-encoda o valor do pathParam", () => {
+    const result = resolveRequest(
+      { ...baseInput(), url: "{{base_url}}/search/:term", pathParams: [entry("term", "a b/c")] },
+      scope,
+    );
+    expect(result.url).toBe("https://api.example.com/search/a%20b%2Fc");
+  });
+
   it("resolve auth bearer/basic/apikey", () => {
     expect(
       resolveRequest(

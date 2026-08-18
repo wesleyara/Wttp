@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, useTemplateRef, watch } from "vue";
 
+import WIcon from "./WIcon.vue";
+
 export interface ContextMenuItem {
   label: string;
   action: () => void;
   danger?: boolean;
   /** Separador visual antes deste item — agrupa ações relacionadas (ex: excluir sozinho no fim). */
   separatorBefore?: boolean;
+  /** Nome do ícone (`WIcon`) exibido antes do label. */
+  icon?: string;
 }
 
 const props = defineProps<{
@@ -67,10 +71,11 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onDocumentPoin
         <button
           type="button"
           role="menuitem"
-          class="rounded px-2 py-1.5 text-left font-inter text-sm hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          class="flex items-center gap-2 rounded px-2 py-1.5 text-left font-inter text-sm hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           :class="item.danger ? 'text-status-5xx' : 'text-1'"
           @click="run(item)"
         >
+          <WIcon v-if="item.icon" :name="item.icon" size="3.5" />
           {{ item.label }}
         </button>
       </template>

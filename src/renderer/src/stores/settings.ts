@@ -11,6 +11,7 @@ import { computed, ref, watch } from "vue";
  */
 export const useSettingsStore = defineStore("settings", () => {
   const theme = ref<AppSettings["theme"]>("system");
+  const defaultWorkspaceDir = ref<string | undefined>(undefined);
   const systemPrefersLight = ref(
     typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: light)").matches : false,
   );
@@ -29,6 +30,7 @@ export const useSettingsStore = defineStore("settings", () => {
   async function load(): Promise<void> {
     const settings = await window.wttp.settings.get();
     theme.value = settings.theme;
+    defaultWorkspaceDir.value = settings.defaultWorkspaceDir;
     applyToDocument();
   }
 
@@ -37,11 +39,16 @@ export const useSettingsStore = defineStore("settings", () => {
     void window.wttp.settings.set({ theme: next });
   }
 
+  function setDefaultWorkspaceDir(next: string | undefined): void {
+    defaultWorkspaceDir.value = next;
+    void window.wttp.settings.set({ defaultWorkspaceDir: next });
+  }
+
   if (typeof matchMedia === "function") {
     matchMedia("(prefers-color-scheme: light)").addEventListener("change", event => {
       systemPrefersLight.value = event.matches;
     });
   }
 
-  return { theme, resolvedTheme, load, setTheme };
+  return { theme, resolvedTheme, defaultWorkspaceDir, load, setTheme, setDefaultWorkspaceDir };
 });

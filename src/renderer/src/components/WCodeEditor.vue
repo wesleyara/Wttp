@@ -3,17 +3,17 @@ import type { CompletionContext, CompletionResult } from "@codemirror/autocomple
 import type { Extension } from "@codemirror/state";
 import type { ViewUpdate } from "@codemirror/view";
 
-import { autocompletion } from "@codemirror/autocomplete";
+import { autocompletion, completionKeymap, completionStatus } from "@codemirror/autocomplete";
 import { html } from "@codemirror/lang-html";
 import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
 import { xml } from "@codemirror/lang-xml";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { Compartment, EditorState } from "@codemirror/state";
-import { Decoration, type DecorationSet, EditorView, ViewPlugin } from "@codemirror/view";
+import { Compartment, EditorState, Prec } from "@codemirror/state";
+import { Decoration, type DecorationSet, EditorView, keymap, ViewPlugin } from "@codemirror/view";
 import { placeholder as placeholderExtension } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { basicSetup } from "codemirror";
+import { basicSetup, minimalSetup } from "codemirror";
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from "vue";
 
 type WCodeEditorLanguage = "json" | "javascript" | "xml" | "html" | "text";
@@ -32,6 +32,14 @@ const props = withDefaults(
     variableTooltips?: Record<string, string>;
     /** Nomes oferecidos no autocomplete ao digitar `{{` (EP-06-T05). */
     variableNames?: string[];
+    /** Uma linha só, sem gutter — URL bar e campos de valor de tabela (EP-06.1). `Enter` nunca insere quebra de linha; em vez disso emite `enter`. */
+    singleLine?: boolean;
+    /** Sem borda/fundo/cantos próprios — usado dentro de uma linha de tabela que já tem os dela (EP-06.1). Só combina com `singleLine`. */
+    bare?: boolean;
+    /** Realça segmentos `:nome` (path params) — só a URL bar usa isso (EP-06.1). */
+    highlightPathParams?: boolean;
+    /** Nomes de path param sem valor — ficam em vermelho em vez da cor padrão (EP-06.1). */
+    emptyPathParams?: string[];
   }>(),
   {
     language: "text",
@@ -41,11 +49,16 @@ const props = withDefaults(
     unresolvedVariables: () => [],
     variableTooltips: () => ({}),
     variableNames: () => [],
+    singleLine: false,
+    bare: false,
+    highlightPathParams: false,
+    emptyPathParams: () => [],
   },
 );
 
 const emit = defineEmits<{
   "update:modelValue": [value: string];
+  enter: [];
 }>();
 
 const hostRef = useTemplateRef<HTMLDivElement>("host");
@@ -55,6 +68,7 @@ const languageCompartment = new Compartment();
 const readOnlyCompartment = new Compartment();
 const placeholderCompartment = new Compartment();
 const variableHighlightCompartment = new Compartment();
+const pathParamHighlightCompartment = new Compartment();
 const autocompleteCompartment = new Compartment();
 
 /** `\{{nome}}` escapado (docs/file-format.md §8) nunca é decorado como variável — mesmo padrão de `main/http/resolver.ts`. */
@@ -76,6 +90,41 @@ function buildVariableDecorations(doc: string, unresolvedNames: Set<string>): De
     );
   }
   return Decoration.set(ranges);
+}
+
+/** `:nome` — mesmo padrão de `url-path-params-sync.ts`/`main/http/resolver.ts`. Só a URL bar liga isso. */
+const PATH_PARAM_PATTERN = /:([A-Za-z_][A-Za-z0-9_]*)/g;
+
+function buildPathParamDecorations(doc: string, emptyNames: Set<string>): DecorationSet {
+  const ranges: ReturnType<typeof Decoration.prototype.range>[] = [];
+  PATH_PARAM_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = PATH_PARAM_PATTERN.exec(doc))) {
+    ranges.push(
+      Decoration.mark({
+        class: emptyNames.has(match[1]) ? "wttp-path-param-empty" : "wttp-path-param",
+      }).range(match.index, match.index + match[0].length),
+    );
+  }
+  return Decoration.set(ranges);
+}
+
+function pathParamHighlightExtension(emptyNames: string[]): Extension {
+  const emptySet = new Set(emptyNames);
+  return ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+      constructor(editorView: EditorView) {
+        this.decorations = buildPathParamDecorations(editorView.state.doc.toString(), emptySet);
+      }
+      update(update: ViewUpdate): void {
+        if (update.docChanged) {
+          this.decorations = buildPathParamDecorations(update.state.doc.toString(), emptySet);
+        }
+      }
+    },
+    { decorations: pluginInstance => pluginInstance.decorations },
+  );
 }
 
 function variableHighlightExtension(unresolvedNames: string[]): Extension {
@@ -133,44 +182,100 @@ function languageExtension(language: WCodeEditorLanguage): Extension {
 /**
  * Cores por `rgb(var(--w-x))`, nunca resolvidas em JS: o toggle dark/light troca o
  * valor da custom property no CSS, e o CodeMirror repinta sozinho — sem recriar a
- * view nem reconfigurar o tema por evento.
+ * view nem reconfigurar o tema por evento. `bare` entra direto aqui (não como um
+ * segundo `EditorView.theme()` por cima) — dois temas com regra para o mesmo seletor
+ * (`&`) disputam a cascata, o que deixava o fundo branco vazando mesmo com `bare` ativo.
  */
-const editorTheme = EditorView.theme({
-  "&": {
-    color: "rgb(var(--w-text-1))",
-    backgroundColor: "rgb(var(--w-surface-2))",
-    height: "100%",
-  },
-  ".cm-content": {
-    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-    fontSize: "13px",
-    caretColor: "rgb(var(--w-text-1))",
-  },
-  ".cm-gutters": {
-    backgroundColor: "rgb(var(--w-surface-2))",
-    color: "rgb(var(--w-text-faint))",
-    border: "none",
-  },
-  ".cm-activeLine": { backgroundColor: "rgb(var(--w-surface-3) / 0.5)" },
-  ".cm-activeLineGutter": { backgroundColor: "rgb(var(--w-surface-3) / 0.5)" },
-  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
-    backgroundColor: "rgb(var(--w-accent) / 0.25) !important",
-  },
-  ".cm-cursor": { borderLeftColor: "rgb(var(--w-text-1))" },
-  "&.cm-focused": { outline: "none" },
-  ".cm-searchMatch": { backgroundColor: "rgb(var(--w-accent) / 0.2)" },
-  ".cm-foldPlaceholder": {
-    backgroundColor: "rgb(var(--w-surface-3))",
-    color: "rgb(var(--w-text-muted))",
-    border: "none",
-  },
-  // Realce de `{{var}}` (EP-06-T05) — resolvida em accent, não resolvida em status-4xx.
-  ".wttp-var-resolved": { color: "rgb(var(--w-accent))" },
-  ".wttp-var-unresolved": {
-    color: "rgb(var(--w-status-4xx))",
-    textDecoration: "underline wavy",
-  },
+function buildEditorTheme(bare: boolean): Extension {
+  const background = bare ? "transparent" : "rgb(var(--w-surface-2))";
+  return EditorView.theme({
+    "&": {
+      color: "rgb(var(--w-text-1))",
+      backgroundColor: background,
+      height: "100%",
+      cursor: "text",
+    },
+    ".cm-content": {
+      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+      fontSize: "13px",
+      caretColor: "rgb(var(--w-text-1))",
+      // CodeMirror não define isso no próprio baseTheme — sem ele, o cursor do mouse
+      // fica seta em vez de texto, e parece que o campo não é clicável (EP-06.1).
+      cursor: "text",
+    },
+    ".cm-gutters": {
+      backgroundColor: background,
+      color: "rgb(var(--w-text-faint))",
+      border: "none",
+    },
+    ".cm-activeLine": { backgroundColor: "rgb(var(--w-surface-3) / 0.5)" },
+    ".cm-activeLineGutter": { backgroundColor: "rgb(var(--w-surface-3) / 0.5)" },
+    ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
+      backgroundColor: "rgb(var(--w-accent) / 0.25) !important",
+    },
+    ".cm-cursor": { borderLeftColor: "rgb(var(--w-text-1))" },
+    "&.cm-focused": { outline: "none" },
+    ".cm-searchMatch": { backgroundColor: "rgb(var(--w-accent) / 0.2)" },
+    ".cm-foldPlaceholder": {
+      backgroundColor: "rgb(var(--w-surface-3))",
+      color: "rgb(var(--w-text-muted))",
+      border: "none",
+    },
+    // O placeholder do CodeMirror é `pointer-events: none` por padrão — o cursor de
+    // texto só aparece de verdade se essa regra existir aqui também (EP-06.1).
+    ".cm-placeholder": { cursor: "text" },
+    // Realce de `{{var}}` (EP-06-T05) — resolvida em accent, não resolvida em status-4xx.
+    ".wttp-var-resolved": { color: "rgb(var(--w-accent))" },
+    ".wttp-var-unresolved": {
+      color: "rgb(var(--w-status-4xx))",
+      textDecoration: "underline wavy",
+    },
+    // Realce de `:pathParam` (EP-06.1) — cor própria quando tem valor, vermelho igual
+    // a `{{var}}` não resolvida quando o path param ainda não tem valor.
+    ".wttp-path-param": {
+      color: "rgb(var(--w-method-patch))",
+      textDecoration: "underline dotted",
+    },
+    ".wttp-path-param-empty": {
+      color: "rgb(var(--w-status-4xx))",
+      textDecoration: "underline wavy",
+    },
+  });
+}
+
+/** Container vira uma "linha de input": sem gutter, sem quebra, altura fixa (EP-06.1). */
+const singleLineTheme = EditorView.theme({
+  "&": { height: "2rem" },
+  ".cm-scroller": { overflow: "hidden" },
+  ".cm-content": { padding: "7px 0" },
+  ".cm-line": { padding: 0 },
 });
+
+/** `Enter` nunca quebra linha; qualquer mudança que resultasse em mais de uma linha (colar texto multilinha, por exemplo) é descartada. */
+const singleLineGuard = EditorState.transactionFilter.of(tr => (tr.newDoc.lines > 1 ? [] : tr));
+
+function singleLineExtensions(): Extension[] {
+  return [
+    minimalSetup,
+    keymap.of(completionKeymap),
+    Prec.highest(
+      keymap.of([
+        {
+          key: "Enter",
+          run: view => {
+            // Autocomplete aberto: deixa o `completionKeymap` aceitar a sugestão
+            // selecionada — só interceptamos `Enter` quando não há nada pra aceitar.
+            if (completionStatus(view.state) === "active") return false;
+            emit("enter");
+            return true;
+          },
+        },
+      ]),
+    ),
+    singleLineGuard,
+    singleLineTheme,
+  ];
+}
 
 const syntaxTheme = syntaxHighlighting(
   HighlightStyle.define([
@@ -197,13 +302,16 @@ onMounted(() => {
   const state = EditorState.create({
     doc: props.modelValue,
     extensions: [
-      basicSetup,
+      props.singleLine ? singleLineExtensions() : basicSetup,
       languageCompartment.of(languageExtension(props.language)),
       readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
       placeholderCompartment.of(props.placeholder ? placeholderExtension(props.placeholder) : []),
       variableHighlightCompartment.of(variableHighlightExtension(props.unresolvedVariables)),
       autocompleteCompartment.of(autocompleteExtension(props.variableNames)),
-      editorTheme,
+      pathParamHighlightCompartment.of(
+        props.highlightPathParams ? pathParamHighlightExtension(props.emptyPathParams) : [],
+      ),
+      buildEditorTheme(props.bare),
       syntaxTheme,
       EditorView.updateListener.of(update => {
         if (update.docChanged) scheduleEmit(update.state.doc.toString());
@@ -269,8 +377,22 @@ watch(
     });
   },
 );
+
+watch(
+  () => props.emptyPathParams,
+  names => {
+    if (!props.highlightPathParams) return;
+    view.value?.dispatch({
+      effects: pathParamHighlightCompartment.reconfigure(pathParamHighlightExtension(names)),
+    });
+  },
+);
 </script>
 
 <template>
-  <div ref="host" class="size-full overflow-hidden rounded-md border border-subtle"></div>
+  <div
+    ref="host"
+    class="overflow-hidden"
+    :class="[singleLine ? 'w-full' : 'size-full', bare ? '' : 'rounded-md border border-subtle']"
+  ></div>
 </template>
