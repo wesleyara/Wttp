@@ -346,6 +346,22 @@ describe("useRequestTabsStore", () => {
     expect(call.secrets).toEqual(["s3cr3t"]);
   });
 
+  it("grava a entrada de histórico antes de marcar a aba como não mais enviando — ResponsePanel recarrega o histórico assim que `sending` vira false", async () => {
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+
+    let sendingWhenAppended: boolean | undefined;
+    historyAppend.mockImplementationOnce(async () => {
+      sendingWhenAppended = (tabs.active as { sending?: boolean } | null)?.sending;
+    });
+
+    await tabs.send();
+
+    expect(historyAppend).toHaveBeenCalledOnce();
+    expect(sendingWhenAppended).toBe(true);
+    expect((tabs.active as { sending?: boolean } | null)?.sending).toBe(false);
+  });
+
   it("send() com variável não resolvida pausa e pede confirmação em vez de disparar", async () => {
     resolveRequest.mockResolvedValueOnce({
       url: "https://example.com/{{missing}}",
