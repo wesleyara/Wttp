@@ -1,4 +1,4 @@
-import type { FolderFile, FolderNode, RequestFile, RequestNode } from "@shared";
+import type { FolderFile, FolderNode, HttpResponseResult, RequestFile, RequestNode } from "@shared";
 
 import { useScriptRuntimeStore } from "@renderer/stores/scriptRuntime";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
@@ -34,7 +34,9 @@ const nodeWrite = vi.fn(
   async (args: { root: string; path: string; node: FolderNode | RequestNode }) => args,
 );
 const setUiState = vi.fn(async () => {});
-const httpSend = vi.fn(async () => ({ ok: true }));
+const httpSend = vi.fn<(spec: unknown) => Promise<HttpResponseResult>>(
+  async () => ({ ok: true }) as HttpResponseResult,
+);
 const resolveRequest = vi.fn(
   async ({
     request,
@@ -54,7 +56,14 @@ const resolveAuthChain = vi.fn(async ({ chain }: { chain: AuthLike[] }) => {
     ? { auth: { type: "none" }, sourceIndex: null }
     : { auth: chain[index], sourceIndex: index };
 });
-type ScriptRunSpecLike = { code: string; phase: string; vars: Record<string, string> };
+type ScriptRunSpecLike = {
+  code: string;
+  phase: string;
+  vars: Record<string, string>;
+  req?: unknown;
+  res?: unknown;
+  timeoutMs?: number;
+};
 type ScriptRunResultLike = {
   ok: boolean;
   vars: Record<string, string>;
@@ -422,6 +431,40 @@ describe("useRequestTabsStore", () => {
       await tabs.send();
 
       expect(useScriptRuntimeStore().vars).toEqual({ access_token: "abc123" });
+    });
+
+    it("passes a structured-clone-safe res to script:run — reactive tab state must not leak across the IPC boundary", async () => {
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "a.req.yaml",
+        name: "a",
+        seq: 1,
+        data: { ...requestFile("a"), scripts: { tests: "noop" } },
+      }));
+      httpSend.mockResolvedValueOnce({
+        ok: true,
+        requestId: "r1",
+        status: 200,
+        statusText: "OK",
+        headers: [{ name: "Content-Type", value: "application/json", enabled: true }],
+        body: new TextEncoder().encode('{"result":{"access_token":"abc"}}'),
+        charset: "utf-8",
+        size: { headersSent: 0, bodySent: 0, headersReceived: 0, bodyReceived: 0 },
+        timing: { dns: 0, connect: 0, tls: 0, ttfb: 0, download: 0, total: 0 },
+      });
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      await tabs.send();
+
+      const call = scriptRun.mock.calls.find(([spec]) => spec.phase === "tests");
+      expect(call).toBeTruthy();
+      const passedRes = call?.[0].res as { body: Uint8Array };
+      // `structuredClone` é exatamente o que o IPC do Electron usa — se isto lançar,
+      // `window.wttp.script.run` teria rejeitado silenciosamente na aplicação real,
+      // deixando `tab.scriptRun` preso em `null` (a aba Tests nunca aparece).
+      expect(() => structuredClone(passedRes)).not.toThrow();
+      expect(passedRes.body).toBeInstanceOf(Uint8Array);
     });
   });
 });
