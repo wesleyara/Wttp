@@ -12,7 +12,7 @@ Referência: [architecture.md §5](../architecture.md)
 
 ### EP-09-T01 — Script runner isolado
 
-**Status:** Pendente · **Tamanho:** G · **Depende de:** EP-01-T04
+**Status:** Concluída · **Tamanho:** G · **Depende de:** EP-01-T04
 
 **Objetivo.** Código de usuário roda sem alcançar o app nem travar a UI.
 
@@ -26,16 +26,16 @@ Referência: [architecture.md §5](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] `while(true){}` é morto pelo timeout e a UI permanece responsiva
-- [ ] Tentar `require("fs")` ou alcançar `process` falha com erro claro
-- [ ] Crash do runner é recuperado sem restart do app
-- [ ] Testes cobrindo timeout, crash e tentativa de escape
+- [x] `while(true){}` é morto pelo timeout e a UI permanece responsiva — a UI vive no processo renderer, o script trava só o utility process isolado (`src/main/scripts/worker.ts`), morto pelo timeout do próprio `node:vm` e por um backstop no `runner.ts`
+- [x] Tentar `require("fs")` ou alcançar `process` falha com erro claro — `ReferenceError: require/process is not defined`, `src/main/scripts/sandbox.spec.ts`
+- [x] Crash do runner é recuperado sem restart do app — `runner.ts` respawna o worker na próxima chamada, `src/main/scripts/runner.spec.ts`
+- [x] Testes cobrindo timeout, crash e tentativa de escape — `sandbox.spec.ts`, `runner.spec.ts`
 
 ---
 
 ### EP-09-T02 — API de scripting
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-09-T01
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-09-T01
 
 **Objetivo.** Uma superfície pequena, previsível e documentada.
 
@@ -49,10 +49,10 @@ Referência: [architecture.md §5](../architecture.md)
 
 **Critérios de aceite.**
 
-- [ ] Alterar `res` num script de teste não afeta o que a UI mostra
-- [ ] Alterar `req` no pre-request afeta a requisição enviada
-- [ ] Falha de asserção é reportada com valor esperado e recebido
-- [ ] Exceção não tratada no script vira falha da request, não crash
+- [x] Alterar `res` num script de teste não afeta o que a UI mostra — `res` passa por `freezeDeep` antes de entrar no vm, `api.spec.ts`
+- [x] Alterar `req` no pre-request afeta a requisição enviada — `executeScript` devolve o `req` mutado como `ScriptRunResult.req`, `api.spec.ts`
+- [x] Falha de asserção é reportada com valor esperado e recebido — mensagem do matcher inclui os dois lados (`toBe`/`toEqual`/etc.), `api.spec.ts`
+- [x] Exceção não tratada no script vira falha da request, não crash — `ScriptRunResult.ok: false` com `error`, nunca lança, `api.spec.ts`
 
 ---
 

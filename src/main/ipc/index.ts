@@ -4,6 +4,7 @@ import { registerEnvironmentHandlers } from "./environment";
 import { registerHttpHandlers } from "./http";
 import { registerImportHandlers } from "./import";
 import { registerNodeHandlers } from "./node";
+import { registerScriptHandlers } from "./scripts";
 import { registerSecretHandlers } from "./secrets";
 import { registerSettingsHandlers } from "./settings";
 import { registerUiHandlers } from "./ui";
@@ -23,4 +24,5 @@ export function registerIpcHandlers(): void {
   registerEnvironmentHandlers();
   registerVariableHandlers();
   registerImportHandlers();
+  registerScriptHandlers();
 }

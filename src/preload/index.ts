@@ -37,6 +37,8 @@ import type {
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
+  ScriptRunResult,
+  ScriptRunSpec,
   SecretStorageStatus,
   SetWorkspaceUiStatePayload,
   SetWorkspaceVariablesPayload,
@@ -167,6 +169,9 @@ const wttp = {
     run: (payload: RunImportPayload): Promise<ImportReport> => invoke("import:run", payload),
     parseCurl: (payload: ParseCurlPayload): Promise<ParsedCurlRequest | null> =>
       invoke("import:parseCurl", payload),
+  },
+  script: {
+    run: (payload: ScriptRunSpec): Promise<ScriptRunResult> => invoke("script:run", payload),
   },
 };
 

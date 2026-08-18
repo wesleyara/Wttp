@@ -22,6 +22,7 @@ import type {
   ParsedCurlRequest,
   RunImportPayload,
 } from "./import";
+import type { ScriptRunResult, ScriptRunSpec } from "./scripting";
 import type {
   EnvironmentListItem,
   FolderNode,
@@ -374,6 +375,11 @@ export interface IpcContract {
   "import:run": { payload: RunImportPayload; result: ImportReport };
   /** `null` quando o conteúdo não parece um comando cURL (EP-08-T05). */
   "import:parseCurl": { payload: ParseCurlPayload; result: ParsedCurlRequest | null };
+  /**
+   * Nunca rejeita por falha do script — `ScriptRunResult.ok: false` é o resultado
+   * normal para timeout ou exceção não tratada (EP-09-T01/T02).
+   */
+  "script:run": { payload: ScriptRunSpec; result: ScriptRunResult };
 }
 
 export type IpcChannel = keyof IpcContract;
