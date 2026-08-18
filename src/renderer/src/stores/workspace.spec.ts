@@ -5,7 +5,9 @@ import { useWorkspaceStore } from "./workspace";
 
 const ROOT = "/workspace";
 
-const setUiState = vi.fn(async () => {});
+const setUiState = vi.fn<(payload: { root: string; state: unknown }) => Promise<void>>(
+  async () => {},
+);
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -67,5 +69,28 @@ describe("useWorkspaceStore", () => {
       state: expect.objectContaining({ activeTabPath: "a.req.yaml" }),
     });
     expect(workspace.tree).toBeNull();
+  });
+
+  it("passes structured-clone-safe state to workspace:setUiState — reactive Pinia state must not leak across the IPC boundary", () => {
+    const workspace = useWorkspaceStore();
+    workspace.tree = {
+      root: ROOT,
+      data: { wttp: 1, name: "Test" },
+      environments: [],
+      children: [],
+    };
+    workspace.patchUiState({
+      expandedPaths: ["users"],
+      openTabs: [{ path: "a.req.yaml", pinned: true, kind: "request" }],
+      activeTabPath: "a.req.yaml",
+    });
+    workspace.flushUiState();
+
+    const call = setUiState.mock.calls.at(-1)?.[0];
+    if (!call) throw new Error("expected workspace:setUiState to have been called");
+    // `structuredClone` é exatamente o que a ponte do Electron (`contextBridge`) usa —
+    // se isto lançar, `window.wttp.workspace.setUiState` teria rejeitado com "An object
+    // could not be cloned" na aplicação real, sincronamente, no ponto de chamada.
+    expect(() => structuredClone(call.state)).not.toThrow();
   });
 });
