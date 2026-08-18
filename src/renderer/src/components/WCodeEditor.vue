@@ -296,6 +296,15 @@ function scheduleEmit(value: string): void {
   debounceTimer = setTimeout(() => emit("update:modelValue", value), props.debounceMs);
 }
 
+/**
+ * `true` só durante o `dispatch` que reflete uma `modelValue` mudada de fora (troca de
+ * aba, por exemplo — o mesmo editor é reaproveitado por todas as abas). Sem isso, o
+ * `updateListener` não distingue essa reprogramação de uma tecla real: `docChanged`
+ * fica `true` nos dois casos, e reemitir `update:modelValue` de volta cai no setter da
+ * store sem edição nenhuma do usuário, marcando a aba suja só de abrir/trocar.
+ */
+let applyingExternalValue = false;
+
 onMounted(() => {
   if (!hostRef.value) return;
 
@@ -314,7 +323,7 @@ onMounted(() => {
       buildEditorTheme(props.bare),
       syntaxTheme,
       EditorView.updateListener.of(update => {
-        if (update.docChanged) scheduleEmit(update.state.doc.toString());
+        if (update.docChanged && !applyingExternalValue) scheduleEmit(update.state.doc.toString());
       }),
     ],
   });
@@ -332,7 +341,9 @@ watch(
   next => {
     const editor = view.value;
     if (!editor || next === editor.state.doc.toString()) return;
+    applyingExternalValue = true;
     editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: next } });
+    applyingExternalValue = false;
   },
 );
 

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { MultipartEntry, RequestBody } from "@shared";
 
+import { useAutoContentType } from "@renderer/composables/useAutoContentType";
 import { useKeyValueRows } from "@renderer/composables/useKeyValueRows";
 import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { useRequestStore } from "@renderer/stores/request";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { storeToRefs } from "pinia";
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 
 import type { KeyValueRow } from "./WKeyValueTable.vue";
 
@@ -228,59 +229,8 @@ function removeMultipartRow(index: number): void {
   multipartEntries.value = multipartEntries.value.filter((_, i) => i !== index);
 }
 
-// --- Content-Type sugerido a partir do tipo de body, sobrescritível à mão ---------
-
-const AUTO_CONTENT_TYPE: Partial<Record<RequestBody["type"], string>> = {
-  json: "application/json",
-  urlencoded: "application/x-www-form-urlencoded",
-  binary: "application/octet-stream",
-};
-
-const suggestedContentType = computed(() => {
-  const b = body.value;
-  if (b.type === "raw") return b.contentType || undefined;
-  return AUTO_CONTENT_TYPE[b.type];
-});
-
-let applyingAutoContentType = false;
-const contentTypeIsAuto = ref(true);
-
-function findContentTypeIndex(rows: { name: string }[]): number {
-  return rows.findIndex(row => row.name.toLowerCase() === "content-type");
-}
-
-watch(suggestedContentType, suggestion => {
-  if (!suggestion || !contentTypeIsAuto.value) return;
-  const index = findContentTypeIndex(headers.value);
-  // Header já bate com a sugestão — comum ao trocar de aba, quando o body muda mas o
-  // header salvo já reflete ele. Escrever de novo aqui marcaria a aba suja à toa.
-  if (index !== -1 && headers.value[index].value === suggestion) return;
-
-  applyingAutoContentType = true;
-  const next = [...headers.value];
-  if (index === -1) {
-    next.push({ name: "Content-Type", value: suggestion, enabled: true, description: "" });
-  } else {
-    next[index] = { ...next[index], value: suggestion };
-  }
-  headers.value = next;
-  applyingAutoContentType = false;
-});
-
-watch(
-  headers,
-  next => {
-    if (applyingAutoContentType) return;
-    const index = findContentTypeIndex(next);
-    if (index === -1) {
-      // Linha apagada à mão: volta a aceitar sugestão automática.
-      contentTypeIsAuto.value = true;
-      return;
-    }
-    if (next[index].value !== suggestedContentType.value) contentTypeIsAuto.value = false;
-  },
-  { deep: true },
-);
+// Content-Type sugerido a partir do tipo de body, sobrescritível à mão (useAutoContentType.ts).
+useAutoContentType(body, headers);
 </script>
 
 <template>

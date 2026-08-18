@@ -59,6 +59,7 @@
     "eslint-plugin-perfectionist": "^5.10.1",
     "eslint-plugin-tailwindcss": "^3.18.3",
     "eslint-plugin-vue": "^10.6.2",
+    "jsdom": "^30.0.1",
     "postcss": "^8.5.26",
     "prettier": "^3.7.4",
     "tailwindcss": "^3",
