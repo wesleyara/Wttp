@@ -601,8 +601,11 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       byName.set(name, { ...current, name, value, enabled: current?.enabled ?? true });
     }
 
+    // `unwrap` — `collection` vem de `workspace.tree` (reativo); sem isso, campos
+    // aninhados como `auth`/`scripts` ficariam com o Proxy vivo, não clonável pelo IPC
+    // (mesmo bug de `workspace:setUiState`/`history:append`).
     const data: FolderFile = {
-      ...(collection.data ?? { wttp: 1, name: collection.name, seq: collection.seq }),
+      ...unwrap(collection.data ?? { wttp: 1, name: collection.name, seq: collection.seq }),
       variables: [...byName.values()],
     };
     const node: FolderNode = {

@@ -763,6 +763,58 @@ describe("useRequestTabsStore", () => {
       ]);
     });
 
+    it("passes structured-clone-safe folder data to node:write when the collection has auth/scripts — reactive tree state must not leak across the IPC boundary", async () => {
+      const workspace = useWorkspaceStore();
+      workspace.tree = {
+        root: ROOT,
+        data: { wttp: 1, name: "Test" },
+        environments: [],
+        children: [
+          {
+            kind: "folder",
+            path: "SGA",
+            name: "SGA",
+            seq: 1,
+            data: {
+              wttp: 1,
+              name: "SGA",
+              seq: 1,
+              variables: [],
+              auth: { type: "bearer", bearer: { token: "{{token}}" } },
+              scripts: { preRequest: "noop" },
+            },
+            children: [],
+          },
+        ],
+      };
+
+      nodeRead.mockImplementationOnce(async () => ({
+        kind: "request",
+        path: "SGA/a.req.yaml",
+        name: "a",
+        seq: 1,
+        data: { ...requestFile("a"), scripts: { tests: "save-base-url" } },
+      }));
+      scriptRun.mockImplementationOnce(async spec => ({
+        ok: true,
+        envVars: spec.envVars,
+        collectionVars: { ...spec.collectionVars, base_url: "https://staging.example.com" },
+        assertions: [],
+        console: [],
+      }));
+
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("SGA/a.req.yaml");
+      await tabs.send();
+
+      const written = nodeWrite.mock.calls.find(([args]) => args.path === "SGA")?.[0].node;
+      if (!written) throw new Error("expected node:write for the collection");
+      // `structuredClone` é exatamente o que a ponte do Electron (`contextBridge`) usa —
+      // se isto lançar, `window.wttp.node.write` teria rejeitado com "An object could
+      // not be cloned" na aplicação real, sincronamente, no ponto de chamada.
+      expect(() => structuredClone(written)).not.toThrow();
+    });
+
     it("fails the script clearly when wttp.setVar runs with no active environment", async () => {
       nodeRead.mockImplementationOnce(async () => ({
         kind: "request",
