@@ -283,9 +283,10 @@ princípio do resto do épico. Detecção de "isto é um cURL?" é client-side
 evento `paste` (capture phase, com `stopPropagation` antes do `WCodeEditor`/CodeMirror
 processar o paste padrão) — o parsing de verdade continua só no main, a store nunca
 duplica a lógica de parsing, só a heurística "vale a pena chamar o IPC?".
-A "UI de import" citada no escopo (modal genérico de import) é EP-08-T06, ainda
-pendente — o que está pronto aqui é o formato em si, consumível por ela quando
-existir. **Não verificado**: `-b`/`--cookie` de um `curl` real do DevTools do Chrome
+A "UI de import" citada no escopo (modal genérico de import) é EP-08-T06 — o que estava
+pronto aqui era o formato em si, consumível por ela; agora consumido de fato (`import`
+é uma das opções do seletor de formato no modal). **Não verificado**: `-b`/`--cookie` de
+um `curl` real do DevTools do Chrome
 (Chrome usa `-H 'cookie: ...'`, não `-b`, então não deveria aparecer na prática, mas
 não testado contra uma captura real). Mesma pendência de verificação visual (dark/light)
 das notas de outros épicos — sem `xvfb`/`sudo` neste ambiente.
@@ -294,7 +295,7 @@ das notas de outros épicos — sem `xvfb`/`sudo` neste ambiente.
 
 ### EP-08-T06 — UI de importação
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-08-T02, EP-08-T03, EP-08-T04, EP-08-T05
+**Status:** Concluída (escopo redefinido — ver notas) · **Tamanho:** M · **Depende de:** EP-08-T02, EP-08-T03, EP-08-T04, EP-08-T05
 
 **Objetivo.** Importar com previsibilidade — nada é gravado antes do usuário ver o resultado.
 
@@ -306,6 +307,85 @@ das notas de outros épicos — sem `xvfb`/`sudo` neste ambiente.
 
 **Critérios de aceite.**
 
-- [ ] Nada é escrito em disco antes da confirmação
-- [ ] Conflito de nome oferece renomear, substituir ou pular
-- [ ] O relatório é legível e diz o que fazer com cada item não convertido
+- [x] Nada é escrito em disco antes da confirmação
+- [ ] Conflito de nome oferece renomear, substituir ou pular — **não aplicável ao escopo redefinido**, ver notas; movido para EP-08-T07
+- [x] O relatório é legível e diz o que fazer com cada item não convertido
+
+**Notas de implementação.** O único ponto de entrada existente do botão "Import" era
+`WorkspaceLanding.vue` — a tela de **sem workspace aberto**. Isso não bate com "escolher
+pasta de destino e resolver conflito de nome" do escopo original, que só faz sentido
+importando para dentro de uma árvore já existente. Decisão tomada com o usuário: nesta
+task o import sempre cria um workspace **novo** (mesmo `workspace:create` que "Create
+workspace" já usa) — sem pasta de destino dentro de uma árvore nem conflito de nome
+possível, porque o workspace é sempre vazio no momento da gravação. Import para dentro
+de um workspace já aberto (menu de contexto da árvore, "Import into this folder", com
+conflito de nome de verdade) virou **EP-08-T07**, task nova.
+
+Pipeline: `import:detect` (já existia) → `import:preview` (**novo**, `parse`+`normalize`
+sem `emit` — `src/main/importers/pipeline.ts#previewImport`, reaproveitando o
+`parseAndNormalize` que `runImport` também usa) → usuário confirma nome/pasta →
+`workspace:create` (cria o workspace vazio) → `import:run` (grava a árvore nele). Nada
+toca disco antes do passo de confirmação — verificado em teste
+(`pipeline.spec.ts`, `previewImport` não grava nada no `root` temporário).
+
+`ImportPreview`/`ImportPreviewNode` (`src/shared/import.ts`) são um shape **novo**,
+deliberadamente mais magro que `NormalizedImport` (tipo interno de `main/importers`) —
+só nome/tipo/método por nó, sem `RequestBody`/`AuthConfig` inteiros cruzando o IPC à
+toa, já que o preview só exibe, nunca edita.
+
+Dois canais IPC novos, ambos pela skill `wttp-ipc-channel`: `import:preview` (acima) e
+`dialog:pickFile` (`src/main/ipc/dialog.ts`, mesmo padrão de `dialog:pickFolder` —
+diálogo nativo + filtro de extensão — mas já devolve o conteúdo lido como texto, porque
+o único consumo hoje é sempre "ler um arquivo de import inteiro", sem motivo para um
+segundo round-trip). `useImportStore` (`src/renderer/src/stores/import.ts`) é o único
+ponto que chama `window.wttp.import.*`/`window.wttp.dialog.*` — `ImportModal.vue` só lê
+o store, three-step (`source` → `preview` → `report`), reaproveitando `WModal`/
+`WCodeEditor`/`WSelect` existentes; `ImportPreviewTree.vue` é um componente recursivo
+novo só para a árvore de preview.
+
+**Escopo reduzido conscientemente**: a opção "URL" do modal (citada no escopo) não foi
+implementada — buscar uma URL arbitrária a partir do processo main é uma superfície
+nova (SSRF a partir de um app desktop, sem precedente de fetch de rede arbitrário no
+código hoje) que merece revisão própria antes de existir, não uma decisão tomada de
+passagem dentro desta task. Arquivo e colar conteúdo cobrem o caso comum. "Relatório
+exportável" (terceiro item do escopo) virou "copiar para a área de transferência" +
+"salvar como arquivo" (`dialog:saveFile`, já existente) — nenhum canal novo necessário
+para isso.
+
+Mesma pendência de verificação visual (dark/light) das notas de outros épicos — sem
+`xvfb`/`sudo` neste ambiente; a UI não foi vista rodando de verdade.
+
+---
+
+### EP-08-T07 — Import para dentro de um workspace já aberto
+
+**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-08-T06
+
+**Objetivo.** A metade do escopo original de EP-08-T06 que só faz sentido com um
+workspace já aberto: importar para dentro de uma árvore existente, com conflito de
+nome resolvido por item.
+
+**Escopo.**
+
+- Novo ponto de entrada dentro de um workspace aberto — candidato natural: menu de
+  contexto de pasta na `WTree` ("Import into this folder"), reaproveitando
+  `WContextMenu`.
+- Escolha da pasta de destino **dentro da árvore atual** (não um workspace novo).
+- **Conflito de nome**: cada nó do preview cujo nome já existe no destino oferece
+  renomear, substituir ou pular — por item, não uma escolha global para o import
+  inteiro.
+- Reaproveita `import:detect`/`import:preview`/`import:run` (EP-08-T06); a única peça
+  de infra nova provável é `import:run` aceitar uma lista de resoluções de conflito
+  (`{path, action: "rename" | "replace" | "skip", newName?}`) e `emit.ts` respeitá-la —
+  hoje `createNode` não checa colisão de nome antes de gravar.
+
+**Critérios de aceite.**
+
+- [ ] "Import into this folder" aparece no menu de contexto de uma pasta/collection
+- [ ] Conflito de nome oferece renomear, substituir ou pular, por item
+- [ ] Import para dentro de uma pasta com filhos existentes não apaga nada que o
+      usuário não tenha explicitamente escolhido substituir
+
+**Fora de escopo.** Reimportar a mesma origem para atualizar uma collection já
+importada (diff/sync) — isso é criar tudo de novo com resolução de conflito manual,
+não uma feature de sincronização.

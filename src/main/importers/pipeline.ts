@@ -4,9 +4,9 @@
  * para permitir testar a infra com um `Importer` de mentira, sem tocar o registro real.
  */
 
-import type { ImportFormat, ImportReport } from "@shared";
+import type { ImportFormat, ImportPreview, ImportReport } from "@shared";
 
-import type { Importer } from "./types";
+import type { Importer, NormalizedImport, NormalizedNode } from "./types";
 
 import { DomainError } from "../ipc/errors";
 import { osKeychainEncryption, type SecretEncryption } from "../secrets/encryption";
@@ -22,6 +22,35 @@ export function detectImportFormat(
   return match?.format ?? null;
 }
 
+/** Compartilhado por `runImport`/`previewImport` — as duas fases anteriores a `emit`. */
+function parseAndNormalize(
+  format: ImportFormat,
+  content: string,
+  registry: Importer[],
+): NormalizedImport {
+  const importer = registry.find(candidate => candidate.format === format);
+  if (!importer) {
+    throw new DomainError(
+      "IMPORT_FORMAT_UNRECOGNIZED",
+      `no importer registered for format "${format}"`,
+      format,
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = importer.parse(content);
+  } catch (error) {
+    throw new DomainError(
+      "IMPORT_FORMAT_UNRECOGNIZED",
+      `content is not a valid ${format} document`,
+      error instanceof Error ? error.message : undefined,
+    );
+  }
+
+  return importer.normalize(parsed);
+}
+
 export interface RunImportInput {
   format: ImportFormat;
   content: string;
@@ -34,26 +63,35 @@ export async function runImport(
   registry: Importer[] = defaultImporters,
   encryption: SecretEncryption = osKeychainEncryption,
 ): Promise<ImportReport> {
-  const importer = registry.find(candidate => candidate.format === input.format);
-  if (!importer) {
-    throw new DomainError(
-      "IMPORT_FORMAT_UNRECOGNIZED",
-      `no importer registered for format "${input.format}"`,
-      input.format,
-    );
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = importer.parse(input.content);
-  } catch (error) {
-    throw new DomainError(
-      "IMPORT_FORMAT_UNRECOGNIZED",
-      `content is not a valid ${input.format} document`,
-      error instanceof Error ? error.message : undefined,
-    );
-  }
-
-  const normalized = importer.normalize(parsed);
+  const normalized = parseAndNormalize(input.format, input.content, registry);
   return emitImport(input.root, input.targetPath, normalized, encryption);
+}
+
+export interface PreviewImportInput {
+  format: ImportFormat;
+  content: string;
+}
+
+function toPreviewNode(node: NormalizedNode): ImportPreview["children"][number] {
+  if (node.kind === "folder") {
+    return { kind: "folder", name: node.name, children: node.children.map(toPreviewNode) };
+  }
+  return { kind: "request", name: node.name, method: node.method };
+}
+
+/** `parse` + `normalize`, sem `emit` — nada é gravado em disco (EP-08-T06). */
+export function previewImport(
+  input: PreviewImportInput,
+  registry: Importer[] = defaultImporters,
+): ImportPreview {
+  const normalized = parseAndNormalize(input.format, input.content, registry);
+  return {
+    name: normalized.name,
+    children: normalized.children.map(toPreviewNode),
+    environments: normalized.environments.map(environment => ({
+      name: environment.name,
+      variableCount: environment.variables.length,
+    })),
+    notConverted: normalized.notConverted,
+  };
 }

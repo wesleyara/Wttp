@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DiscoveredWorkspace } from "@shared";
 
+import ImportModal from "@renderer/components/ImportModal.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WModal from "@renderer/components/WModal.vue";
@@ -17,6 +18,8 @@ const createPath = ref<string | null>(null);
 const createName = ref("");
 
 const initName = ref("");
+
+const importModalOpen = ref(false);
 
 const discovered = ref<DiscoveredWorkspace[]>([]);
 
@@ -85,6 +88,11 @@ async function onInitializeHere(): Promise<void> {
   if (!workspace.root || !initName.value.trim()) return;
   await workspace.create(workspace.root, initName.value.trim());
 }
+
+async function onCloseImportModal(): Promise<void> {
+  importModalOpen.value = false;
+  await refreshDiscovered();
+}
 </script>
 
 <template>
@@ -136,7 +144,7 @@ async function onInitializeHere(): Promise<void> {
       <div class="flex justify-center gap-2">
         <WButton variant="primary" @click="onOpen">Open workspace</WButton>
         <WButton variant="secondary" @click="onStartCreate">Create workspace</WButton>
-        <WButton variant="ghost" disabled title="Coming soon (EP-08)">Import</WButton>
+        <WButton variant="ghost" @click="importModalOpen = true">Import</WButton>
       </div>
 
       <p v-if="workspace.error" class="text-center font-inter text-sm text-status-5xx">
@@ -225,5 +233,7 @@ async function onInitializeHere(): Promise<void> {
         </WButton>
       </template>
     </WModal>
+
+    <ImportModal :open="importModalOpen" @close="onCloseImportModal" />
   </div>
 </template>

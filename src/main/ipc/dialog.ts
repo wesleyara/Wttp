@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog } from "electron";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
 import { registerHandler } from "./registry";
 
@@ -32,5 +32,23 @@ export function registerDialogHandlers(): void {
       : await dialog.showOpenDialog(options);
     if (canceled || filePaths.length === 0) return { canceled: true };
     return { canceled: false, path: filePaths[0] };
+  });
+
+  /** Escolher um arquivo para importar (EP-08-T06) — devolve o conteúdo já lido como texto. */
+  registerHandler("dialog:pickFile", async (payload, event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const options = {
+      properties: ["openFile" as const],
+      filters: payload.extensions
+        ? [{ name: "Import files", extensions: payload.extensions }]
+        : undefined,
+    };
+    const { canceled, filePaths } = win
+      ? await dialog.showOpenDialog(win, options)
+      : await dialog.showOpenDialog(options);
+    if (canceled || filePaths.length === 0) return { canceled: true };
+
+    const content = await readFile(filePaths[0], "utf-8");
+    return { canceled: false, path: filePaths[0], content };
   });
 }

@@ -16,8 +16,8 @@ registerImporter(insomniaImporter);
 registerImporter(openapiImporter);
 
 export { looksLikeCurlCommand, parseCurlCommand, parseCurlToRequest } from "./curl";
-export { detectImportFormat, runImport } from "./pipeline";
-export type { RunImportInput } from "./pipeline";
+export { detectImportFormat, previewImport, runImport } from "./pipeline";
+export type { PreviewImportInput, RunImportInput } from "./pipeline";
 export { registerImporter } from "./registry";
 export type {
   Importer,

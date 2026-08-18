@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Importer, NormalizedImport } from "./types";
 
 import { readNode, scanWorkspace } from "../storage/tree";
-import { detectImportFormat, runImport } from "./pipeline";
+import { detectImportFormat, previewImport, runImport } from "./pipeline";
 
 let root: string;
 
@@ -144,5 +144,35 @@ describe("runImport", () => {
     await expect(
       runImport({ format: "postman", content: "garbage", root, targetPath: "" }, [brokenImporter]),
     ).rejects.toMatchObject({ code: "IMPORT_FORMAT_UNRECOGNIZED" });
+  });
+});
+
+describe("previewImport", () => {
+  it("devolve a árvore normalizada sem gravar nada em disco (EP-08-T06)", async () => {
+    const preview = previewImport({ format: "postman", content: "FAKE:users" }, [fakeImporter()]);
+
+    expect(preview).toEqual({
+      name: "Imported collection",
+      children: [
+        {
+          kind: "folder",
+          name: "Users",
+          children: [{ kind: "request", name: "Get user", method: "GET" }],
+        },
+      ],
+      environments: [{ name: "Production", variableCount: 1 }],
+      notConverted: [
+        { path: "Get user > preRequest script", reason: "pm.sendRequest sem equivalente" },
+      ],
+    });
+
+    const entries = await fs.readdir(root).catch(() => []);
+    expect(entries).toEqual([]);
+  });
+
+  it("formato sem importador registrado falha com erro claro", () => {
+    expect(() =>
+      previewImport({ format: "openapi", content: "whatever" }, [fakeImporter()]),
+    ).toThrow(expect.objectContaining({ code: "IMPORT_FORMAT_UNRECOGNIZED" }));
   });
 });
