@@ -4,6 +4,8 @@ import type {
   AppSettings,
   CreateNodePayload,
   CreateWorkspacePayload,
+  EnvironmentListItem,
+  EnvironmentPathPayload,
   FolderNode,
   HttpProgressEvent,
   HttpRequestSpec,
@@ -18,10 +20,16 @@ import type {
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
   RequestNode,
+  ResolveRequestPayload,
+  ResolveRequestResultPayload,
+  ResolveTextPayload,
+  ResolveTextResultPayload,
+  SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
   SecretStorageStatus,
   SetWorkspaceUiStatePayload,
+  SetWorkspaceVariablesPayload,
   UiState,
   WorkspaceChangedEvent,
   WorkspaceRootPayload,
@@ -59,6 +67,7 @@ interface WttpApi {
     rescan: (payload: WorkspaceRootPayload) => Promise<WorkspaceTree>;
     getUiState: (payload: WorkspaceRootPayload) => Promise<WorkspaceUiState>;
     setUiState: (payload: SetWorkspaceUiStatePayload) => Promise<void>;
+    setVariables: (payload: SetWorkspaceVariablesPayload) => Promise<WorkspaceTree>;
     onChanged: (callback: (event: WorkspaceChangedEvent) => void) => () => void;
   };
   node: {
@@ -78,6 +87,16 @@ interface WttpApi {
     set: (key: string, value: string) => Promise<void>;
     delete: (key: string) => Promise<void>;
     status: () => Promise<SecretStorageStatus>;
+  };
+  env: {
+    list: (payload: WorkspaceRootPayload) => Promise<EnvironmentListItem[]>;
+    save: (payload: SaveEnvironmentPayload) => Promise<EnvironmentListItem>;
+    delete: (payload: EnvironmentPathPayload) => Promise<void>;
+    duplicate: (payload: EnvironmentPathPayload) => Promise<EnvironmentListItem>;
+  };
+  variables: {
+    resolveText: (payload: ResolveTextPayload) => Promise<ResolveTextResultPayload>;
+    resolveRequest: (payload: ResolveRequestPayload) => Promise<ResolveRequestResultPayload>;
   };
   menu: {
     onAction: (callback: (action: MenuAction) => void) => () => void;

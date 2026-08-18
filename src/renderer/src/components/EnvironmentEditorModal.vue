@@ -1,0 +1,233 @@
+<script setup lang="ts">
+import { type SaveVariableInput, useEnvironmentStore } from "@renderer/stores/environment";
+import { useWorkspaceStore } from "@renderer/stores/workspace";
+import { computed, ref, watch } from "vue";
+
+import type { KeyValueRow } from "./WKeyValueTable.vue";
+
+import WButton from "./WButton.vue";
+import WInput from "./WInput.vue";
+import WKeyValueTable from "./WKeyValueTable.vue";
+import WModal from "./WModal.vue";
+
+const props = defineProps<{
+  open: boolean;
+}>();
+
+const emit = defineEmits<{
+  close: [];
+}>();
+
+const environment = useEnvironmentStore();
+const workspace = useWorkspaceStore();
+
+const WORKSPACE_SELECTION = "__workspace__";
+
+/** `__workspace__` = aba das variáveis globais; qualquer outro valor é o `path` de um environment. */
+const selected = ref<string>(WORKSPACE_SELECTION);
+const draftName = ref("");
+const draftVariables = ref<KeyValueRow[]>([]);
+const duplicateWarning = ref<string | null>(null);
+
+const selectedEnvironment = computed(() =>
+  environment.items.find(item => item.path === selected.value),
+);
+
+function loadDraft(): void {
+  if (selected.value === WORKSPACE_SELECTION) {
+    draftName.value = "Workspace";
+    draftVariables.value = (workspace.tree?.data?.variables ?? []).map(v => ({
+      ...v,
+      description: v.description ?? "",
+    }));
+    return;
+  }
+
+  const item = selectedEnvironment.value;
+  draftName.value = item?.data.name ?? "";
+  draftVariables.value = (item?.data.variables ?? []).map(v => ({
+    ...v,
+    value: v.secret ? "" : v.value,
+    description: v.description ?? "",
+  }));
+}
+
+watch(
+  () => props.open,
+  async isOpen => {
+    if (!isOpen) return;
+    await environment.refresh();
+    selected.value = environment.activePath ?? WORKSPACE_SELECTION;
+    loadDraft();
+  },
+);
+
+watch(selected, () => {
+  duplicateWarning.value = null;
+  loadDraft();
+});
+
+function close(): void {
+  emit("close");
+}
+
+function toVariableInputs(rows: KeyValueRow[]): SaveVariableInput[] {
+  return rows
+    .filter(row => row.name.trim().length > 0)
+    .map(row => ({
+      name: row.name,
+      enabled: row.enabled,
+      description: row.description || undefined,
+      secret: row.secret,
+      // Uma linha secreta sem valor digitado nesta edição não deve apagar o segredo já salvo.
+      value: row.secret && row.value === "" ? undefined : row.value,
+    }));
+}
+
+/** Nomes de variável repetidos na mesma lista — sinalizado na UI (EP-06-T03). */
+const duplicateNames = computed(() => {
+  const seen = new Set<string>();
+  const dupes = new Set<string>();
+  for (const row of draftVariables.value) {
+    const name = row.name.trim();
+    if (!name) continue;
+    if (seen.has(name)) dupes.add(name);
+    seen.add(name);
+  }
+  return dupes;
+});
+
+async function save(): Promise<void> {
+  if (selected.value === WORKSPACE_SELECTION) {
+    await environment.saveWorkspaceVariables(
+      draftVariables.value
+        .filter(row => row.name.trim().length > 0)
+        .map(row => ({
+          name: row.name,
+          value: row.value,
+          enabled: row.enabled,
+          description: row.description || undefined,
+        })),
+    );
+    return;
+  }
+
+  const item = selectedEnvironment.value;
+  const saved = await environment.save(
+    item?.path,
+    draftName.value,
+    toVariableInputs(draftVariables.value),
+  );
+  if (saved) selected.value = saved.path;
+}
+
+async function createEnvironment(): Promise<void> {
+  const created = await environment.create("New environment");
+  if (created) selected.value = created.path;
+}
+
+async function removeEnvironment(): Promise<void> {
+  const item = selectedEnvironment.value;
+  if (!item) return;
+  await environment.remove(item.path);
+  selected.value = WORKSPACE_SELECTION;
+}
+
+async function duplicateEnvironment(): Promise<void> {
+  const item = selectedEnvironment.value;
+  if (!item) return;
+
+  const hasSecrets = (item.data.variables ?? []).some(v => v.secret);
+  if (hasSecrets && duplicateWarning.value !== item.path) {
+    duplicateWarning.value = item.path;
+    return;
+  }
+  duplicateWarning.value = null;
+
+  const created = await environment.duplicate(item.path);
+  if (created) selected.value = created.path;
+}
+</script>
+
+<template>
+  <WModal :open="open" title="Environments" size="lg" @close="close">
+    <div class="flex h-[28rem] gap-4">
+      <div class="flex w-48 shrink-0 flex-col gap-1 border-r border-subtle pr-3">
+        <button
+          type="button"
+          class="rounded-md px-2 py-1.5 text-left font-inter text-sm transition-colors"
+          :class="
+            selected === WORKSPACE_SELECTION
+              ? 'bg-surface-3 text-1'
+              : 'text-muted hover:bg-surface-3/50 hover:text-1'
+          "
+          @click="selected = WORKSPACE_SELECTION"
+        >
+          Workspace variables
+        </button>
+
+        <div class="mt-2 flex-1 overflow-y-auto">
+          <button
+            v-for="item in environment.items"
+            :key="item.path"
+            type="button"
+            class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left font-inter text-sm transition-colors"
+            :class="
+              selected === item.path
+                ? 'bg-surface-3 text-1'
+                : 'text-muted hover:bg-surface-3/50 hover:text-1'
+            "
+            @click="selected = item.path"
+          >
+            <span
+              v-if="environment.activePath === item.path"
+              class="size-1.5 shrink-0 rounded-full bg-accent"
+              aria-hidden="true"
+            />
+            <span class="truncate">{{ item.data.name }}</span>
+          </button>
+        </div>
+
+        <WButton size="sm" variant="ghost" class="justify-start" @click="createEnvironment">
+          + New environment
+        </WButton>
+      </div>
+
+      <div class="flex min-w-0 flex-1 flex-col gap-3">
+        <div v-if="selected !== WORKSPACE_SELECTION" class="flex items-center gap-2">
+          <WInput v-model="draftName" class="flex-1" placeholder="Environment name" />
+          <WButton size="sm" variant="secondary" @click="duplicateEnvironment">Duplicate</WButton>
+          <WButton size="sm" variant="danger" @click="removeEnvironment">Delete</WButton>
+        </div>
+
+        <p
+          v-if="duplicateWarning === selected"
+          class="rounded-md border border-subtle bg-surface-3 px-2 py-1.5 font-inter text-xs text-muted"
+        >
+          This environment has secret values — they won't be copied to the duplicate. Click
+          "Duplicate" again to confirm.
+        </p>
+
+        <p
+          v-if="duplicateNames.size > 0"
+          class="rounded-md border border-status-5xx/40 bg-surface-3 px-2 py-1.5 font-inter text-xs text-status-5xx"
+        >
+          Duplicate variable name{{ duplicateNames.size > 1 ? "s" : "" }}:
+          {{ [...duplicateNames].join(", ") }}
+        </p>
+
+        <div class="min-h-0 flex-1 overflow-y-auto rounded-md border border-subtle">
+          <WKeyValueTable
+            v-model="draftVariables"
+            :with-secret="selected !== WORKSPACE_SELECTION"
+          />
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <WButton variant="secondary" @click="close">Close</WButton>
+      <WButton variant="primary" @click="save">Save</WButton>
+    </template>
+  </WModal>
+</template>

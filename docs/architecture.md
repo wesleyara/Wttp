@@ -70,12 +70,17 @@ Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos t
 | `workspace:create`  | invoke  | `{ path, name }` → `WorkspaceTree`                 |
 | `workspace:recent`  | invoke  | `void` → `RecentWorkspace[]`                       |
 | `workspace:changed` | event ↓ | `WorkspaceChangedEvent` (`{ tree, changedPaths }`) |
+| `workspace:setVariables` | invoke | `{ root, variables }` → `WorkspaceTree`        |
 | `node:read`         | invoke  | `{ path }` → `RequestNode \| FolderNode`           |
 | `node:write`        | invoke  | `{ path, node }` → `void`                          |
 | `node:move`         | invoke  | `{ from, to, seq }` → `void`                       |
 | `node:delete`       | invoke  | `{ path }` → `void`                                |
-| `env:list`          | invoke  | `void` → `Environment[]`                           |
-| `env:save`          | invoke  | `Environment` → `void`                             |
+| `env:list`          | invoke  | `{ root }` → `EnvironmentListItem[]`               |
+| `env:save`          | invoke  | `SaveEnvironmentPayload` → `EnvironmentListItem`   |
+| `env:delete`        | invoke  | `{ root, path }` → `void`                          |
+| `env:duplicate`     | invoke  | `{ root, path }` → `EnvironmentListItem`           |
+| `variables:resolveText` | invoke | `{ text, scope }` → `ResolveTextResultPayload` |
+| `variables:resolveRequest` | invoke | `{ request, scope }` → `ResolveRequestResultPayload` |
 | `secret:get`        | invoke  | `{ key }` → `string \| null`                       |
 | `secret:set`        | invoke  | `{ key, value }` → `void`                          |
 | `secret:delete`     | invoke  | `{ key }` → `void`                                 |

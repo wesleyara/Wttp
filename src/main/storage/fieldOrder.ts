@@ -21,7 +21,7 @@ export const WORKSPACE_SETTINGS_FIELD_ORDER = [
   "scriptTimeout",
 ] as const;
 
-export const FOLDER_FIELD_ORDER = ["wttp", "name", "seq", "auth", "docs"] as const;
+export const FOLDER_FIELD_ORDER = ["wttp", "name", "seq", "auth", "variables", "docs"] as const;
 
 export const REQUEST_FIELD_ORDER = [
   "wttp",

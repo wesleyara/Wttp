@@ -3,6 +3,8 @@ import type {
   AppSettings,
   CreateNodePayload,
   CreateWorkspacePayload,
+  EnvironmentListItem,
+  EnvironmentPathPayload,
   FolderNode,
   HttpProgressEvent,
   HttpRequestSpec,
@@ -17,10 +19,16 @@ import type {
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
   RequestNode,
+  ResolveRequestPayload,
+  ResolveRequestResultPayload,
+  ResolveTextPayload,
+  ResolveTextResultPayload,
+  SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
   SecretStorageStatus,
   SetWorkspaceUiStatePayload,
+  SetWorkspaceVariablesPayload,
   UiState,
   WorkspaceChangedEvent,
   WorkspaceRootPayload,
@@ -79,6 +87,8 @@ const wttp = {
       invoke("workspace:getUiState", payload),
     setUiState: (payload: SetWorkspaceUiStatePayload): Promise<void> =>
       invoke("workspace:setUiState", payload),
+    setVariables: (payload: SetWorkspaceVariablesPayload): Promise<WorkspaceTree> =>
+      invoke("workspace:setVariables", payload),
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
     onChanged: (callback: (event: WorkspaceChangedEvent) => void): (() => void) => {
       const listener = (_event: Electron.IpcRendererEvent, changed: WorkspaceChangedEvent): void =>
@@ -109,6 +119,21 @@ const wttp = {
     set: (key: string, value: string): Promise<void> => invoke("secret:set", { key, value }),
     delete: (key: string): Promise<void> => invoke("secret:delete", { key }),
     status: (): Promise<SecretStorageStatus> => invoke("secret:status"),
+  },
+  env: {
+    list: (payload: WorkspaceRootPayload): Promise<EnvironmentListItem[]> =>
+      invoke("env:list", payload),
+    save: (payload: SaveEnvironmentPayload): Promise<EnvironmentListItem> =>
+      invoke("env:save", payload),
+    delete: (payload: EnvironmentPathPayload): Promise<void> => invoke("env:delete", payload),
+    duplicate: (payload: EnvironmentPathPayload): Promise<EnvironmentListItem> =>
+      invoke("env:duplicate", payload),
+  },
+  variables: {
+    resolveText: (payload: ResolveTextPayload): Promise<ResolveTextResultPayload> =>
+      invoke("variables:resolveText", payload),
+    resolveRequest: (payload: ResolveRequestPayload): Promise<ResolveRequestResultPayload> =>
+      invoke("variables:resolveRequest", payload),
   },
   menu: {
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).

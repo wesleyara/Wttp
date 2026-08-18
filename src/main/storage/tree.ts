@@ -11,6 +11,7 @@
 
 import type {
   EnvironmentFile,
+  EnvironmentListItem,
   FolderFile,
   RequestFile,
   WorkspaceFile,
@@ -27,7 +28,12 @@ import { writeFileAtomic } from "./fsAtomic";
 import { ensureGitignore } from "./gitignore";
 import { CURRENT_SCHEMA_VERSION } from "./migrations/registry";
 import { resolveWorkspacePath } from "./paths";
-import { serializeFolder, serializeRequest, serializeWorkspace } from "./serializer";
+import {
+  serializeEnvironment,
+  serializeFolder,
+  serializeRequest,
+  serializeWorkspace,
+} from "./serializer";
 import { uniqueSlugName } from "./slug";
 import {
   type SchemaIssue,
@@ -149,7 +155,8 @@ async function scanChildren(root: string, relDir: string): Promise<WorkspaceNode
   return nodes.filter((node): node is WorkspaceNode => node !== null).sort(compareNodes);
 }
 
-async function readEnvironments(root: string): Promise<EnvironmentFile[]> {
+/** Lista os environments válidos do workspace, com o `path` (nome do arquivo) de cada um — base de `env:list` (EP-06-T02). */
+export async function listEnvironments(root: string): Promise<EnvironmentListItem[]> {
   const dir = join(root, ENVIRONMENTS_DIR);
   let entries: string[];
   try {
@@ -158,17 +165,118 @@ async function readEnvironments(root: string): Promise<EnvironmentFile[]> {
     return [];
   }
 
-  const files = await Promise.all(
+  const items = await Promise.all(
     entries
       .filter(name => name.endsWith(".yaml") || name.endsWith(".yml"))
-      .map(async name => {
-        const raw = await fs.readFile(join(dir, name), "utf-8");
+      .map(async (path): Promise<EnvironmentListItem | null> => {
+        const raw = await fs.readFile(join(dir, path), "utf-8");
         const result = validateEnvironment(raw);
-        return result.valid ? result.value : null;
+        return result.valid ? { path, data: result.value } : null;
       }),
   );
 
-  return files.filter((file): file is EnvironmentFile => file !== null);
+  return items
+    .filter((item): item is EnvironmentListItem => item !== null)
+    .sort((a, b) => a.data.name.localeCompare(b.data.name));
+}
+
+async function readEnvironments(root: string): Promise<EnvironmentFile[]> {
+  return (await listEnvironments(root)).map(item => item.data);
+}
+
+const ENVIRONMENT_SUFFIX = ".yaml";
+
+function environmentAbsPath(root: string, path: string): string {
+  return join(root, ENVIRONMENTS_DIR, path);
+}
+
+/** Lê um único environment por `path` — `null` quando não existe ou está inválido. */
+export async function getEnvironment(
+  root: string,
+  path: string,
+): Promise<EnvironmentListItem | null> {
+  const raw = await fs.readFile(environmentAbsPath(root, path), "utf-8").catch(() => null);
+  if (raw === null) return null;
+
+  const result = validateEnvironment(raw);
+  return result.valid ? { path, data: result.value } : null;
+}
+
+/** Cria um environment novo (EP-06-T02) — `environments/<slug>.yaml`, nome de arquivo derivado de `name`. */
+export async function createEnvironment(root: string, name: string): Promise<EnvironmentListItem> {
+  const dir = join(root, ENVIRONMENTS_DIR);
+  await fs.mkdir(dir, { recursive: true });
+
+  const existingNames = await listEntryNames(dir);
+  const path = uniqueSlugName(name, ENVIRONMENT_SUFFIX, candidate => existingNames.has(candidate));
+
+  const data: EnvironmentFile = { wttp: CURRENT_SCHEMA_VERSION, name, variables: [] };
+  await writeFileAtomic(environmentAbsPath(root, path), serializeEnvironment(data));
+  return { path, data };
+}
+
+/**
+ * Sobrescreve o conteúdo de um environment existente. `path` nunca muda aqui — ver o
+ * comentário de `EnvironmentListItem` em `@shared` sobre por que o arquivo não é
+ * renomeado quando `environment.name` muda.
+ */
+export async function writeEnvironment(
+  root: string,
+  path: string,
+  environment: EnvironmentFile,
+): Promise<EnvironmentListItem> {
+  const absPath = environmentAbsPath(root, path);
+  await assertNoConflict(absPath, `${ENVIRONMENTS_DIR}/${path}`);
+  await writeFileAtomic(absPath, serializeEnvironment(environment));
+  return { path, data: environment };
+}
+
+/** Remove um environment — o chamador (EP-06-T02, `ipc/environment.ts`) cuida de apagar os segredos associados antes. */
+export async function deleteEnvironment(root: string, path: string): Promise<void> {
+  const absPath = environmentAbsPath(root, path);
+  markOwnWrite(absPath);
+  await fs.rm(absPath, { force: true });
+  clearKnownMtimesUnder(absPath);
+}
+
+/**
+ * Duplica um environment — nome único (`"Dev" → "Dev copy" → "Dev copy 2"`), arquivo
+ * novo com `path` próprio. Nunca copia valor de variável secreta (docs/backlog
+ * EP-06-T03): a linha é duplicada com `value: ""`, o segredo original permanece só no
+ * environment de origem.
+ */
+export async function duplicateEnvironment(
+  root: string,
+  path: string,
+): Promise<EnvironmentListItem> {
+  const source = await getEnvironment(root, path);
+  if (!source) {
+    throw new DomainError("ENOENT", `environment not found: "${path}"`, path);
+  }
+
+  const dir = join(root, ENVIRONMENTS_DIR);
+  const existingDisplayNames = new Set((await listEnvironments(root)).map(item => item.data.name));
+
+  let candidateName = `${source.data.name} copy`;
+  for (let n = 2; existingDisplayNames.has(candidateName); n++) {
+    candidateName = `${source.data.name} copy ${n}`;
+  }
+
+  const existingNames = await listEntryNames(dir);
+  const newPath = uniqueSlugName(candidateName, ENVIRONMENT_SUFFIX, candidate =>
+    existingNames.has(candidate),
+  );
+
+  const data: EnvironmentFile = {
+    ...source.data,
+    name: candidateName,
+    variables: source.data.variables?.map(variable =>
+      variable.secret ? { ...variable, value: "" } : variable,
+    ),
+  };
+
+  await writeFileAtomic(environmentAbsPath(root, newPath), serializeEnvironment(data));
+  return { path: newPath, data };
 }
 
 /** Varre o workspace inteiro a partir de `root` — usado por `workspace:open`/`workspace:create`. */
@@ -341,6 +449,28 @@ export async function initWorkspace(root: string, name: string): Promise<Workspa
 
   const workspaceFile: WorkspaceFile = { wttp: CURRENT_SCHEMA_VERSION, name };
   await writeFileAtomic(join(root, WORKSPACE_FILE), serializeWorkspace(workspaceFile));
+
+  return scanWorkspace(root);
+}
+
+/**
+ * Sobrescreve `variables` do manifesto do workspace (EP-06-T03 — aba de variáveis
+ * globais do editor de environments), preservando os demais campos.
+ */
+export async function updateWorkspaceVariables(
+  root: string,
+  variables: WorkspaceFile["variables"],
+): Promise<WorkspaceTree> {
+  const manifestPath = join(root, WORKSPACE_FILE);
+  const raw = await fs.readFile(manifestPath, "utf-8");
+  const result = validateWorkspace(raw);
+  if (!result.valid) {
+    throw new DomainError("SCHEMA_INVALID", `workspace manifest is invalid: "${WORKSPACE_FILE}"`);
+  }
+
+  await assertNoConflict(manifestPath, WORKSPACE_FILE);
+  const next: WorkspaceFile = { ...result.value, variables };
+  await writeFileAtomic(manifestPath, serializeWorkspace(next));
 
   return scanWorkspace(root);
 }

@@ -60,6 +60,8 @@ name: Auth
 seq: 1
 auth:
   type: none
+variables: # variáveis de collection/pasta (EP-06) — nível "collection/pasta" da precedência
+  - { name: scope, value: openid profile, enabled: true }
 docs: |
   Endpoints de autenticação e renovação de sessão.
 ```
@@ -210,3 +212,5 @@ runtime (wttp.setVar) > environment > collection/pasta > workspace > dinâmicas
 ```
 
 A resolução é recursiva — uma variável pode referenciar outra — com detecção de ciclo. Variável não resolvida **não** vira string vazia: ela é destacada na UI e a requisição é bloqueada até o usuário decidir.
+
+O nível "collection/pasta" é o merge das `variables` de `folder.yaml` na cadeia de pastas da request até a raiz, pasta mais próxima da request vencendo sobre as mais distantes.

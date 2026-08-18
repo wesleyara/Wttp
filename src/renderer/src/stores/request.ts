@@ -22,6 +22,9 @@ import { computed } from "vue";
 export const useRequestStore = defineStore("request", () => {
   const tabs = useRequestTabsStore();
 
+  /** Caminho da request ativa, relativo à raiz do workspace — para resolução de variáveis (EP-06-T05), que precisa saber a cadeia de pastas. Só leitura: renomear é feito pela árvore, não aqui. */
+  const path = computed<string>(() => tabs.active?.path ?? "");
+
   const method = computed<HttpMethod>({
     get: () => tabs.active?.method ?? "GET",
     set: value => {
@@ -101,6 +104,7 @@ export const useRequestStore = defineStore("request", () => {
   }
 
   return {
+    path,
     method,
     url,
     query,

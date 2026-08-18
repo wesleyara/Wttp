@@ -6,7 +6,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center gap-3 p-8 text-center">
+  <div class="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
     <div v-if="$slots.icon" class="text-faint">
       <slot name="icon" />
     </div>

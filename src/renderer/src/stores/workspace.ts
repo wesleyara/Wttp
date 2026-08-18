@@ -5,7 +5,12 @@ import { computed, ref } from "vue";
 
 const PERSIST_UI_STATE_DEBOUNCE_MS = 300;
 
-const EMPTY_UI_STATE: WorkspaceUiState = { expandedPaths: [], openTabs: [], activeTabPath: null };
+const EMPTY_UI_STATE: WorkspaceUiState = {
+  expandedPaths: [],
+  openTabs: [],
+  activeTabPath: null,
+  activeEnvironment: null,
+};
 
 /**
  * Workspace atualmente aberto (EP-05-T01) — a raiz que toda a UI de collections/abas

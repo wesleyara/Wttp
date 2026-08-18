@@ -2,7 +2,9 @@
 import type { MultipartEntry, RequestBody } from "@shared";
 
 import { useKeyValueRows } from "@renderer/composables/useKeyValueRows";
+import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { useRequestStore } from "@renderer/stores/request";
+import { useVariablesStore } from "@renderer/stores/variables";
 import { storeToRefs } from "pinia";
 import { computed, ref, watch } from "vue";
 
@@ -16,9 +18,34 @@ import WSelect from "./WSelect.vue";
 import WTabs from "./WTabs.vue";
 
 const store = useRequestStore();
-const { query, headers, body, docs } = storeToRefs(store);
+const { query, headers, body, docs, path } = storeToRefs(store);
+const variablesStore = useVariablesStore();
 
 const activeTab = ref("params");
+
+// Realce/tooltip/autocomplete de `{{var}}` no body (EP-06-T05) — só o body passa por
+// CodeMirror hoje; params/headers usam `WKeyValueTable`, que já ganhou o tratamento
+// visual mais simples (borda/tooltip agregados) na mesma task.
+const bodyText = computed(() => {
+  const b = body.value;
+  if (b.type === "json") return b.json;
+  if (b.type === "raw") return b.raw;
+  return "";
+});
+const { unresolved: bodyUnresolved, tooltips: bodyTooltips } = useVariablePreview(bodyText, path);
+const variableNames = computed(() => variablesStore.variableNamesFor(path.value));
+
+const queryText = computed(() => query.value.map(row => row.value).join("\n"));
+const { unresolved: queryUnresolved, tooltips: queryTooltips } = useVariablePreview(
+  queryText,
+  path,
+);
+
+const headersText = computed(() => headers.value.map(row => row.value).join("\n"));
+const { unresolved: headersUnresolved, tooltips: headersTooltips } = useVariablePreview(
+  headersText,
+  path,
+);
 
 function countActive(rows: { enabled: boolean; name: string }[]): number {
   return rows.filter(row => row.enabled && row.name !== "").length;
@@ -206,11 +233,19 @@ watch(
     <WTabs v-model="activeTab" :tabs="tabs" />
 
     <div v-if="activeTab === 'params'" class="pt-2">
-      <WKeyValueTable v-model="queryRows" />
+      <WKeyValueTable
+        v-model="queryRows"
+        :unresolved-variables="queryUnresolved"
+        :variable-tooltips="queryTooltips"
+      />
     </div>
 
     <div v-else-if="activeTab === 'headers'" class="pt-2">
-      <WKeyValueTable v-model="headerRows" />
+      <WKeyValueTable
+        v-model="headerRows"
+        :unresolved-variables="headersUnresolved"
+        :variable-tooltips="headersTooltips"
+      />
     </div>
 
     <div v-else-if="activeTab === 'body'" class="flex flex-col gap-2 pt-2">
@@ -237,11 +272,24 @@ watch(
       />
 
       <div v-else-if="bodyType === 'json'" class="h-48">
-        <WCodeEditor v-model="jsonContent" language="json" placeholder='{"key": "value"}' />
+        <WCodeEditor
+          v-model="jsonContent"
+          language="json"
+          placeholder='{"key": "value"}'
+          :unresolved-variables="bodyUnresolved"
+          :variable-tooltips="bodyTooltips"
+          :variable-names="variableNames"
+        />
       </div>
 
       <div v-else-if="bodyType === 'raw'" class="h-48">
-        <WCodeEditor v-model="rawContent" language="text" />
+        <WCodeEditor
+          v-model="rawContent"
+          language="text"
+          :unresolved-variables="bodyUnresolved"
+          :variable-tooltips="bodyTooltips"
+          :variable-names="variableNames"
+        />
       </div>
 
       <WKeyValueTable v-else-if="bodyType === 'urlencoded'" v-model="urlencodedRows" />

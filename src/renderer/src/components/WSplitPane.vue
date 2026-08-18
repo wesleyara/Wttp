@@ -34,13 +34,13 @@ const dragging = ref(false);
 const firstPaneStyle = computed(() => {
   if (!sizesFirst.value) return { flex: "1 1 0%" };
   if (props.collapsed) return { flex: "0 0 0px", overflow: "hidden" };
-  return { flex: `0 0 ${clamp(props.modelValue)}px` };
+  return { flex: `0 1 ${clamp(props.modelValue)}px` };
 });
 
 const secondPaneStyle = computed(() => {
   if (sizesFirst.value) return { flex: "1 1 0%" };
   if (props.collapsed) return { flex: "0 0 0px", overflow: "hidden" };
-  return { flex: `0 0 ${clamp(props.modelValue)}px` };
+  return { flex: `0 1 ${clamp(props.modelValue)}px` };
 });
 
 function clamp(size: number): number {
@@ -103,7 +103,7 @@ function onDoubleClick(): void {
 </script>
 
 <template>
-  <div class="flex min-h-0 min-w-0 flex-1" :class="isHorizontal ? 'flex-row' : 'flex-col'">
+  <div class="flex size-full min-h-0 min-w-0" :class="isHorizontal ? 'flex-row' : 'flex-col'">
     <div class="min-h-0 min-w-0 overflow-hidden" :style="firstPaneStyle">
       <slot name="first" />
     </div>

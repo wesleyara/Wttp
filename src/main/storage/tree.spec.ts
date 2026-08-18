@@ -9,15 +9,22 @@ import { writeFileAtomic } from "./fsAtomic";
 import { resolveWorkspacePath } from "./paths";
 import { slugify, uniqueSlugName } from "./slug";
 import {
+  createEnvironment,
   createNode,
+  deleteEnvironment,
   deleteNode,
+  duplicateEnvironment,
   duplicateNode,
+  getEnvironment,
   initWorkspace,
+  listEnvironments,
   moveNode,
   moveNodeInto,
   readNode,
   renameNode,
   scanWorkspace,
+  updateWorkspaceVariables,
+  writeEnvironment,
   writeNode,
 } from "./tree";
 
@@ -443,5 +450,102 @@ describe("duplicateNode", () => {
     const tree = await scanWorkspace(root);
     const copy = tree.children.find(node => node.name === "Auth copy") as FolderNode;
     expect(copy.children.map(node => node.name)).toEqual(["Login"]);
+  });
+});
+
+describe("updateWorkspaceVariables", () => {
+  it("sobrescreve as variáveis globais preservando os demais campos", async () => {
+    await writeYaml("wttp.yaml", "wttp: 1\nname: My API\ndescription: desc\n");
+
+    const tree = await updateWorkspaceVariables(root, [
+      { name: "api_version", value: "v2", enabled: true },
+    ]);
+
+    expect(tree.data?.description).toBe("desc");
+    expect(tree.data?.variables).toEqual([{ name: "api_version", value: "v2", enabled: true }]);
+  });
+});
+
+describe("createEnvironment / writeEnvironment / getEnvironment / listEnvironments", () => {
+  it("cria um environment com nome de arquivo derivado do nome", async () => {
+    const created = await createEnvironment(root, "Dev");
+    expect(created.path).toBe("dev.yaml");
+    expect(created.data).toEqual({ wttp: 1, name: "Dev", variables: [] });
+
+    const onDisk = await fs.readFile(join(root, "environments", "dev.yaml"), "utf-8");
+    expect(onDisk).toContain("name: Dev");
+  });
+
+  it("resolve colisão de nome de arquivo com sufixo incremental", async () => {
+    await createEnvironment(root, "Dev");
+    const second = await createEnvironment(root, "Dev");
+    expect(second.path).toBe("dev-2.yaml");
+  });
+
+  it("writeEnvironment sobrescreve o conteúdo sem trocar o path", async () => {
+    const created = await createEnvironment(root, "Dev");
+    const updated = await writeEnvironment(root, created.path, {
+      wttp: 1,
+      name: "Dev renamed",
+      variables: [{ name: "base_url", value: "https://dev", enabled: true }],
+    });
+
+    expect(updated.path).toBe(created.path);
+    const reread = await getEnvironment(root, created.path);
+    expect(reread?.data.name).toBe("Dev renamed");
+  });
+
+  it("listEnvironments devolve só os válidos, ordenados por nome", async () => {
+    await createEnvironment(root, "Staging");
+    await createEnvironment(root, "Dev");
+
+    const list = await listEnvironments(root);
+    expect(list.map(item => item.data.name)).toEqual(["Dev", "Staging"]);
+  });
+
+  it("getEnvironment devolve null para um path inexistente", async () => {
+    expect(await getEnvironment(root, "missing.yaml")).toBeNull();
+  });
+});
+
+describe("deleteEnvironment", () => {
+  it("remove o arquivo do disco", async () => {
+    const created = await createEnvironment(root, "Dev");
+    await deleteEnvironment(root, created.path);
+    expect(await getEnvironment(root, created.path)).toBeNull();
+  });
+});
+
+describe("duplicateEnvironment", () => {
+  it("duplica com nome único e nunca copia valor de variável secreta", async () => {
+    const created = await createEnvironment(root, "Dev");
+    await writeEnvironment(root, created.path, {
+      wttp: 1,
+      name: "Dev",
+      variables: [
+        { name: "base_url", value: "https://dev", enabled: true },
+        { name: "api_key", value: "", enabled: true, secret: true },
+      ],
+    });
+
+    const duplicate = await duplicateEnvironment(root, created.path);
+
+    expect(duplicate.path).not.toBe(created.path);
+    expect(duplicate.data.name).toBe("Dev copy");
+    expect(duplicate.data.variables).toEqual([
+      { name: "base_url", value: "https://dev", enabled: true },
+      { name: "api_key", value: "", enabled: true, secret: true },
+    ]);
+  });
+
+  it("resolve nome duplicado repetido com sufixo incremental", async () => {
+    const created = await createEnvironment(root, "Dev");
+    await duplicateEnvironment(root, created.path);
+    const secondDuplicate = await duplicateEnvironment(root, created.path);
+    expect(secondDuplicate.data.name).toBe("Dev copy 2");
+  });
+
+  it("lança ENOENT ao duplicar um path inexistente", async () => {
+    await expect(duplicateEnvironment(root, "missing.yaml")).rejects.toThrow();
   });
 });

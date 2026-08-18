@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, useTemplateRef, watch } from "vue";
 
-const props = defineProps<{
-  open: boolean;
-  title: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    title: string;
+    /** `lg` para editores com mais conteúdo (ex. environments, EP-06-T03) — `md` continua o padrão de diálogos simples. */
+    size?: "md" | "lg";
+  }>(),
+  { size: "md" },
+);
 
 const emit = defineEmits<{
   close: [];
@@ -55,7 +60,8 @@ onBeforeUnmount(() => previouslyFocused?.focus());
         aria-modal="true"
         :aria-label="title"
         tabindex="-1"
-        class="flex max-h-[80vh] w-full max-w-md flex-col gap-4 rounded-md border border-subtle bg-surface-2 p-4 shadow-lg focus-visible:outline-none"
+        class="flex max-h-[80vh] w-full flex-col gap-4 rounded-md border border-subtle bg-surface-2 p-4 shadow-lg focus-visible:outline-none"
+        :class="size === 'lg' ? 'max-w-3xl' : 'max-w-md'"
         @keydown="onKeydown"
       >
         <p class="font-barlow text-base font-semibold text-1">{{ title }}</p>

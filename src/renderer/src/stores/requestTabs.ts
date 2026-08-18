@@ -7,13 +7,20 @@ import type {
   RequestBody,
   RequestFile,
   RequestNode,
+  ResolveRequestResultPayload,
   SaveFileResult,
 } from "@shared";
 
 import { suggestedFileName } from "@renderer/lib/content-type";
+import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
-import { computed, ref, watch } from "vue";
+import { computed, ref, toRaw, watch } from "vue";
+
+/** Tira a reatividade do Pinia antes de cruzar a ponte de IPC — Proxy reativo não é clonável pelo Electron. */
+function unwrap<T>(value: T): T {
+  return JSON.parse(JSON.stringify(toRaw(value))) as T;
+}
 
 export interface RequestTabState {
   /** Igual a `path` — muda junto quando a request é renomeada (`renamePath`). */
@@ -68,15 +75,22 @@ function buildTab(node: RequestNode, pinned: boolean): RequestTabState {
  */
 export const useRequestTabsStore = defineStore("requestTabs", () => {
   const workspace = useWorkspaceStore();
+  const variables = useVariablesStore();
 
   const tabs = ref<RequestTabState[]>([]);
   const activeId = ref<string | null>(null);
   /** Aba com confirmação de fechar pendente (suja) — `null` quando nenhuma pergunta está aberta. */
   const closeConfirmId = ref<string | null>(null);
+  /** Aba com variável não resolvida a confirmar antes de enviar (EP-06-T05) — `null` = nenhuma pergunta pendente. */
+  const unresolvedSendId = ref<string | null>(null);
+  const unresolvedSendNames = ref<string[]>([]);
 
   const active = computed(() => tabs.value.find(tab => tab.id === activeId.value) ?? null);
   const closeConfirmTab = computed(
     () => tabs.value.find(tab => tab.id === closeConfirmId.value) ?? null,
+  );
+  const unresolvedSendTab = computed(
+    () => tabs.value.find(tab => tab.id === unresolvedSendId.value) ?? null,
   );
 
   function persistSession(): void {
@@ -179,13 +193,13 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (!tab || !workspace.root) return;
 
     const data: RequestFile = {
-      ...tab.originalData,
+      ...unwrap(tab.originalData),
       method: tab.method,
       url: tab.url,
-      query: tab.query,
-      headers: tab.headers,
-      auth: tab.auth,
-      body: tab.body,
+      query: unwrap(tab.query),
+      headers: unwrap(tab.headers),
+      auth: unwrap(tab.auth),
+      body: unwrap(tab.body),
       docs: tab.docs || undefined,
     };
     const node: RequestNode = {
@@ -227,10 +241,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     persistSession();
   }
 
-  async function send(): Promise<void> {
-    const tab = active.value;
-    if (!tab || tab.sending) return;
-
+  async function dispatch(
+    tab: RequestTabState,
+    resolved: ResolveRequestResultPayload,
+  ): Promise<void> {
     const id = crypto.randomUUID();
     tab.requestId = id;
     tab.sending = true;
@@ -239,17 +253,55 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       const spec: HttpRequestSpec = {
         requestId: id,
         method: tab.method,
-        url: tab.url,
-        query: tab.query,
-        headers: tab.headers,
-        auth: tab.auth,
-        body: tab.body,
+        url: resolved.url,
+        query: resolved.query,
+        headers: resolved.headers,
+        auth: resolved.auth,
+        body: resolved.body,
       };
       tab.lastResult = await window.wttp.http.send(spec);
     } finally {
       tab.sending = false;
       tab.requestId = null;
     }
+  }
+
+  /** Resolve `{{var}}` (EP-06-T01) antes de enviar; variável não resolvida pausa e pede confirmação em vez de mandar a request quebrada. */
+  async function send(): Promise<void> {
+    const tab = active.value;
+    if (!tab || tab.sending) return;
+
+    const resolved = await variables.resolveRequestSpec(
+      { url: tab.url, query: tab.query, headers: tab.headers, auth: tab.auth, body: tab.body },
+      tab.path,
+    );
+
+    if (resolved.unresolved.length > 0) {
+      unresolvedSendId.value = tab.id;
+      unresolvedSendNames.value = resolved.unresolved;
+      return;
+    }
+
+    await dispatch(tab, resolved);
+  }
+
+  /** Usuário confirmou enviar mesmo com variável não resolvida — o placeholder original (`{{nome}}`) vai literal na request. */
+  async function confirmSendUnresolved(): Promise<void> {
+    const tab = unresolvedSendTab.value;
+    unresolvedSendId.value = null;
+    unresolvedSendNames.value = [];
+    if (!tab) return;
+
+    const resolved = await variables.resolveRequestSpec(
+      { url: tab.url, query: tab.query, headers: tab.headers, auth: tab.auth, body: tab.body },
+      tab.path,
+    );
+    await dispatch(tab, resolved);
+  }
+
+  function cancelSendUnresolved(): void {
+    unresolvedSendId.value = null;
+    unresolvedSendNames.value = [];
   }
 
   function cancel(): void {
@@ -333,6 +385,11 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     cancelClose,
     reorder,
     send,
+    unresolvedSendId,
+    unresolvedSendTab,
+    unresolvedSendNames,
+    confirmSendUnresolved,
+    cancelSendUnresolved,
     cancel,
     saveResponseToFile,
     restoreSession,

@@ -17,7 +17,12 @@ import { writeFileAtomic } from "./fsAtomic";
 const LOCAL_DIR = ".wttp";
 const FILE = "ui-state.json";
 
-const EMPTY: WorkspaceUiState = { expandedPaths: [], openTabs: [], activeTabPath: null };
+const EMPTY: WorkspaceUiState = {
+  expandedPaths: [],
+  openTabs: [],
+  activeTabPath: null,
+  activeEnvironment: null,
+};
 
 function uiStatePath(root: string): string {
   return join(root, LOCAL_DIR, FILE);

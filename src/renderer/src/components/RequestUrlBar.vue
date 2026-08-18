@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { HTTP_METHODS, methodToken } from "@renderer/lib/http-tokens";
 import { parseQueryFromUrl, rewriteUrlQuery } from "@renderer/lib/url-query-sync";
 import { useRequestStore } from "@renderer/stores/request";
@@ -10,7 +11,11 @@ import WInput from "./WInput.vue";
 import WSelect from "./WSelect.vue";
 
 const store = useRequestStore();
-const { method, url, query, sending } = storeToRefs(store);
+const { method, url, query, sending, path } = storeToRefs(store);
+
+// Realce/tooltip de `{{var}}` na URL (EP-06-T05) — sem overlay por caractere, a URL
+// inteira sinaliza "tem algo não resolvido" (borda) e o tooltip lista origem/valor.
+const { unresolved: urlUnresolved, tooltip: urlTooltip } = useVariablePreview(url, path);
 
 const methodOptions = HTTP_METHODS.map(value => ({ value, label: value }));
 
@@ -63,6 +68,8 @@ function onSend(): void {
         v-model="url"
         placeholder="https://api.example.com/users"
         monospace
+        :error="urlUnresolved.length > 0"
+        :title="urlTooltip || undefined"
         @keydown.enter="onSend"
       />
     </div>

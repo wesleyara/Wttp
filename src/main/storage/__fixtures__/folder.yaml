@@ -3,5 +3,7 @@ name: Auth
 seq: 1
 auth:
   type: none
+variables:
+  - { name: scope, value: openid profile, enabled: true }
 docs: |
   Endpoints de autenticação e renovação de sessão.
