@@ -7,6 +7,10 @@ Cada request pode ter dois scripts, gravados em `scripts.preRequest` e `scripts.
 no `*.req.yaml` ([file-format.md §4](file-format.md)); pastas e collections também
 podem ter os dois, em `folder.yaml`, herdados por toda request abaixo (EP-09-T03).
 
+Na UI (aba Scripts) a sub-aba do segundo script chama-se "Post-response" — roda depois
+da resposta chegar, mesmo nome que Insomnia/Postman usam. O campo em disco e o valor de
+`phase` continuam `tests`; só o rótulo mudou.
+
 ---
 
 ## Onde cada coisa está disponível
