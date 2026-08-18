@@ -16,6 +16,7 @@ import {
   updateWorkspaceVariables,
 } from "../storage/tree";
 import { watchWorkspace, type WorkspaceWatcher } from "../storage/watcher";
+import { readWorkspaceDrafts, writeWorkspaceDrafts } from "../storage/workspaceDrafts";
 import { readWorkspaceUiState, writeWorkspaceUiState } from "../storage/workspaceUiState";
 import { registerHandler } from "./registry";
 
@@ -80,6 +81,12 @@ export function registerWorkspaceHandlers(): void {
 
   registerHandler("workspace:setUiState", payload =>
     writeWorkspaceUiState(payload.root, payload.state),
+  );
+
+  registerHandler("workspace:getDrafts", payload => readWorkspaceDrafts(payload.root));
+
+  registerHandler("workspace:setDrafts", payload =>
+    writeWorkspaceDrafts(payload.root, payload.drafts),
   );
 
   registerHandler("workspace:setVariables", payload =>

@@ -11,6 +11,7 @@ import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { nextTick } from "vue";
 
 import { isFolderTab, isRequestTab, useRequestTabsStore } from "./requestTabs";
 
@@ -41,6 +42,10 @@ const nodeWrite = vi.fn(
   async (args: { root: string; path: string; node: FolderNode | RequestNode }) => args,
 );
 const setUiState = vi.fn(async () => {});
+const setDrafts = vi.fn<
+  (payload: { root: string; drafts: Record<string, unknown> }) => Promise<void>
+>(async () => {});
+const getDrafts = vi.fn(async () => ({}) as Record<string, unknown>);
 const httpSend = vi.fn<(spec: unknown) => Promise<HttpResponseResult>>(
   async () => ({ ok: true }) as HttpResponseResult,
 );
@@ -132,6 +137,9 @@ beforeEach(() => {
   nodeRead.mockClear();
   nodeWrite.mockClear();
   setUiState.mockClear();
+  setDrafts.mockClear();
+  getDrafts.mockClear();
+  getDrafts.mockImplementation(async () => ({}));
   httpSend.mockClear();
   resolveRequest.mockClear();
   resolveAuthChain.mockClear();
@@ -153,6 +161,8 @@ beforeEach(() => {
       workspace: {
         setUiState,
         getUiState: vi.fn(),
+        setDrafts,
+        getDrafts,
         // `save`/`saveFolderTab` chamam `refreshTree()` depois de escrever — precisa
         // devolver uma árvore com o mesmo `root`, senão o watcher de `workspace.root`
         // (em `requestTabs.ts`) vê `null` e fecha todas as abas por engano.
@@ -677,6 +687,102 @@ describe("useRequestTabsStore", () => {
       // deixando `tab.scriptRun` preso em `null` (a aba Tests nunca aparece).
       expect(() => structuredClone(passedRes)).not.toThrow();
       expect(passedRes.body).toBeInstanceOf(Uint8Array);
+    });
+  });
+
+  describe("rascunhos (EP-08.1-T01)", () => {
+    it("salvar uma aba apaga o rascunho correspondente", async () => {
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      const active = tabs.active;
+      if (!isRequestTab(active)) throw new Error("expected a request tab");
+      active.url = "https://example.com/changed";
+      tabs.markActiveDirty();
+
+      await tabs.save("a.req.yaml");
+
+      const lastCall = setDrafts.mock.calls.at(-1)?.[0];
+      expect(lastCall?.drafts).toEqual({});
+    });
+
+    it("descartar uma aba suja apaga o rascunho correspondente", async () => {
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      tabs.markActiveDirty();
+
+      tabs.forceClose("a.req.yaml");
+
+      const lastCall = setDrafts.mock.calls.at(-1)?.[0];
+      expect(lastCall?.drafts).toEqual({});
+    });
+
+    it("flushDrafts grava o texto não salvo da aba ativa", async () => {
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      const active = tabs.active;
+      if (!isRequestTab(active)) throw new Error("expected a request tab");
+      active.url = "https://example.com/changed";
+      tabs.markActiveDirty();
+
+      tabs.flushDrafts();
+
+      const lastCall = setDrafts.mock.calls.at(-1)?.[0];
+      expect(lastCall?.root).toBe(ROOT);
+      expect(lastCall?.drafts["a.req.yaml"]).toEqual({
+        kind: "request",
+        data: expect.objectContaining({ url: "https://example.com/changed" }),
+      });
+    });
+
+    it("restoreSession aplica o rascunho por cima do nó lido, já suja", async () => {
+      getDrafts.mockImplementationOnce(async () => ({
+        "a.req.yaml": {
+          kind: "request",
+          data: { ...requestFile("a"), url: "https://example.com/draft" },
+        },
+      }));
+
+      const tabs = useRequestTabsStore();
+      const workspace = useWorkspaceStore();
+      workspace.uiState = {
+        expandedPaths: [],
+        openTabs: [{ path: "a.req.yaml", pinned: true, kind: "request" }],
+        activeTabPath: "a.req.yaml",
+        activeEnvironment: null,
+      };
+
+      await tabs.restoreSession();
+
+      expect(getDrafts).toHaveBeenCalledWith({ root: ROOT });
+      const restored = tabs.active;
+      if (!isRequestTab(restored)) throw new Error("expected a request tab");
+      expect(restored.url).toBe("https://example.com/draft");
+      expect(restored.dirty).toBe(true);
+    });
+
+    it("trocar de workspace grava o rascunho da raiz anterior antes de sair", async () => {
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("a.req.yaml");
+      const active = tabs.active;
+      if (!isRequestTab(active)) throw new Error("expected a request tab");
+      active.url = "https://example.com/changed";
+      tabs.markActiveDirty();
+
+      const workspace = useWorkspaceStore();
+      const OTHER_ROOT = "/other-workspace";
+      workspace.tree = {
+        root: OTHER_ROOT,
+        data: { wttp: 1, name: "Other" },
+        environments: [],
+        children: [],
+      };
+      await nextTick();
+
+      const flushCall = setDrafts.mock.calls.find(call => call[0].root === ROOT);
+      expect(flushCall?.[0].drafts["a.req.yaml"]).toEqual({
+        kind: "request",
+        data: expect.objectContaining({ url: "https://example.com/changed" }),
+      });
     });
   });
 });

@@ -198,6 +198,18 @@ export interface WorkspaceUiState {
 }
 
 /**
+ * Rascunho de uma aba suja (EP-08.1-T01), em `.wttp/drafts.json` — o `RequestFile`/
+ * `FolderFile` com as edições ainda não salvas, para sobreviver ao fechamento do app
+ * mesmo quando `patchUiState`/`restoreSession` só têm o YAML salvo em disco. Chaveado
+ * por `path` da aba, mesmo `path` de `TabState`.
+ */
+export type TabDraft =
+  { kind: "request"; data: RequestFile } | { kind: "folder"; data: FolderFile };
+
+/** `.wttp/drafts.json` inteiro (EP-08.1-T01) — uma entrada por aba suja. */
+export type WorkspaceDrafts = Record<string, TabDraft>;
+
+/**
  * Evento `workspace:changed` (EP-04-T05) — main → renderer, fora do `IpcContract` de
  * invoke/result pelo mesmo motivo que `HttpProgressEvent`/`MenuAction`. `changedPaths`
  * são os caminhos (relativos à raiz) que motivaram a reconciliação — quem consome o

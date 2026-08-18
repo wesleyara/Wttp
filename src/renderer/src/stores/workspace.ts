@@ -83,6 +83,19 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     }, PERSIST_UI_STATE_DEBOUNCE_MS);
   }
 
+  /**
+   * Cancela o debounce pendente e escreve `.wttp/ui-state.json` na hora (EP-08.1-T01) —
+   * chamado no fechamento do app (`beforeunload`, `AppShell.vue`) e por `close()`, para
+   * a última mudança de sessão (aba aberta/fechada/reordenada) não se perder nos 300 ms
+   * de debounce que `patchUiState` normalmente espera.
+   */
+  function flushUiState(): void {
+    if (!root.value) return;
+    if (persistUiStateTimer) clearTimeout(persistUiStateTimer);
+    persistUiStateTimer = null;
+    void window.wttp.workspace.setUiState({ root: root.value, state: uiState.value });
+  }
+
   async function refreshRecents(): Promise<void> {
     recents.value = await window.wttp.workspace.recent();
   }
@@ -147,8 +160,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   function close(): void {
     stopWatchingChanges?.();
     stopWatchingChanges = null;
-    if (persistUiStateTimer) clearTimeout(persistUiStateTimer);
-    persistUiStateTimer = null;
+    flushUiState();
     tree.value = null;
     uiState.value = EMPTY_UI_STATE;
     uiStateVersion.value = 0;
@@ -170,6 +182,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     pickFolder,
     removeRecent,
     patchUiState,
+    flushUiState,
     refreshTree,
     close,
   };
