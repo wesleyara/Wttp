@@ -285,6 +285,14 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     persistSession();
   }
 
+  /** Duplo clique na aba (EP-08.1-T02) — promove uma aba de preview a fixa, sem editar campo nenhum. No-op para aba de pasta/collection, que já nasce fixa. */
+  function pin(id: string): void {
+    const tab = tabs.value.find(t => t.id === id);
+    if (!tab || tab.pinned) return;
+    tab.pinned = true;
+    persistSession();
+  }
+
   /** Uma entrada por aba suja, no formato gravado em disco — usado tanto pelo debounce quanto pelo flush imediato. */
   function currentDrafts(): WorkspaceDrafts {
     const drafts: WorkspaceDrafts = {};
@@ -914,6 +922,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     closeConfirmId,
     closeConfirmTab,
     activate,
+    pin,
     markActiveDirty,
     openPreview,
     openPinned,

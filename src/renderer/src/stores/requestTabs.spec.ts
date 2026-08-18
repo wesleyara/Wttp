@@ -217,6 +217,31 @@ describe("useRequestTabsStore", () => {
     expect(tabs.tabs.map(t => t.path)).toEqual(["a.req.yaml", "b.req.yaml"]);
   });
 
+  it("pin promove uma aba de preview a fixa sem marcar suja nem editar campo (EP-08.1-T02)", async () => {
+    const tabs = useRequestTabsStore();
+    await tabs.openPreview("a.req.yaml");
+    expect(tabs.active?.pinned).toBe(false);
+
+    tabs.pin("a.req.yaml");
+
+    expect(tabs.active?.pinned).toBe(true);
+    expect(tabs.active?.dirty).toBe(false);
+
+    // Uma segunda aba de preview não substitui mais a primeira, que virou fixa.
+    await tabs.openPreview("b.req.yaml");
+    expect(tabs.tabs.map(t => t.path)).toEqual(["a.req.yaml", "b.req.yaml"]);
+  });
+
+  it("pin numa aba já fixa é no-op", async () => {
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+    setUiState.mockClear();
+
+    tabs.pin("a.req.yaml");
+
+    expect(setUiState).not.toHaveBeenCalled();
+  });
+
   it("fechar uma aba suja exige confirmação antes de remover", async () => {
     const tabs = useRequestTabsStore();
     await tabs.openPinned("a.req.yaml");
