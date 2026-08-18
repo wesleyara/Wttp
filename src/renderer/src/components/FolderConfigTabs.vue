@@ -18,7 +18,6 @@ import type { KeyValueRow } from "./WKeyValueTable.vue";
 
 import AuthConfigEditor from "./AuthConfigEditor.vue";
 import WCodeEditor from "./WCodeEditor.vue";
-import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
 import WKeyValueTable from "./WKeyValueTable.vue";
 import WTabs from "./WTabs.vue";
@@ -55,6 +54,30 @@ const auth = computed<AuthConfig>({
   },
 });
 
+const scriptsSubTab = ref<"preRequest" | "tests">("preRequest");
+
+const preRequestScript = computed<string>({
+  get: () => tab.value?.scripts.preRequest ?? "",
+  set: value => {
+    if (!tab.value) return;
+    tab.value.scripts = { ...tab.value.scripts, preRequest: value };
+    tabsStore.markActiveDirty();
+  },
+});
+
+const testsScript = computed<string>({
+  get: () => tab.value?.scripts.tests ?? "",
+  set: value => {
+    if (!tab.value) return;
+    tab.value.scripts = { ...tab.value.scripts, tests: value };
+    tabsStore.markActiveDirty();
+  },
+});
+
+const hasScripts = computed(
+  () => Boolean(tab.value?.scripts.preRequest?.trim()) || Boolean(tab.value?.scripts.tests?.trim()),
+);
+
 const variableRows = computed<KeyValueRow[]>({
   get: () => (tab.value?.variables ?? []).map(v => ({ ...v, description: v.description ?? "" })),
   set: rows => {
@@ -77,7 +100,7 @@ function countActive(rows: { enabled: boolean; name: string }[]): number {
 const tabs = computed(() => [
   { value: "overview", label: "Overview" },
   { value: "auth", label: "Auth" },
-  { value: "scripts", label: "Scripts" },
+  { value: "scripts", label: "Scripts", badge: hasScripts.value ? "●" : undefined },
   { value: "variables", label: "Variables", count: countActive(variableRows.value) },
 ]);
 </script>
@@ -111,11 +134,34 @@ const tabs = computed(() => [
       <AuthConfigEditor v-model="auth" :path="path" :self-label="selfLabel" />
     </div>
 
-    <div v-else-if="activeTab === 'scripts'" class="pt-2">
-      <WEmptyState
-        title="No scripts"
-        description="Pre-request and test scripts are coming in a future release."
+    <div v-else-if="activeTab === 'scripts'" class="flex flex-col gap-2 pt-2">
+      <p class="px-2 font-inter text-xs text-faint">
+        Inherited by every request in this {{ tab?.isCollection ? "collection" : "folder" }} — runs
+        around each request's own scripts.
+      </p>
+      <WTabs
+        v-model="scriptsSubTab"
+        :tabs="[
+          { value: 'preRequest', label: 'Pre-request' },
+          { value: 'tests', label: 'Tests' },
+        ]"
       />
+      <div v-if="scriptsSubTab === 'preRequest'" class="h-48">
+        <WCodeEditor
+          v-model="preRequestScript"
+          language="javascript"
+          script-phase="preRequest"
+          placeholder='wttp.setVar("run_started_at", Date.now());'
+        />
+      </div>
+      <div v-else class="h-48">
+        <WCodeEditor
+          v-model="testsScript"
+          language="javascript"
+          script-phase="tests"
+          placeholder='test("no server error", () =&gt; expect(res.status).toBeTruthy());'
+        />
+      </div>
     </div>
 
     <div v-else-if="activeTab === 'variables'" class="pt-2">

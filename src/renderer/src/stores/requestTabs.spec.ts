@@ -280,6 +280,21 @@ describe("useRequestTabsStore", () => {
     expect(tabs.active?.dirty).toBe(false);
   });
 
+  it("saveFolderTab grava scripts de pasta/collection (EP-09.1)", async () => {
+    const tabs = useRequestTabsStore();
+    await tabs.openFolderTab("Users");
+
+    const active = tabs.active;
+    if (!isFolderTab(active)) throw new Error("expected a folder tab");
+    active.scripts = { preRequest: 'wttp.setVar("x", 1);', tests: "" };
+    tabs.markActiveDirty();
+
+    await tabs.saveFolderTab(active.id);
+
+    const written = nodeWrite.mock.calls[0][0].node as FolderNode;
+    expect(written.data?.scripts).toEqual({ preRequest: 'wttp.setVar("x", 1);' });
+  });
+
   describe("scripts (EP-09-T03)", () => {
     it("runs preRequest outside-in (folder then request) and tests inside-out (request then folder)", async () => {
       const workspace = useWorkspaceStore();
