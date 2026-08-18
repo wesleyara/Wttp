@@ -1,15 +1,18 @@
 <script setup lang="ts">
+import type { HttpMethod } from "@shared";
+
 import { useUrlQuerySync } from "@renderer/composables/useUrlQuerySync";
 import { useVariablePreview } from "@renderer/composables/useVariablePreview";
-import { HTTP_METHODS, methodToken } from "@renderer/lib/http-tokens";
+import { methodToken } from "@renderer/lib/http-tokens";
 import { useRequestStore } from "@renderer/stores/request";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { storeToRefs } from "pinia";
-import { computed } from "vue";
+import { computed, ref, useTemplateRef } from "vue";
 
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
-import WSelect from "./WSelect.vue";
+import WIcon from "./WIcon.vue";
+import WMethodPicker from "./WMethodPicker.vue";
 
 const store = useRequestStore();
 const { method, url, pathParams, query, sending, path } = storeToRefs(store);
@@ -25,7 +28,22 @@ const emptyPathParams = computed(() =>
   pathParams.value.filter(param => param.value === "").map(param => param.name),
 );
 
-const methodOptions = HTTP_METHODS.map(value => ({ value, label: value }));
+// Popover do método (EP-08.1-T08) — mesmo padrão de posicionamento do seletor de
+// environment na StatusBar, mas ancorado para baixo (o trigger fica no topo do painel).
+const methodTriggerRef = useTemplateRef<HTMLElement>("methodTrigger");
+const methodPickerOpen = ref(false);
+const methodPickerPosition = ref({ x: 0, y: 0 });
+
+function openMethodPicker(): void {
+  const rect = methodTriggerRef.value?.getBoundingClientRect();
+  if (!rect) return;
+  methodPickerPosition.value = { x: rect.left, y: rect.bottom + 4 };
+  methodPickerOpen.value = true;
+}
+
+function onMethodChange(next: string): void {
+  method.value = next as HttpMethod;
+}
 
 // Sincronização URL ↔ tabela de query params, e URL → tabela de path params (useUrlQuerySync.ts).
 useUrlQuerySync(url, query, pathParams);
@@ -55,9 +73,27 @@ function onPasteUrl(event: ClipboardEvent): void {
 
 <template>
   <div class="flex h-8 items-stretch gap-2">
-    <div class="w-28 shrink-0">
-      <WSelect v-model="method" :options="methodOptions" :value-class="methodToken" />
-    </div>
+    <button
+      ref="methodTrigger"
+      type="button"
+      class="flex h-8 w-28 shrink-0 items-center rounded-md border border-subtle bg-surface-2 pl-2 pr-1 transition-colors hover:border-strong focus-visible:border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1"
+      @click="openMethodPicker"
+    >
+      <span class="flex-1 text-left font-mono text-sm font-medium" :class="methodToken(method)">
+        {{ method }}
+      </span>
+      <WIcon name="chevron-down" size="4" class="pointer-events-none text-faint" />
+    </button>
+
+    <WMethodPicker
+      :open="methodPickerOpen"
+      :x="methodPickerPosition.x"
+      :y="methodPickerPosition.y"
+      :active-method="method"
+      @close="methodPickerOpen = false"
+      @select="onMethodChange"
+    />
+
     <div class="flex-1">
       <WCodeEditor
         v-model="url"
