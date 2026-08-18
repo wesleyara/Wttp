@@ -4,10 +4,12 @@ import { parseSetCookieHeader } from "@renderer/lib/cookies";
 import { formatBytes, formatDuration } from "@renderer/lib/format";
 import { prettyPrintJson, prettyPrintMarkup } from "@renderer/lib/pretty-print";
 import { describeRequestError } from "@renderer/lib/response-error";
+import { useHistoryStore } from "@renderer/stores/history";
 import { useRequestStore } from "@renderer/stores/request";
 import { storeToRefs } from "pinia";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 
+import HistoryPanel from "./HistoryPanel.vue";
 import ScriptResultsPanel from "./ScriptResultsPanel.vue";
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
@@ -30,12 +32,28 @@ import WTabs from "./WTabs.vue";
 const MAX_DISPLAY_BYTES = 2_000_000;
 
 const store = useRequestStore();
-const { sending, lastResult, scriptRun } = storeToRefs(store);
+const { sending, lastResult, scriptRun, path } = storeToRefs(store);
 
 const successResult = computed(() => (lastResult.value?.ok ? lastResult.value : null));
 const failureResult = computed(() =>
   lastResult.value && !lastResult.value.ok ? lastResult.value : null,
 );
+
+// --- History (EP-08.1-T04) ------------------------------------------------------------
+const historyStore = useHistoryStore();
+const { entries: historyEntries } = storeToRefs(historyStore);
+
+watch(path, requestPath => void historyStore.loadFor(requestPath || null), { immediate: true });
+
+// `dispatch()` (EP-08.1-T03) já gravou uma entrada nova quando o envio termina — recarrega
+// para a aba History não ficar um envio atrasada.
+watch(sending, (isSending, wasSending) => {
+  if (wasSending && !isSending) void historyStore.loadFor(path.value || null);
+});
+
+function onClearHistory(): void {
+  void historyStore.clear();
+}
 
 // --- Tests (EP-09-T05) ---------------------------------------------------------------
 const scriptAssertions = computed(() => scriptRun.value?.assertions ?? []);
@@ -55,22 +73,35 @@ const contentType = computed(
     successResult.value?.headers.find(h => h.name.toLowerCase() === "content-type")?.value ?? "",
 );
 
-const mainTab = ref<"body" | "headers" | "cookies" | "tests">("body");
-const mainTabs = computed(() => [
-  { value: "body", label: "Body" },
-  { value: "headers", label: "Headers", count: successResult.value?.headers.length ?? 0 },
-  { value: "cookies", label: "Cookies", count: cookies.value.length },
-  ...(hasScriptResults.value
-    ? [
-        {
-          value: "tests",
-          label: "Tests",
-          count: scriptAssertions.value.length,
-          warning: failedAssertionCount.value > 0,
-        },
-      ]
-    : []),
-]);
+const mainTab = ref<"body" | "headers" | "cookies" | "history" | "tests">("body");
+const mainTabs = computed(() => {
+  const tabs: { value: string; label: string; count?: number; warning?: boolean }[] = [];
+  if (successResult.value) {
+    tabs.push({ value: "body", label: "Body" });
+    tabs.push({ value: "headers", label: "Headers", count: successResult.value.headers.length });
+    tabs.push({ value: "cookies", label: "Cookies", count: cookies.value.length });
+  }
+  // Sempre presente — o ponto da aba History é justamente valer mesmo sem `lastResult`
+  // desta sessão (app reaberto, EP-08.1-T01/T04).
+  tabs.push({ value: "history", label: "History", count: historyEntries.value.length });
+  if (hasScriptResults.value) {
+    tabs.push({
+      value: "tests",
+      label: "Tests",
+      count: scriptAssertions.value.length,
+      warning: failedAssertionCount.value > 0,
+    });
+  }
+  return tabs;
+});
+
+// Trocar de aba pode fazer a lista de tabs mudar por baixo (ex. sair de uma request com
+// resposta pra uma sem) — nunca deixa `mainTab` apontando pra uma aba que sumiu.
+watch(mainTabs, tabs => {
+  if (tabs.length > 0 && !tabs.some(tab => tab.value === mainTab.value)) {
+    mainTab.value = tabs[0].value as typeof mainTab.value;
+  }
+});
 
 const bodyViewMode = ref<"pretty" | "raw" | "preview">("pretty");
 const bodyViewOptions = computed(() => {
@@ -194,7 +225,7 @@ async function saveBody(): Promise<void> {
     </div>
 
     <WEmptyState
-      v-if="!sending && !lastResult"
+      v-if="!sending && !lastResult && historyEntries.length === 0"
       title="No response yet"
       description="Send a request to see the response here."
     >
@@ -209,27 +240,11 @@ async function saveBody(): Promise<void> {
       </template>
     </WEmptyState>
 
-    <template v-else-if="failureResult">
-      <div class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-        <WStatusBadge :code="null" />
-        <p class="font-barlow text-base font-semibold text-1">{{ failureResult.error.code }}</p>
-        <p class="max-w-md font-inter text-sm text-muted">
-          {{ describeRequestError(failureResult.error.code) }}
-        </p>
-        <p v-if="failureResult.error.detail" class="font-mono text-xs text-faint">
-          {{ failureResult.error.detail }}
-        </p>
-      </div>
-      <ScriptResultsPanel
-        v-if="hasScriptResults"
-        class="border-t border-subtle"
-        :assertions="scriptAssertions"
-        :console-entries="scriptConsole"
-      />
-    </template>
-
-    <template v-else-if="successResult">
-      <div class="flex h-9 shrink-0 items-center gap-4 border-b border-subtle px-3">
+    <template v-else>
+      <div
+        v-if="successResult"
+        class="flex h-9 shrink-0 items-center gap-4 border-b border-subtle px-3"
+      >
         <WStatusBadge :code="successResult.status" />
         <span class="font-mono text-[13px] text-muted" :title="timingTitle">
           {{ formatDuration(successResult.timing.total) }}
@@ -243,9 +258,30 @@ async function saveBody(): Promise<void> {
         </div>
       </div>
 
+      <div
+        v-else-if="failureResult"
+        class="flex shrink-0 flex-col items-center justify-center gap-2 p-6 text-center"
+      >
+        <WStatusBadge :code="null" />
+        <p class="font-barlow text-base font-semibold text-1">{{ failureResult.error.code }}</p>
+        <p class="max-w-md font-inter text-sm text-muted">
+          {{ describeRequestError(failureResult.error.code) }}
+        </p>
+        <p v-if="failureResult.error.detail" class="font-mono text-xs text-faint">
+          {{ failureResult.error.detail }}
+        </p>
+      </div>
+
+      <p v-else class="shrink-0 px-3 py-2 font-inter text-xs text-muted">
+        No response yet this session — showing history from before.
+      </p>
+
       <WTabs v-model="mainTab" :tabs="mainTabs" />
 
-      <div v-if="mainTab === 'body'" class="flex min-h-0 flex-1 flex-col gap-2 pt-2">
+      <div
+        v-if="mainTab === 'body' && successResult"
+        class="flex min-h-0 flex-1 flex-col gap-2 pt-2"
+      >
         <div class="w-32">
           <WSelect v-model="bodyViewMode" :options="bodyViewOptions" />
         </div>
@@ -306,7 +342,10 @@ async function saveBody(): Promise<void> {
         </div>
       </div>
 
-      <div v-else-if="mainTab === 'headers'" class="min-h-0 flex-1 overflow-y-auto pt-2">
+      <div
+        v-else-if="mainTab === 'headers' && successResult"
+        class="min-h-0 flex-1 overflow-y-auto pt-2"
+      >
         <div
           v-for="(header, index) in successResult.headers"
           :key="index"
@@ -317,6 +356,12 @@ async function saveBody(): Promise<void> {
         </div>
       </div>
 
+      <HistoryPanel
+        v-else-if="mainTab === 'history'"
+        :entries="historyEntries"
+        @clear="onClearHistory"
+      />
+
       <ScriptResultsPanel
         v-else-if="mainTab === 'tests'"
         :assertions="scriptAssertions"
@@ -324,7 +369,10 @@ async function saveBody(): Promise<void> {
         :pre-request-error="scriptPreRequestError"
       />
 
-      <div v-else-if="mainTab === 'cookies'" class="min-h-0 flex-1 overflow-y-auto pt-2">
+      <div
+        v-else-if="mainTab === 'cookies' && successResult"
+        class="min-h-0 flex-1 overflow-y-auto pt-2"
+      >
         <WEmptyState
           v-if="cookies.length === 0"
           title="No cookies"
