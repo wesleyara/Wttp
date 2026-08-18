@@ -50,7 +50,13 @@ const httpSend = vi.fn<(spec: unknown) => Promise<HttpResponseResult>>(
   async () => ({ ok: true }) as HttpResponseResult,
 );
 const historyAppend = vi.fn<
-  (payload: { root: string; path: string; secrets: string[] }) => Promise<void>
+  (payload: {
+    root: string;
+    path: string;
+    request: unknown;
+    response: unknown;
+    secrets: string[];
+  }) => Promise<void>
 >(async () => {});
 type ResolvedVariableLike = { name: string; value: string; source: string };
 const resolveRequest = vi.fn(
@@ -360,6 +366,33 @@ describe("useRequestTabsStore", () => {
     expect(historyAppend).toHaveBeenCalledOnce();
     expect(sendingWhenAppended).toBe(true);
     expect((tabs.active as { sending?: boolean } | null)?.sending).toBe(false);
+  });
+
+  it("passes structured-clone-safe request/response to history:append — reactive tab state must not leak across the IPC boundary", async () => {
+    httpSend.mockResolvedValueOnce({
+      ok: true,
+      requestId: "r1",
+      status: 200,
+      statusText: "OK",
+      headers: [{ name: "Content-Type", value: "application/json", enabled: true }],
+      body: new TextEncoder().encode('{"result":{"access_token":"abc"}}'),
+      charset: "utf-8",
+      size: { headersSent: 0, bodySent: 0, headersReceived: 0, bodyReceived: 0 },
+      timing: { dns: 0, connect: 0, tls: 0, ttfb: 0, download: 0, total: 0 },
+    });
+
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+    await tabs.send();
+
+    expect(historyAppend).toHaveBeenCalledOnce();
+    const call = historyAppend.mock.calls.at(-1)?.[0];
+    if (!call) throw new Error("expected history:append to have been called");
+    // `structuredClone` é exatamente o que o IPC do Electron usa — se isto lançar,
+    // `window.wttp.history.append` teria rejeitado ("An object could not be cloned")
+    // na aplicação real, deixando a request sem entrada de histórico.
+    expect(() => structuredClone(call.request)).not.toThrow();
+    expect(() => structuredClone(call.response)).not.toThrow();
   });
 
   it("uma falha em history:append não deixa o spinner de sending preso", async () => {
