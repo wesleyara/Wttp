@@ -163,8 +163,8 @@ async function duplicateEnvironment(): Promise<void> {
 </script>
 
 <template>
-  <WModal :open="open" title="Environments" size="lg" @close="close">
-    <div class="flex h-[28rem] gap-4">
+  <WModal :open="open" title="Environments" size="fullscreen" @close="close">
+    <div class="flex h-full min-h-0 gap-4">
       <div class="flex w-48 shrink-0 flex-col gap-1 border-r border-subtle pr-3">
         <button
           type="button"

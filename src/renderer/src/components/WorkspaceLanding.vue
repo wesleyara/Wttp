@@ -1,19 +1,37 @@
 <script setup lang="ts">
+import type { DiscoveredWorkspace } from "@shared";
+
 import WButton from "@renderer/components/WButton.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WModal from "@renderer/components/WModal.vue";
 import { useSettingsStore } from "@renderer/stores/settings";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
-import { ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 
 const workspace = useWorkspaceStore();
 const settings = useSettingsStore();
 
 const createModalOpen = ref(false);
+/** `null` quando a raiz de workspaces está configurada — o caminho é computado a partir do nome, sem picker. */
 const createPath = ref<string | null>(null);
 const createName = ref("");
 
 const initName = ref("");
+
+const discovered = ref<DiscoveredWorkspace[]>([]);
+
+async function refreshDiscovered(): Promise<void> {
+  if (!settings.workspacesContainerDir) {
+    discovered.value = [];
+    return;
+  }
+  discovered.value = await window.wttp.workspace.listInDir({
+    dir: settings.workspacesContainerDir,
+  });
+}
+
+onMounted(refreshDiscovered);
+watch(() => settings.workspacesRootDir, refreshDiscovered);
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString();
@@ -24,6 +42,13 @@ async function onOpen(): Promise<void> {
 }
 
 async function onStartCreate(): Promise<void> {
+  if (settings.workspacesRootDir) {
+    createPath.value = null;
+    createName.value = "";
+    createModalOpen.value = true;
+    return;
+  }
+
   const path = await workspace.pickFolder(settings.defaultWorkspaceDir);
   if (!path) return;
   createPath.value = path;
@@ -38,9 +63,13 @@ async function onChangeDefaultDir(): Promise<void> {
 }
 
 async function onConfirmCreate(): Promise<void> {
-  if (!createPath.value || !createName.value.trim()) return;
-  await workspace.create(createPath.value, createName.value.trim());
+  const name = createName.value.trim();
+  if (!name) return;
+
+  const path = createPath.value ?? `${settings.workspacesContainerDir}/${name}`;
+  await workspace.create(path, name);
   createModalOpen.value = false;
+  await refreshDiscovered();
 }
 
 async function onOpenRecent(path: string): Promise<void> {
@@ -105,6 +134,30 @@ async function onInitializeHere(): Promise<void> {
         </button>
       </div>
 
+      <div v-if="discovered.length > 0" class="flex flex-col gap-1">
+        <p class="font-inter text-xs font-medium text-muted">Workspaces</p>
+        <ul class="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
+          <li
+            v-for="entry in discovered"
+            :key="entry.path"
+            tabindex="0"
+            role="button"
+            class="flex cursor-pointer items-center justify-between gap-3 px-3 py-2 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            :class="{ 'opacity-60': !entry.valid }"
+            @click="onOpenRecent(entry.path)"
+            @keydown.enter="onOpenRecent(entry.path)"
+          >
+            <div class="min-w-0">
+              <p class="truncate font-inter text-sm text-1">{{ entry.name }}</p>
+              <p class="truncate font-mono text-[11px] text-faint">{{ entry.path }}</p>
+            </div>
+            <span v-if="!entry.valid" class="shrink-0 font-inter text-xs text-faint">
+              No wttp.yaml yet
+            </span>
+          </li>
+        </ul>
+      </div>
+
       <div v-if="workspace.recents.length > 0" class="flex flex-col gap-1">
         <p class="font-inter text-xs font-medium text-muted">Recent</p>
         <ul class="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
@@ -137,7 +190,9 @@ async function onInitializeHere(): Promise<void> {
 
     <WModal :open="createModalOpen" title="Create workspace" @close="createModalOpen = false">
       <div class="flex flex-col gap-3">
-        <p class="font-mono text-[11px] text-faint">{{ createPath }}</p>
+        <p class="font-mono text-[11px] text-faint">
+          {{ createPath ?? `${settings.workspacesContainerDir}/${createName || "…"}` }}
+        </p>
         <WInput v-model="createName" placeholder="Workspace name" />
       </div>
       <template #footer>

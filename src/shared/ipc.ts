@@ -48,6 +48,13 @@ export interface AppSettings {
   theme: "dark" | "light" | "system";
   /** Pasta sugerida como ponto de partida ao criar um novo workspace (EP-06.1). */
   defaultWorkspaceDir?: string;
+  /**
+   * Pasta raiz onde o app organiza workspaces sob `<workspacesRootDir>/wttp/`.
+   * Distinta de `defaultWorkspaceDir`: aquele é só o ponto de partida do diálogo
+   * de "Abrir pasta" livre; este é enumerado por `workspace:listInDir` para o
+   * switcher de workspaces (Preferences).
+   */
+  workspacesRootDir?: string;
 }
 
 /**
@@ -56,6 +63,7 @@ export interface AppSettings {
  * é um evento main → renderer sem resposta, então fica fora dele.
  */
 export type MenuAction =
+  | "preferences:open"
   | "request:new"
   | "request:save"
   | "request:send"
@@ -265,6 +273,18 @@ export interface EnvironmentPathPayload {
   path: string;
 }
 
+/** Payload de `workspace:listInDir` — enumera subpastas de `dir` que são (ou não) workspaces válidos. */
+export interface ListWorkspacesInDirPayload {
+  dir: string;
+}
+
+/** Uma subpasta encontrada em `workspace:listInDir` — `valid` indica se tem `wttp.yaml`. */
+export interface DiscoveredWorkspace {
+  path: string;
+  name: string;
+  valid: boolean;
+}
+
 /**
  * Canal → forma do payload e do retorno.
  *
@@ -295,6 +315,8 @@ export interface IpcContract {
   "workspace:setVariables": { payload: SetWorkspaceVariablesPayload; result: WorkspaceTree };
   /** Rescan sem efeitos colaterais (não toca recentes nem reinicia o watcher) — usado depois de um `node:*` que a store já sabe que aconteceu. */
   "workspace:rescan": { payload: WorkspaceRootPayload; result: WorkspaceTree };
+  /** Lista subpastas de `dir` (ex. `<workspacesRootDir>/wttp`) marcando quais têm `wttp.yaml` — dir inexistente resolve `[]`, não rejeita. */
+  "workspace:listInDir": { payload: ListWorkspacesInDirPayload; result: DiscoveredWorkspace[] };
   "node:read": { payload: NodePathPayload; result: FolderNode | RequestNode };
   "node:write": { payload: WriteNodePayload; result: void };
   "node:move": { payload: MoveNodePayload; result: void };

@@ -180,6 +180,13 @@ function select(path: string): void {
   emit("update:selectedPath", path);
 }
 
+/** Clique fora de qualquer linha limpa a seleção — contexto de criação volta à raiz, como no VS Code. */
+function onContainerClick(event: MouseEvent): void {
+  const target = event.target as HTMLElement;
+  if (target.closest('[role="treeitem"]')) return;
+  emit("update:selectedPath", null);
+}
+
 /** Pasta: sempre expande/recolhe. Request: preview no clique simples, fixa no duplo/Enter. */
 function activate(node: WorkspaceNode, mode: "preview" | "pinned"): void {
   if (node.kind === "folder") toggleExpanded(node.path);
@@ -384,6 +391,7 @@ function onKeydown(event: KeyboardEvent): void {
     class="h-full overflow-y-auto outline-none"
     @scroll="onScroll"
     @keydown="onKeydown"
+    @click="onContainerClick"
   >
     <div class="relative" :style="{ height: `${totalHeight}px` }">
       <div class="absolute inset-x-0" :style="{ transform: `translateY(${offsetY}px)` }">

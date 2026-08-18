@@ -9,7 +9,12 @@ import {
   removeRecentWorkspace,
   touchRecentWorkspace,
 } from "../storage/recentWorkspaces";
-import { initWorkspace, scanWorkspace, updateWorkspaceVariables } from "../storage/tree";
+import {
+  initWorkspace,
+  listWorkspacesInDir,
+  scanWorkspace,
+  updateWorkspaceVariables,
+} from "../storage/tree";
 import { watchWorkspace, type WorkspaceWatcher } from "../storage/watcher";
 import { readWorkspaceUiState, writeWorkspaceUiState } from "../storage/workspaceUiState";
 import { registerHandler } from "./registry";
@@ -80,4 +85,6 @@ export function registerWorkspaceHandlers(): void {
   registerHandler("workspace:setVariables", payload =>
     updateWorkspaceVariables(payload.root, payload.variables),
   );
+
+  registerHandler("workspace:listInDir", payload => listWorkspacesInDir(payload.dir));
 }

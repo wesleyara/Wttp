@@ -3,6 +3,7 @@ import type { WorkspaceNode } from "@shared";
 
 import CommandPalette from "@renderer/components/CommandPalette.vue";
 import EnvironmentEditorModal from "@renderer/components/EnvironmentEditorModal.vue";
+import PreferencesModal from "@renderer/components/PreferencesModal.vue";
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
 import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
@@ -49,6 +50,7 @@ function onTabNext(): void {
 
 const paletteOpen = ref(false);
 const environmentEditorOpen = ref(false);
+const preferencesOpen = ref(false);
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const target = tree.contextMenuTarget;
@@ -94,6 +96,7 @@ onMounted(() => {
     },
     "tab:next": onTabNext,
     "search:quickOpen": () => (paletteOpen.value = true),
+    "preferences:open": () => (preferencesOpen.value = true),
   });
 });
 
@@ -102,11 +105,6 @@ onUnmounted(() => stopListeningToMenu?.());
 
 <template>
   <div class="flex h-screen flex-col bg-surface-1">
-    <div class="flex h-8 shrink-0 items-center justify-end border-b border-subtle px-2">
-      <WButton size="sm" variant="ghost" @click="ui.toggleResponsePanelPosition">
-        Response panel: {{ ui.responsePanelPosition }}
-      </WButton>
-    </div>
     <div class="min-h-0 flex-1">
       <WorkspaceLanding v-if="!workspace.ready" />
       <WSplitPane
@@ -209,11 +207,16 @@ onUnmounted(() => stopListeningToMenu?.());
         </template>
       </WSplitPane>
     </div>
-    <StatusBar @open-environment-editor="environmentEditorOpen = true" />
+    <StatusBar
+      @open-environment-editor="environmentEditorOpen = true"
+      @open-preferences="preferencesOpen = true"
+    />
 
     <CommandPalette :open="paletteOpen" @close="paletteOpen = false" />
 
     <EnvironmentEditorModal :open="environmentEditorOpen" @close="environmentEditorOpen = false" />
+
+    <PreferencesModal :open="preferencesOpen" @close="preferencesOpen = false" />
 
     <WToast />
 

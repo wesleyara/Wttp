@@ -12,6 +12,7 @@ import { computed, ref, watch } from "vue";
 export const useSettingsStore = defineStore("settings", () => {
   const theme = ref<AppSettings["theme"]>("system");
   const defaultWorkspaceDir = ref<string | undefined>(undefined);
+  const workspacesRootDir = ref<string | undefined>(undefined);
   const systemPrefersLight = ref(
     typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: light)").matches : false,
   );
@@ -20,6 +21,11 @@ export const useSettingsStore = defineStore("settings", () => {
     if (theme.value === "system") return systemPrefersLight.value ? "light" : "dark";
     return theme.value;
   });
+
+  /** `<workspacesRootDir>/wttp` — onde o app cria e enumera workspaces (Preferences). */
+  const workspacesContainerDir = computed<string | undefined>(() =>
+    workspacesRootDir.value ? `${workspacesRootDir.value}/wttp` : undefined,
+  );
 
   function applyToDocument(): void {
     document.documentElement.classList.toggle("dark", resolvedTheme.value === "dark");
@@ -31,6 +37,7 @@ export const useSettingsStore = defineStore("settings", () => {
     const settings = await window.wttp.settings.get();
     theme.value = settings.theme;
     defaultWorkspaceDir.value = settings.defaultWorkspaceDir;
+    workspacesRootDir.value = settings.workspacesRootDir;
     applyToDocument();
   }
 
@@ -44,11 +51,26 @@ export const useSettingsStore = defineStore("settings", () => {
     void window.wttp.settings.set({ defaultWorkspaceDir: next });
   }
 
+  function setWorkspacesRootDir(next: string | undefined): void {
+    workspacesRootDir.value = next;
+    void window.wttp.settings.set({ workspacesRootDir: next });
+  }
+
   if (typeof matchMedia === "function") {
     matchMedia("(prefers-color-scheme: light)").addEventListener("change", event => {
       systemPrefersLight.value = event.matches;
     });
   }
 
-  return { theme, resolvedTheme, defaultWorkspaceDir, load, setTheme, setDefaultWorkspaceDir };
+  return {
+    theme,
+    resolvedTheme,
+    defaultWorkspaceDir,
+    workspacesRootDir,
+    workspacesContainerDir,
+    load,
+    setTheme,
+    setDefaultWorkspaceDir,
+    setWorkspacesRootDir,
+  };
 });

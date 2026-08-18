@@ -81,6 +81,29 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+/** Um diretório é um workspace válido se tiver `wttp.yaml` na raiz — mesma checagem usada por `scanWorkspace`. */
+export async function hasWorkspaceManifest(root: string): Promise<boolean> {
+  return exists(join(root, WORKSPACE_FILE));
+}
+
+/**
+ * Lista as subpastas imediatas de `dir` (ex. `<workspacesRootDir>/wttp`), marcando
+ * quais têm `wttp.yaml` — usado pelo switcher de workspaces (Preferences). `dir`
+ * inexistente (raiz ainda não configurada) resolve `[]`, não lança.
+ */
+export async function listWorkspacesInDir(
+  dir: string,
+): Promise<{ path: string; name: string; valid: boolean }[]> {
+  const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+  const dirs = entries.filter(entry => entry.isDirectory());
+  return Promise.all(
+    dirs.map(async entry => {
+      const path = join(dir, entry.name);
+      return { path, name: entry.name, valid: await hasWorkspaceManifest(path) };
+    }),
+  );
+}
+
 async function readRequestNode(root: string, relPath: string): Promise<WorkspaceNode> {
   const absPath = join(root, relPath);
   const raw = await fs.readFile(absPath, "utf-8");

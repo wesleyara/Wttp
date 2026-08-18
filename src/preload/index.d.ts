@@ -4,12 +4,14 @@ import type {
   AppSettings,
   CreateNodePayload,
   CreateWorkspacePayload,
+  DiscoveredWorkspace,
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
   HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
+  ListWorkspacesInDirPayload,
   MenuAction,
   MoveNodeIntoPayload,
   MoveNodePayload,
@@ -69,6 +71,7 @@ interface WttpApi {
     getUiState: (payload: WorkspaceRootPayload) => Promise<WorkspaceUiState>;
     setUiState: (payload: SetWorkspaceUiStatePayload) => Promise<void>;
     setVariables: (payload: SetWorkspaceVariablesPayload) => Promise<WorkspaceTree>;
+    listInDir: (payload: ListWorkspacesInDirPayload) => Promise<DiscoveredWorkspace[]>;
     onChanged: (callback: (event: WorkspaceChangedEvent) => void) => () => void;
   };
   node: {

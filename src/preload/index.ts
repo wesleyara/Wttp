@@ -3,12 +3,14 @@ import type {
   AppSettings,
   CreateNodePayload,
   CreateWorkspacePayload,
+  DiscoveredWorkspace,
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
   HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
+  ListWorkspacesInDirPayload,
   MenuAction,
   MoveNodeIntoPayload,
   MoveNodePayload,
@@ -91,6 +93,8 @@ const wttp = {
       invoke("workspace:setUiState", payload),
     setVariables: (payload: SetWorkspaceVariablesPayload): Promise<WorkspaceTree> =>
       invoke("workspace:setVariables", payload),
+    listInDir: (payload: ListWorkspacesInDirPayload): Promise<DiscoveredWorkspace[]> =>
+      invoke("workspace:listInDir", payload),
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
     onChanged: (callback: (event: WorkspaceChangedEvent) => void): (() => void) => {
       const listener = (_event: Electron.IpcRendererEvent, changed: WorkspaceChangedEvent): void =>
