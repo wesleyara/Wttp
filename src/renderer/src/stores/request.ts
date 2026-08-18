@@ -8,6 +8,7 @@ import type {
 } from "@shared";
 
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { useToastStore } from "@renderer/stores/toast";
 import { defineStore } from "pinia";
 import { computed } from "vue";
 
@@ -21,6 +22,7 @@ import { computed } from "vue";
  */
 export const useRequestStore = defineStore("request", () => {
   const tabs = useRequestTabsStore();
+  const toast = useToastStore();
 
   // A aba ativa pode agora ser de pasta/collection (EP-07.1) — esta fachada só faz
   // sentido para uma de request; os componentes que a consomem (`RequestConfigTabs`,
@@ -121,6 +123,34 @@ export const useRequestStore = defineStore("request", () => {
     return tabs.saveResponseToFile();
   }
 
+  /**
+   * Colar um cURL na barra de URL preenche a request inteira (EP-08-T05) em vez de
+   * só o texto colado. Devolve `false` quando o conteúdo não era mesmo um cURL — quem
+   * chama decide deixar o paste padrão acontecer nesse caso.
+   */
+  async function applyPastedCurl(content: string): Promise<boolean> {
+    if (!active.value) return false;
+
+    const parsed = await window.wttp.import.parseCurl({ content });
+    if (!parsed) return false;
+
+    active.value.method = parsed.method;
+    active.value.url = parsed.url;
+    active.value.query = parsed.query;
+    active.value.headers = parsed.headers;
+    if (parsed.auth) active.value.auth = parsed.auth;
+    if (parsed.body) active.value.body = parsed.body;
+    tabs.markActiveDirty();
+
+    toast.push(
+      parsed.notConverted.length > 0
+        ? `cURL importado — ${parsed.notConverted.length} item(ns) não convertido(s)`
+        : "cURL importado",
+      parsed.notConverted.length > 0 ? "warning" : "success",
+    );
+    return true;
+  }
+
   return {
     path,
     method,
@@ -136,5 +166,6 @@ export const useRequestStore = defineStore("request", () => {
     send,
     cancel,
     saveResponseToFile,
+    applyPastedCurl,
   };
 });

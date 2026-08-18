@@ -111,7 +111,7 @@ Código de erro novo: `IMPORT_FORMAT_UNRECOGNIZED`.
 
 ### EP-08-T05 — cURL
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-08-T01
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-08-T01
 
 **Objetivo.** Colar um comando cURL e ter a request pronta.
 
@@ -123,9 +123,29 @@ Código de erro novo: `IMPORT_FORMAT_UNRECOGNIZED`.
 
 **Critérios de aceite.**
 
-- [ ] Comando copiado do DevTools do Chrome importa corretamente
-- [ ] Continuação com `\` e aspas aninhadas são tratadas
-- [ ] Colar uma URL normal continua se comportando como URL, não como cURL
+- [x] Comando copiado do DevTools do Chrome importa corretamente
+- [x] Continuação com `\` e aspas aninhadas são tratadas
+- [x] Colar uma URL normal continua se comportando como URL, não como cURL
+
+**Notas de implementação.** O parser (`src/main/importers/curl.ts`) tem duas saídas:
+`curlImporter` (contrato `Importer` de EP-08-T01, usado por `import:run` para criar
+uma request na árvore do workspace) e `parseCurlToRequest`, exposto pelo canal
+`import:parseCurl`, usado só pela barra de URL — preenche a aba ativa direto
+(`useRequestStore.applyPastedCurl`), sem passar pela árvore. Tokenizador próprio
+(`tokenizeShellCommand`) resolve aspas simples/duplas aninhadas e junta continuação de
+linha (`\` + quebra) antes de tokenizar. Flag não suportada (ex.: `-b/--cookie`) vira
+`ImportReportItem` em vez de travar o parser ou ser descartada em silêncio — mesmo
+princípio do resto do épico. Detecção de "isto é um cURL?" é client-side
+(`RequestUrlBar.vue`, regex `^\s*curl(\.exe)?\s`) só para decidir se intercepta o
+evento `paste` (capture phase, com `stopPropagation` antes do `WCodeEditor`/CodeMirror
+processar o paste padrão) — o parsing de verdade continua só no main, a store nunca
+duplica a lógica de parsing, só a heurística "vale a pena chamar o IPC?".
+A "UI de import" citada no escopo (modal genérico de import) é EP-08-T06, ainda
+pendente — o que está pronto aqui é o formato em si, consumível por ela quando
+existir. **Não verificado**: `-b`/`--cookie` de um `curl` real do DevTools do Chrome
+(Chrome usa `-H 'cookie: ...'`, não `-b`, então não deveria aparecer na prática, mas
+não testado contra uma captura real). Mesma pendência de verificação visual (dark/light)
+das notas de outros épicos — sem `xvfb`/`sudo` neste ambiente.
 
 ---
 

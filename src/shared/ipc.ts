@@ -14,7 +14,14 @@ import type {
   KeyValueEntry,
   RequestBody,
 } from "./http";
-import type { DetectImportPayload, ImportFormat, ImportReport, RunImportPayload } from "./import";
+import type {
+  DetectImportPayload,
+  ImportFormat,
+  ImportReport,
+  ParseCurlPayload,
+  ParsedCurlRequest,
+  RunImportPayload,
+} from "./import";
 import type {
   EnvironmentListItem,
   FolderNode,
@@ -365,6 +372,8 @@ export interface IpcContract {
   /** Reconhecimento heurístico de formato pelo conteúdo (EP-08-T01) — `null` quando nenhum importador reconhece. */
   "import:detect": { payload: DetectImportPayload; result: ImportFormat | null };
   "import:run": { payload: RunImportPayload; result: ImportReport };
+  /** `null` quando o conteúdo não parece um comando cURL (EP-08-T05). */
+  "import:parseCurl": { payload: ParseCurlPayload; result: ParsedCurlRequest | null };
 }
 
 export type IpcChannel = keyof IpcContract;

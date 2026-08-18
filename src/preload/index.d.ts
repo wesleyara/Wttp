@@ -20,6 +20,8 @@ import type {
   MoveNodePayload,
   NodePathPayload,
   OpenWorkspacePayload,
+  ParseCurlPayload,
+  ParsedCurlRequest,
   PickFolderPayload,
   PickFolderResult,
   RecentWorkspace,
@@ -115,6 +117,7 @@ interface WttpApi {
   import: {
     detect: (payload: DetectImportPayload) => Promise<ImportFormat | null>;
     run: (payload: RunImportPayload) => Promise<ImportReport>;
+    parseCurl: (payload: ParseCurlPayload) => Promise<ParsedCurlRequest | null>;
   };
 }
 

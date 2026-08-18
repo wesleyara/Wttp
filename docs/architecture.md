@@ -88,6 +88,7 @@ Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos t
 | `script:run`        | invoke  | `ScriptRunSpec` → `ScriptResult`                   |
 | `import:detect`     | invoke  | `{ content, filename? }` → `ImportFormat \| null`  |
 | `import:run`        | invoke  | `{ format, content, root, targetPath }` → `ImportReport` |
+| `import:parseCurl`  | invoke  | `{ content }` → `ParsedCurlRequest \| null`        |
 | `menu:action`       | event ↓ | `MenuAction`                                       |
 
 `event ↓` = emitido do main para o renderer.
