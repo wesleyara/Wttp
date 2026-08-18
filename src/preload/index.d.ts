@@ -1,5 +1,6 @@
 import type { ElectronAPI } from "@electron-toolkit/preload";
 import type {
+  AppendHistoryPayload,
   AppInfo,
   AppSettings,
   CreateNodePayload,
@@ -9,6 +10,7 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  HistoryEntry,
   HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
@@ -31,6 +33,7 @@ import type {
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
+  RequestHistoryPayload,
   RequestNode,
   ResolveAuthChainPayload,
   ResolveAuthChainResultPayload,
@@ -133,6 +136,11 @@ interface WttpApi {
   };
   script: {
     run: (payload: ScriptRunSpec) => Promise<ScriptRunResult>;
+  };
+  history: {
+    list: (payload: RequestHistoryPayload) => Promise<HistoryEntry[]>;
+    append: (payload: AppendHistoryPayload) => Promise<void>;
+    clear: (payload: RequestHistoryPayload) => Promise<void>;
   };
 }
 

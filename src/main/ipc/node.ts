@@ -1,5 +1,6 @@
 import { shell } from "electron";
 
+import { deleteHistoryFile, renameHistoryFile } from "../storage/history";
 import { resolveWorkspacePath } from "../storage/paths";
 import {
   createNode,
@@ -19,12 +20,23 @@ export function registerNodeHandlers(): void {
   registerHandler("node:move", payload =>
     moveNode(payload.root, payload.from, payload.to, payload.seq),
   );
-  registerHandler("node:delete", payload => deleteNode(payload.root, payload.path));
+  registerHandler("node:delete", async payload => {
+    await deleteNode(payload.root, payload.path);
+    // Sem histórico prévio (pasta, ou request que nunca enviou nada) é um no-op —
+    // não deixa órfão em `.wttp/history/` (EP-08.1-T03).
+    await deleteHistoryFile(payload.root, payload.path);
+  });
 
   registerHandler("node:create", payload =>
     createNode(payload.root, payload.parentPath, payload.kind, payload.name),
   );
-  registerHandler("node:rename", payload => renameNode(payload.root, payload.path, payload.name));
+  registerHandler("node:rename", async payload => {
+    const node = await renameNode(payload.root, payload.path, payload.name);
+    if (node.path !== payload.path) {
+      await renameHistoryFile(payload.root, payload.path, node.path);
+    }
+    return node;
+  });
   registerHandler("node:duplicate", payload => duplicateNode(payload.root, payload.path));
   registerHandler("node:moveInto", payload =>
     moveNodeInto(payload.root, payload.from, payload.targetDir, payload.index),
@@ -47,5 +59,6 @@ export function registerNodeHandlers(): void {
       console.warn(`wttp: trash unavailable, deleting "${absPath}" permanently`, error);
       await deleteNode(payload.root, payload.path);
     }
+    await deleteHistoryFile(payload.root, payload.path);
   });
 }

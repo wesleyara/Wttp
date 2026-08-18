@@ -718,6 +718,18 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     return { assertions, console: consoleEntries };
   }
 
+  /** Valores reais das variáveis `secret: true` usadas nesta resolução (EP-08.1-T03) — o main mascara qualquer ocorrência deles antes de gravar no histórico. */
+  function secretsUsedIn(resolved: ResolveRequestResultPayload): string[] {
+    const secretNames = new Set(
+      (environment.active?.data.variables ?? []).filter(v => v.secret).map(v => v.name),
+    );
+    const values = resolved.used
+      .filter(used => secretNames.has(used.name))
+      .map(used => used.value)
+      .filter(value => value.length > 0);
+    return [...new Set(values)];
+  }
+
   async function dispatch(
     tab: RequestTabState,
     resolved: ResolveRequestResultPayload,
@@ -728,6 +740,9 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     tab.scriptRun = null;
 
     const scope = buildScriptScope(tab.path);
+    // `null` até o envio de fato acontecer (preRequest abortado nunca chega a mandar
+    // nada) — usado no `finally` para decidir se grava uma entrada de histórico.
+    let sentSpec: HttpRequestSpec | null = null;
 
     try {
       const initialSpec: HttpRequestSpec = {
@@ -754,6 +769,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         return;
       }
 
+      sentSpec = preRequest.spec;
       tab.lastResult = await window.wttp.http.send(preRequest.spec);
 
       const tests = await runTestsChain(tab, tab.lastResult, scope);
@@ -768,6 +784,15 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       // o pre-request abortou o envio, o que rodou antes da falha ainda vale.
       await persistEnvVars(scope.envVars);
       await persistCollectionVars(tab.path, scope.collectionVars);
+      if (sentSpec && tab.lastResult && workspace.root) {
+        await window.wttp.history.append({
+          root: workspace.root,
+          path: tab.path,
+          request: sentSpec,
+          response: tab.lastResult,
+          secrets: secretsUsedIn(resolved),
+        });
+      }
     }
   }
 

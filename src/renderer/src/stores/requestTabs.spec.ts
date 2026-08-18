@@ -49,6 +49,10 @@ const getDrafts = vi.fn(async () => ({}) as Record<string, unknown>);
 const httpSend = vi.fn<(spec: unknown) => Promise<HttpResponseResult>>(
   async () => ({ ok: true }) as HttpResponseResult,
 );
+const historyAppend = vi.fn<
+  (payload: { root: string; path: string; secrets: string[] }) => Promise<void>
+>(async () => {});
+type ResolvedVariableLike = { name: string; value: string; source: string };
 const resolveRequest = vi.fn(
   async ({
     request,
@@ -57,8 +61,8 @@ const resolveRequest = vi.fn(
   }) => ({
     ...request,
     unresolved: [] as string[],
-    used: [],
-    cycles: [],
+    used: [] as ResolvedVariableLike[],
+    cycles: [] as string[][],
   }),
 );
 type AuthLike = { type: string } | undefined;
@@ -141,6 +145,7 @@ beforeEach(() => {
   getDrafts.mockClear();
   getDrafts.mockImplementation(async () => ({}));
   httpSend.mockClear();
+  historyAppend.mockClear();
   resolveRequest.mockClear();
   resolveAuthChain.mockClear();
   scriptRun.mockClear();
@@ -179,6 +184,7 @@ beforeEach(() => {
       secret: { get: vi.fn(async () => null) },
       variables: { resolveText: vi.fn(), resolveRequest, resolveAuthChain },
       script: { run: scriptRun },
+      history: { list: vi.fn(async () => []), append: historyAppend, clear: vi.fn() },
     },
   });
 
@@ -295,6 +301,49 @@ describe("useRequestTabsStore", () => {
     expect(resolveRequest).toHaveBeenCalledOnce();
     expect(httpSend).toHaveBeenCalledOnce();
     expect(tabs.unresolvedSendId).toBeNull();
+  });
+
+  it("send() bem-sucedido grava uma entrada de histórico com as variáveis secret usadas (EP-08.1-T03)", async () => {
+    resolveRequest.mockResolvedValueOnce({
+      url: "https://example.com/a",
+      query: [],
+      headers: [],
+      auth: { type: "none" },
+      body: { type: "none" },
+      unresolved: [],
+      used: [
+        { name: "token", value: "s3cr3t", source: "environment" },
+        { name: "base_url", value: "https://example.com", source: "environment" },
+      ],
+      cycles: [],
+    });
+
+    const environment = useEnvironmentStore();
+    environment.items = [
+      {
+        path: "environments/dev.yaml",
+        data: {
+          wttp: 1,
+          name: "dev",
+          variables: [
+            { name: "token", value: "", enabled: true, secret: true },
+            { name: "base_url", value: "https://example.com", enabled: true },
+          ],
+        },
+      },
+    ];
+    environment.setActive("environments/dev.yaml");
+
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+    await tabs.send();
+
+    expect(historyAppend).toHaveBeenCalledOnce();
+    const call = historyAppend.mock.calls[0][0];
+    expect(call.root).toBe(ROOT);
+    expect(call.path).toBe("a.req.yaml");
+    // Só o nome marcado `secret: true` no environment ativo entra na lista — `base_url` não é segredo.
+    expect(call.secrets).toEqual(["s3cr3t"]);
   });
 
   it("send() com variável não resolvida pausa e pede confirmação em vez de disparar", async () => {
@@ -481,6 +530,8 @@ describe("useRequestTabsStore", () => {
       if (!isRequestTab(active)) throw new Error("expected a request tab");
       expect(active.scriptRun?.preRequestError?.error.message).toBe("boom");
       expect(active.scriptRun?.preRequestError?.source).toBe("This request");
+      // Nada foi enviado (EP-08.1-T03) — não há request/response de verdade para o histórico.
+      expect(historyAppend).not.toHaveBeenCalled();
     });
 
     it("does not fail the request when a tests script fails — the response still shows", async () => {

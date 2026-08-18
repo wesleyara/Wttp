@@ -1,4 +1,5 @@
 import type {
+  AppendHistoryPayload,
   AppInfo,
   AppSettings,
   CreateNodePayload,
@@ -8,6 +9,7 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  HistoryEntry,
   HttpProgressEvent,
   HttpRequestSpec,
   HttpResponseResult,
@@ -30,6 +32,7 @@ import type {
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
+  RequestHistoryPayload,
   RequestNode,
   ResolveAuthChainPayload,
   ResolveAuthChainResultPayload,
@@ -186,6 +189,12 @@ const wttp = {
   },
   script: {
     run: (payload: ScriptRunSpec): Promise<ScriptRunResult> => invoke("script:run", payload),
+  },
+  history: {
+    list: (payload: RequestHistoryPayload): Promise<HistoryEntry[]> =>
+      invoke("history:list", payload),
+    append: (payload: AppendHistoryPayload): Promise<void> => invoke("history:append", payload),
+    clear: (payload: RequestHistoryPayload): Promise<void> => invoke("history:clear", payload),
   },
 };
 
