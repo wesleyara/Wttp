@@ -12,13 +12,14 @@ import type { KeyValueRow } from "./WKeyValueTable.vue";
 
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
+import WIcon from "./WIcon.vue";
 import WInput from "./WInput.vue";
 import WKeyValueTable from "./WKeyValueTable.vue";
 import WSelect from "./WSelect.vue";
 import WTabs from "./WTabs.vue";
 
 const store = useRequestStore();
-const { query, headers, body, docs, path } = storeToRefs(store);
+const { pathParams, query, headers, body, docs, path } = storeToRefs(store);
 const variablesStore = useVariablesStore();
 
 const activeTab = ref("params");
@@ -35,6 +36,12 @@ const bodyText = computed(() => {
 const { unresolved: bodyUnresolved, tooltips: bodyTooltips } = useVariablePreview(bodyText, path);
 const variableNames = computed(() => variablesStore.variableNamesFor(path.value));
 
+const pathParamsText = computed(() => pathParams.value.map(row => row.value).join("\n"));
+const { unresolved: pathParamsUnresolved, tooltips: pathParamsTooltips } = useVariablePreview(
+  pathParamsText,
+  path,
+);
+
 const queryText = computed(() => query.value.map(row => row.value).join("\n"));
 const { unresolved: queryUnresolved, tooltips: queryTooltips } = useVariablePreview(
   queryText,
@@ -46,6 +53,43 @@ const { unresolved: headersUnresolved, tooltips: headersTooltips } = useVariable
   headersText,
   path,
 );
+
+const urlencodedText = computed(() =>
+  body.value.type === "urlencoded" ? body.value.urlencoded.map(row => row.value).join("\n") : "",
+);
+const { unresolved: urlencodedUnresolved, tooltips: urlencodedTooltips } = useVariablePreview(
+  urlencodedText,
+  path,
+);
+
+const multipartText = computed(() =>
+  body.value.type === "multipart"
+    ? body.value.multipart
+        .filter(row => row.type === "text")
+        .map(row => row.value)
+        .join("\n")
+    : "",
+);
+const { unresolved: multipartUnresolved, tooltips: multipartTooltips } = useVariablePreview(
+  multipartText,
+  path,
+);
+
+const { unresolved: docsUnresolved, tooltips: docsTooltips } = useVariablePreview(docs, path);
+
+function unresolvedNamesIn(names: string[], value: string): string[] {
+  return names.filter(name => new RegExp(`\\{\\{\\s*${escapeRegExp(name)}\\s*\\}\\}`).test(value));
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function multipartRowTooltip(value: string): string | undefined {
+  const names = unresolvedNamesIn(multipartUnresolved.value, value);
+  if (names.length === 0) return undefined;
+  return names.map(name => multipartTooltips.value[name] ?? `${name} — not resolved`).join("\n");
+}
 
 function countActive(rows: { enabled: boolean; name: string }[]): number {
   return rows.filter(row => row.enabled && row.name !== "").length;
@@ -63,7 +107,11 @@ const bodyCount = computed(() => {
 });
 
 const tabs = computed(() => [
-  { value: "params", label: "Params", count: countActive(query.value) },
+  {
+    value: "params",
+    label: "Params",
+    count: countActive(query.value) + countActive(pathParams.value),
+  },
   { value: "headers", label: "Headers", count: countActive(headers.value) },
   { value: "body", label: "Body", count: bodyCount.value },
   { value: "auth", label: "Auth" },
@@ -71,6 +119,7 @@ const tabs = computed(() => [
   { value: "docs", label: "Docs" },
 ]);
 
+const pathParamRows = useKeyValueRows(pathParams);
 const queryRows = useKeyValueRows(query);
 const headerRows = useKeyValueRows(headers);
 
@@ -202,12 +251,18 @@ function findContentTypeIndex(rows: { name: string }[]): number {
 
 watch(suggestedContentType, suggestion => {
   if (!suggestion || !contentTypeIsAuto.value) return;
+  const index = findContentTypeIndex(headers.value);
+  // Header já bate com a sugestão — comum ao trocar de aba, quando o body muda mas o
+  // header salvo já reflete ele. Escrever de novo aqui marcaria a aba suja à toa.
+  if (index !== -1 && headers.value[index].value === suggestion) return;
+
   applyingAutoContentType = true;
   const next = [...headers.value];
-  const index = findContentTypeIndex(next);
-  const row = { name: "Content-Type", value: suggestion, enabled: true, description: "" };
-  if (index === -1) next.push(row);
-  else next[index] = row;
+  if (index === -1) {
+    next.push({ name: "Content-Type", value: suggestion, enabled: true, description: "" });
+  } else {
+    next[index] = { ...next[index], value: suggestion };
+  }
   headers.value = next;
   applyingAutoContentType = false;
 });
@@ -232,12 +287,35 @@ watch(
   <div class="flex flex-col">
     <WTabs v-model="activeTab" :tabs="tabs" />
 
-    <div v-if="activeTab === 'params'" class="pt-2">
-      <WKeyValueTable
-        v-model="queryRows"
-        :unresolved-variables="queryUnresolved"
-        :variable-tooltips="queryTooltips"
-      />
+    <div v-if="activeTab === 'params'" class="flex flex-col gap-3 pt-2">
+      <div v-if="pathParamRows.length > 0" class="flex flex-col gap-1">
+        <p class="px-2 font-inter text-xs font-medium text-faint">
+          Path Variables — add or remove by editing
+          <span class="font-mono">:name</span>
+          in the URL above
+        </p>
+        <WKeyValueTable
+          v-model="pathParamRows"
+          :allow-add="false"
+          :allow-remove="false"
+          :allow-toggle="false"
+          readonly-name
+          :unresolved-variables="pathParamsUnresolved"
+          :variable-tooltips="pathParamsTooltips"
+          :variable-names="variableNames"
+        />
+      </div>
+      <div class="flex flex-col gap-1">
+        <p v-if="pathParamRows.length > 0" class="px-2 font-inter text-xs font-medium text-faint">
+          Query Params
+        </p>
+        <WKeyValueTable
+          v-model="queryRows"
+          :unresolved-variables="queryUnresolved"
+          :variable-tooltips="queryTooltips"
+          :variable-names="variableNames"
+        />
+      </div>
     </div>
 
     <div v-else-if="activeTab === 'headers'" class="pt-2">
@@ -245,6 +323,7 @@ watch(
         v-model="headerRows"
         :unresolved-variables="headersUnresolved"
         :variable-tooltips="headersTooltips"
+        :variable-names="variableNames"
       />
     </div>
 
@@ -292,7 +371,13 @@ watch(
         />
       </div>
 
-      <WKeyValueTable v-else-if="bodyType === 'urlencoded'" v-model="urlencodedRows" />
+      <WKeyValueTable
+        v-else-if="bodyType === 'urlencoded'"
+        v-model="urlencodedRows"
+        :unresolved-variables="urlencodedUnresolved"
+        :variable-tooltips="urlencodedTooltips"
+        :variable-names="variableNames"
+      />
 
       <div v-else-if="bodyType === 'multipart'" class="flex flex-col">
         <div
@@ -339,7 +424,13 @@ watch(
           <input
             :value="row.value"
             :placeholder="row.type === 'file' ? 'Path relative to the workspace root' : 'Value'"
-            class="flex-1 bg-transparent font-mono text-[13px] text-1 outline-none placeholder:text-faint"
+            :title="row.type === 'text' ? multipartRowTooltip(row.value) : undefined"
+            class="flex-1 bg-transparent font-mono text-[13px] outline-none placeholder:text-faint"
+            :class="
+              row.type === 'text' && unresolvedNamesIn(multipartUnresolved, row.value).length > 0
+                ? 'text-status-4xx'
+                : 'text-1'
+            "
             @input="updateMultipartRow(index, { value: ($event.target as HTMLInputElement).value })"
           />
           <button
@@ -349,14 +440,7 @@ watch(
             class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             @click="removeMultipartRow(index)"
           >
-            <svg class="size-3.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path
-                d="M5 5l10 10M15 5L5 15"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-              />
-            </svg>
+            <WIcon name="x" />
           </button>
           <span v-else class="w-6 shrink-0" />
         </div>
@@ -382,7 +466,14 @@ watch(
     </div>
 
     <div v-else-if="activeTab === 'docs'" class="h-40 pt-2">
-      <WCodeEditor v-model="docs" language="text" placeholder="Document this request…" />
+      <WCodeEditor
+        v-model="docs"
+        language="text"
+        placeholder="Document this request…"
+        :unresolved-variables="docsUnresolved"
+        :variable-tooltips="docsTooltips"
+        :variable-names="variableNames"
+      />
     </div>
   </div>
 </template>

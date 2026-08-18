@@ -2,10 +2,12 @@
 import WButton from "@renderer/components/WButton.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WModal from "@renderer/components/WModal.vue";
+import { useSettingsStore } from "@renderer/stores/settings";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { ref } from "vue";
 
 const workspace = useWorkspaceStore();
+const settings = useSettingsStore();
 
 const createModalOpen = ref(false);
 const createPath = ref<string | null>(null);
@@ -22,11 +24,17 @@ async function onOpen(): Promise<void> {
 }
 
 async function onStartCreate(): Promise<void> {
-  const path = await workspace.pickFolder();
+  const path = await workspace.pickFolder(settings.defaultWorkspaceDir);
   if (!path) return;
   createPath.value = path;
   createName.value = "";
   createModalOpen.value = true;
+}
+
+/** Muda a pasta padrão sugerida na próxima vez que "Create workspace" abrir o diálogo — não cria nada aqui. */
+async function onChangeDefaultDir(): Promise<void> {
+  const path = await workspace.pickFolder(settings.defaultWorkspaceDir);
+  if (path) settings.setDefaultWorkspaceDir(path);
 }
 
 async function onConfirmCreate(): Promise<void> {
@@ -82,6 +90,20 @@ async function onInitializeHere(): Promise<void> {
       <p v-if="workspace.error" class="text-center font-inter text-sm text-status-5xx">
         {{ workspace.error.message }}
       </p>
+
+      <div class="flex items-center justify-center gap-1.5 font-inter text-xs text-faint">
+        <span v-if="settings.defaultWorkspaceDir" class="truncate font-mono text-[11px]">
+          Default folder: {{ settings.defaultWorkspaceDir }}
+        </span>
+        <span v-else>No default folder set</span>
+        <button
+          type="button"
+          class="text-accent hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          @click="onChangeDefaultDir"
+        >
+          Change
+        </button>
+      </div>
 
       <div v-if="workspace.recents.length > 0" class="flex flex-col gap-1">
         <p class="font-inter text-xs font-medium text-muted">Recent</p>

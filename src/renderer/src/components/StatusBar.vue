@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WIcon from "@renderer/components/WIcon.vue";
 import WSelect from "@renderer/components/WSelect.vue";
 import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useMenuStore } from "@renderer/stores/menu";
@@ -63,10 +64,11 @@ function onThemeChange(value: string): void {
     />
     <button
       type="button"
-      class="text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       title="Manage environments"
       @click="emit('open-environment-editor')"
     >
+      <WIcon name="settings" size="3.5" />
       Manage
     </button>
     <span class="flex-1" role="status" aria-live="polite">{{ menu.statusMessage }}</span>

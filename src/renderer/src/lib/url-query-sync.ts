@@ -29,6 +29,26 @@ export function parseQueryFromUrl(url: string): KeyValueEntry[] {
   }));
 }
 
+/** Canonicaliza para comparação — `description` some do YAML quando vazio (docs/file-format.md), mas `parseQueryFromUrl` sempre inclui `""`; sem isso a mesma query lida do disco e reparseada da URL comparam como diferentes. */
+export function normalizeEntries(entries: KeyValueEntry[]): KeyValueEntry[] {
+  return entries.map(entry => ({
+    name: entry.name,
+    value: entry.value,
+    enabled: entry.enabled,
+    description: entry.description ?? "",
+  }));
+}
+
+/** `{{nome}}` sobrevive ao `URLSearchParams.toString()` — sem isso, `{{url}}` vira `%7B%7Burl%7D%7D` na URL, ilegível e não mais reconhecido como variável até o envio resolvê-la. */
+const ENCODED_VARIABLE_PATTERN = /%7B%7B(.*?)%7D%7D/g;
+
+function preserveVariableSyntax(encoded: string): string {
+  return encoded.replace(
+    ENCODED_VARIABLE_PATTERN,
+    (_, inner: string) => `{{${decodeURIComponent(inner.replace(/\+/g, " "))}}}`,
+  );
+}
+
 /**
  * Reescreve a URL com as linhas habilitadas da tabela. Linhas desabilitadas somem da
  * URL mas continuam na tabela — reescrever a URL nunca as remove de lá.
@@ -40,5 +60,5 @@ export function rewriteUrlQuery(url: string, rows: KeyValueEntry[]): string {
 
   const params = new URLSearchParams();
   for (const row of enabled) params.append(row.name, row.value);
-  return `${base}?${params.toString()}`;
+  return `${base}?${preserveVariableSyntax(params.toString())}`;
 }

@@ -21,9 +21,12 @@ export function registerDialogHandlers(): void {
   });
 
   /** Escolher a pasta onde criar um workspace novo (EP-05-T01) — não abre nada, só devolve o path. */
-  registerHandler("dialog:pickFolder", async (_payload, event) => {
+  registerHandler("dialog:pickFolder", async (payload, event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
-    const options = { properties: ["openDirectory" as const, "createDirectory" as const] };
+    const options = {
+      defaultPath: payload.defaultPath,
+      properties: ["openDirectory" as const, "createDirectory" as const],
+    };
     const { canceled, filePaths } = win
       ? await dialog.showOpenDialog(win, options)
       : await dialog.showOpenDialog(options);

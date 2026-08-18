@@ -1,6 +1,7 @@
 import type { WorkspaceNode } from "@shared";
 
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { useToastStore } from "@renderer/stores/toast";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
@@ -47,6 +48,7 @@ export interface DeleteTarget {
 export const useTreeStore = defineStore("tree", () => {
   const workspace = useWorkspaceStore();
   const requestTabs = useRequestTabsStore();
+  const toast = useToastStore();
 
   const selectedPath = ref<string | null>(null);
   const filterText = ref("");
@@ -93,6 +95,7 @@ export const useTreeStore = defineStore("tree", () => {
     await workspace.refreshTree();
     selectedPath.value = node.path;
     editingPath.value = node.path;
+    toast.push("Request created", "success");
   }
 
   async function createFolder(parentPath?: string): Promise<void> {
@@ -108,6 +111,7 @@ export const useTreeStore = defineStore("tree", () => {
     await workspace.refreshTree();
     selectedPath.value = node.path;
     editingPath.value = node.path;
+    toast.push("Folder created", "success");
   }
 
   function startRename(path: string): void {
@@ -153,12 +157,14 @@ export const useTreeStore = defineStore("tree", () => {
 
   async function confirmDelete(): Promise<void> {
     if (!workspace.root || !deleteTarget.value) return;
-    const path = deleteTarget.value.node.path;
+    const { node } = deleteTarget.value;
+    const path = node.path;
     await window.wttp.node.trash({ root: workspace.root, path });
     deleteTarget.value = null;
     if (selectedPath.value === path) selectedPath.value = null;
     requestTabs.closeUnderPath(path);
     await workspace.refreshTree();
+    toast.push(`"${node.name}" deleted`, "warning");
   }
 
   /**

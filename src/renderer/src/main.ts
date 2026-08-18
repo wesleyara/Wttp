@@ -1,5 +1,6 @@
 import "./assets/fonts";
 import "./assets/main.css";
+import "./assets/icons";
 
 import { useSettingsStore } from "@renderer/stores/settings";
 import { createPinia } from "pinia";

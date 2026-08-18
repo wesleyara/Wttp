@@ -46,6 +46,8 @@ export interface UiState {
  */
 export interface AppSettings {
   theme: "dark" | "light" | "system";
+  /** Pasta sugerida como ponto de partida ao criar um novo workspace (EP-06.1). */
+  defaultWorkspaceDir?: string;
 }
 
 /**
@@ -128,6 +130,11 @@ export interface MoveNodeIntoPayload {
   targetDir: string;
   /** Posição (1-indexed) entre os irmãos de `targetDir`. */
   index: number;
+}
+
+/** Payload de `dialog:pickFolder` (EP-05-T01) — `defaultPath` (EP-06.1) abre o diálogo já na pasta padrão configurada, se houver. */
+export interface PickFolderPayload {
+  defaultPath?: string;
 }
 
 /** Resultado de `dialog:pickFolder` (EP-05-T01) — escolher a pasta onde criar um workspace. */
@@ -214,6 +221,7 @@ export interface ResolveTextResultPayload {
 export interface ResolveRequestPayload {
   request: {
     url: string;
+    pathParams?: KeyValueEntry[];
     query: KeyValueEntry[];
     headers: KeyValueEntry[];
     auth: AuthConfig;
@@ -277,7 +285,7 @@ export interface IpcContract {
   "http:send": { payload: HttpRequestSpec; result: HttpResponseResult };
   "http:cancel": { payload: string; result: void };
   "dialog:saveFile": { payload: SaveFilePayload; result: SaveFileResult };
-  "dialog:pickFolder": { payload: void; result: PickFolderResult };
+  "dialog:pickFolder": { payload: PickFolderPayload; result: PickFolderResult };
   "workspace:open": { payload: OpenWorkspacePayload; result: WorkspaceTree | null };
   "workspace:create": { payload: CreateWorkspacePayload; result: WorkspaceTree };
   "workspace:recent": { payload: void; result: RecentWorkspace[] };

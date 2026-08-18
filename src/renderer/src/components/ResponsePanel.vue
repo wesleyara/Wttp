@@ -11,6 +11,7 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
+import WIcon from "./WIcon.vue";
 import WSelect from "./WSelect.vue";
 import WStatusBadge from "./WStatusBadge.vue";
 import WTabs from "./WTabs.vue";
@@ -162,13 +163,17 @@ async function saveBody(): Promise<void> {
       v-if="!sending && !lastResult"
       title="No response yet"
       description="Send a request to see the response here."
-    />
+    >
+      <template #icon>
+        <WIcon name="inbox" size="5" />
+      </template>
+    </WEmptyState>
 
-    <WEmptyState
-      v-else-if="sending"
-      title="Sending request…"
-      description="Waiting for a response."
-    />
+    <WEmptyState v-else-if="sending" title="Sending request…" description="Waiting for a response.">
+      <template #icon>
+        <WIcon name="loader-circle" size="5" class="animate-spin" />
+      </template>
+    </WEmptyState>
 
     <div
       v-else-if="failureResult"
@@ -253,11 +258,15 @@ async function saveBody(): Promise<void> {
             v-else
             title="Binary content"
             description="This response isn't text — use Save to write it to a file."
-          />
+          >
+            <template #icon>
+              <WIcon name="file-box" size="5" />
+            </template>
+          </WEmptyState>
         </div>
       </div>
 
-      <div v-else-if="mainTab === 'headers'" class="flex flex-col pt-2">
+      <div v-else-if="mainTab === 'headers'" class="min-h-0 flex-1 overflow-y-auto pt-2">
         <div
           v-for="(header, index) in successResult.headers"
           :key="index"
@@ -268,12 +277,16 @@ async function saveBody(): Promise<void> {
         </div>
       </div>
 
-      <div v-else-if="mainTab === 'cookies'" class="pt-2">
+      <div v-else-if="mainTab === 'cookies'" class="min-h-0 flex-1 overflow-y-auto pt-2">
         <WEmptyState
           v-if="cookies.length === 0"
           title="No cookies"
           description="This response set no cookies."
-        />
+        >
+          <template #icon>
+            <WIcon name="cookie" size="5" />
+          </template>
+        </WEmptyState>
         <div v-else class="flex flex-col">
           <div
             v-for="(cookie, index) in cookies"

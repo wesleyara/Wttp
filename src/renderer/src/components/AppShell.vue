@@ -11,10 +11,12 @@ import StatusBar from "@renderer/components/StatusBar.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WContextMenu, { type ContextMenuItem } from "@renderer/components/WContextMenu.vue";
 import WEmptyState from "@renderer/components/WEmptyState.vue";
+import WIcon from "@renderer/components/WIcon.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WModal from "@renderer/components/WModal.vue";
 import WorkspaceLanding from "@renderer/components/WorkspaceLanding.vue";
 import WSplitPane from "@renderer/components/WSplitPane.vue";
+import WToast from "@renderer/components/WToast.vue";
 import WTree from "@renderer/components/WTree.vue";
 import { useMenuStore } from "@renderer/stores/menu";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
@@ -56,16 +58,21 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
 
   if (node.kind === "folder") {
     items.push(
-      { label: "New request", action: () => void tree.createRequest(node.path) },
-      { label: "New folder", action: () => void tree.createFolder(node.path) },
+      { label: "New request", icon: "file-plus", action: () => void tree.createRequest(node.path) },
+      { label: "New folder", icon: "folder-plus", action: () => void tree.createFolder(node.path) },
     );
   }
   items.push(
-    { label: "Rename", action: () => tree.startRename(node.path) },
-    { label: "Duplicate", action: () => void tree.duplicate(node.path) },
-    { label: "Reveal in file explorer", action: () => void tree.reveal(node.path) },
+    { label: "Rename", icon: "pencil", action: () => tree.startRename(node.path) },
+    { label: "Duplicate", icon: "copy", action: () => void tree.duplicate(node.path) },
+    {
+      label: "Reveal in file explorer",
+      icon: "folder-open",
+      action: () => void tree.reveal(node.path),
+    },
     {
       label: "Delete",
+      icon: "trash-2",
       danger: true,
       separatorBefore: true,
       action: () => tree.requestDelete(node),
@@ -115,10 +122,10 @@ onUnmounted(() => stopListeningToMenu?.());
             <div class="flex shrink-0 items-center gap-1 border-b border-subtle p-2">
               <WInput v-model="tree.filterText" placeholder="Filter…" class="flex-1" />
               <WButton size="sm" variant="ghost" title="New request" @click="tree.createRequest()">
-                +Req
+                <WIcon name="file-plus" />
               </WButton>
               <WButton size="sm" variant="ghost" title="New folder" @click="tree.createFolder()">
-                +Dir
+                <WIcon name="folder-plus" />
               </WButton>
             </div>
             <div class="min-h-0 flex-1">
@@ -127,6 +134,9 @@ onUnmounted(() => stopListeningToMenu?.());
                 title="No collections yet"
                 description="Create your first request."
               >
+                <template #icon>
+                  <WIcon name="folder-open" size="5" />
+                </template>
                 <template #action>
                   <WButton variant="primary" size="sm" @click="tree.createRequest()">
                     New request
@@ -167,7 +177,11 @@ onUnmounted(() => stopListeningToMenu?.());
                   v-if="requestTabs.tabs.length === 0"
                   title="No request open"
                   description="Select or create a request."
-                />
+                >
+                  <template #icon>
+                    <WIcon name="send" size="5" />
+                  </template>
+                </WEmptyState>
                 <template v-else>
                   <RequestTabsBar />
                   <div class="min-h-0 flex-1 overflow-y-auto p-3">
@@ -184,7 +198,11 @@ onUnmounted(() => stopListeningToMenu?.());
                   v-else
                   title="No response yet"
                   description="Send a request to see a response."
-                />
+                >
+                  <template #icon>
+                    <WIcon name="inbox" size="5" />
+                  </template>
+                </WEmptyState>
               </section>
             </template>
           </WSplitPane>
@@ -196,6 +214,8 @@ onUnmounted(() => stopListeningToMenu?.());
     <CommandPalette :open="paletteOpen" @close="paletteOpen = false" />
 
     <EnvironmentEditorModal :open="environmentEditorOpen" @close="environmentEditorOpen = false" />
+
+    <WToast />
 
     <WContextMenu
       :open="tree.contextMenuTarget !== null"

@@ -60,4 +60,25 @@ describe("rewriteUrlQuery", () => {
     const rows = [{ name: "b", value: "2", enabled: true }];
     expect(rewriteUrlQuery("https://api.dev/users?a=1", rows)).toBe("https://api.dev/users?b=2");
   });
+
+  it("keeps {{var}} literal instead of percent-encoding the braces", () => {
+    const rows = [{ name: "token", value: "{{auth_token}}", enabled: true }];
+    expect(rewriteUrlQuery("https://api.dev/users", rows)).toBe(
+      "https://api.dev/users?token={{auth_token}}",
+    );
+  });
+
+  it("keeps {{ var }} literal even with spaces inside the braces", () => {
+    const rows = [{ name: "token", value: "{{ auth_token }}", enabled: true }];
+    expect(rewriteUrlQuery("https://api.dev/users", rows)).toBe(
+      "https://api.dev/users?token={{ auth_token }}",
+    );
+  });
+
+  it("still encodes everything around a {{var}} normally", () => {
+    const rows = [{ name: "q", value: "a&b {{token}} c/d", enabled: true }];
+    expect(rewriteUrlQuery("https://api.dev/users", rows)).toBe(
+      "https://api.dev/users?q=a%26b+{{token}}+c%2Fd",
+    );
+  });
 });

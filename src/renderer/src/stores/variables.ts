@@ -90,6 +90,15 @@ export const useVariablesStore = defineStore("variables", () => {
     return chain.reverse().flatMap(folder => folder.data?.variables ?? []);
   }
 
+  /**
+   * Muda de referência sempre que qualquer camada de variável muda — environment
+   * ativo/lista, ou a árvore do workspace (variáveis de workspace/pasta). `useVariablePreview`
+   * observa isso pra re-resolver mesmo quando o texto do campo em si não mudou (EP-06.1)
+   * — sem isso, editar uma variável em outro lugar deixava o destaque de "não resolvida"
+   * preso até o usuário digitar de novo no campo afetado.
+   */
+  const scopeSignal = computed(() => [environment.activePath, environment.items, workspace.tree]);
+
   function scopeFor(requestPath: string): VariableScopePayload {
     return {
       runtime: {},
@@ -129,5 +138,12 @@ export const useVariablesStore = defineStore("variables", () => {
     });
   }
 
-  return { scopeFor, variableNamesFor, resolveText, resolveRequestSpec, refreshSecrets };
+  return {
+    scopeFor,
+    scopeSignal,
+    variableNamesFor,
+    resolveText,
+    resolveRequestSpec,
+    refreshSecrets,
+  };
 });

@@ -12,6 +12,7 @@ import type {
 } from "@shared";
 
 import { suggestedFileName } from "@renderer/lib/content-type";
+import { useToastStore } from "@renderer/stores/toast";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
@@ -33,6 +34,7 @@ export interface RequestTabState {
   dirty: boolean;
   method: HttpMethod;
   url: string;
+  pathParams: KeyValueEntry[];
   query: KeyValueEntry[];
   headers: KeyValueEntry[];
   body: RequestBody;
@@ -55,6 +57,7 @@ function buildTab(node: RequestNode, pinned: boolean): RequestTabState {
     dirty: false,
     method: data.method,
     url: data.url,
+    pathParams: data.pathParams ?? [],
     query: data.query ?? [],
     headers: data.headers ?? [],
     body: data.body ?? { type: "none" },
@@ -76,6 +79,7 @@ function buildTab(node: RequestNode, pinned: boolean): RequestTabState {
 export const useRequestTabsStore = defineStore("requestTabs", () => {
   const workspace = useWorkspaceStore();
   const variables = useVariablesStore();
+  const toast = useToastStore();
 
   const tabs = ref<RequestTabState[]>([]);
   const activeId = ref<string | null>(null);
@@ -196,6 +200,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       ...unwrap(tab.originalData),
       method: tab.method,
       url: tab.url,
+      pathParams: unwrap(tab.pathParams),
       query: unwrap(tab.query),
       headers: unwrap(tab.headers),
       auth: unwrap(tab.auth),
@@ -212,6 +217,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     await window.wttp.node.write({ root: workspace.root, path: tab.path, node });
     tab.originalData = data;
     tab.dirty = false;
+    // O watcher de filesystem ignora a própria escrita (evita loop com o save),
+    // então a árvore só reflete campos como `method` se pedirmos o refresh aqui.
+    await workspace.refreshTree();
+    toast.push(`"${tab.title}" saved`, "success");
   }
 
   function saveActive(): Promise<void> {
@@ -226,7 +235,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   }
 
   function confirmCloseDiscard(): void {
-    if (closeConfirmId.value) forceClose(closeConfirmId.value);
+    if (!closeConfirmId.value) return;
+    const tab = tabs.value.find(t => t.id === closeConfirmId.value);
+    forceClose(closeConfirmId.value);
+    if (tab) toast.push(`Changes to "${tab.title}" discarded`, "warning");
   }
 
   function cancelClose(): void {
@@ -272,7 +284,14 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (!tab || tab.sending) return;
 
     const resolved = await variables.resolveRequestSpec(
-      { url: tab.url, query: tab.query, headers: tab.headers, auth: tab.auth, body: tab.body },
+      {
+        url: tab.url,
+        pathParams: tab.pathParams,
+        query: tab.query,
+        headers: tab.headers,
+        auth: tab.auth,
+        body: tab.body,
+      },
       tab.path,
     );
 
@@ -293,7 +312,14 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (!tab) return;
 
     const resolved = await variables.resolveRequestSpec(
-      { url: tab.url, query: tab.query, headers: tab.headers, auth: tab.auth, body: tab.body },
+      {
+        url: tab.url,
+        pathParams: tab.pathParams,
+        query: tab.query,
+        headers: tab.headers,
+        auth: tab.auth,
+        body: tab.body,
+      },
       tab.path,
     );
     await dispatch(tab, resolved);

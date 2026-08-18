@@ -29,6 +29,7 @@ export const REQUEST_FIELD_ORDER = [
   "seq",
   "method",
   "url",
+  "pathParams",
   "query",
   "headers",
   "auth",
