@@ -11,6 +11,17 @@ export default defineConfig({
     resolve: {
       alias: { "@shared": shared },
     },
+    build: {
+      rollupOptions: {
+        // Segunda entrada: o `utilityProcess.fork` do runner de scripts (EP-09-T01)
+        // precisa de um arquivo próprio em disco (`out/main/scripts/worker.js`) — não dá
+        // para spawnar uma função dentro do bundle único do `index.js`.
+        input: {
+          index: resolve("src/main/index.ts"),
+          "scripts/worker": resolve("src/main/scripts/worker.ts"),
+        },
+      },
+    },
   },
   preload: {
     resolve: {

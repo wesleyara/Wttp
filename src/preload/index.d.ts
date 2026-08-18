@@ -38,6 +38,8 @@ import type {
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
+  ScriptRunResult,
+  ScriptRunSpec,
   SecretStorageStatus,
   SetWorkspaceUiStatePayload,
   SetWorkspaceVariablesPayload,
@@ -118,6 +120,9 @@ interface WttpApi {
     detect: (payload: DetectImportPayload) => Promise<ImportFormat | null>;
     run: (payload: RunImportPayload) => Promise<ImportReport>;
     parseCurl: (payload: ParseCurlPayload) => Promise<ParsedCurlRequest | null>;
+  };
+  script: {
+    run: (payload: ScriptRunSpec) => Promise<ScriptRunResult>;
   };
 }
 
