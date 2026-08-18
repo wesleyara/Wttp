@@ -1,3 +1,4 @@
+import { resolveAuthChain } from "../http/authInheritance";
 import { resolveRequest, resolveText } from "../http/resolver";
 import { registerHandler } from "./registry";
 
@@ -8,4 +9,9 @@ export function registerVariableHandlers(): void {
   registerHandler("variables:resolveRequest", payload =>
     resolveRequest(payload.request, payload.scope),
   );
+
+  // Herança de auth (EP-07-T01) — mesmo tratamento de `resolveAuthChain`, só puro e
+  // testável em `main/http`, exposto ao renderer para a Aba Auth mostrar de onde vem
+  // a auth efetiva sem duplicar a lógica de "primeira camada não-inherit vence".
+  registerHandler("variables:resolveAuthChain", payload => resolveAuthChain(payload.chain));
 }

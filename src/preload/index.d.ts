@@ -23,6 +23,8 @@ import type {
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
   RequestNode,
+  ResolveAuthChainPayload,
+  ResolveAuthChainResultPayload,
   ResolveRequestPayload,
   ResolveRequestResultPayload,
   ResolveTextPayload,
@@ -101,6 +103,7 @@ interface WttpApi {
   variables: {
     resolveText: (payload: ResolveTextPayload) => Promise<ResolveTextResultPayload>;
     resolveRequest: (payload: ResolveRequestPayload) => Promise<ResolveRequestResultPayload>;
+    resolveAuthChain: (payload: ResolveAuthChainPayload) => Promise<ResolveAuthChainResultPayload>;
   };
   menu: {
     onAction: (callback: (action: MenuAction) => void) => () => void;

@@ -35,6 +35,13 @@ const resolveRequest = vi.fn(
     cycles: [],
   }),
 );
+type AuthLike = { type: string } | undefined;
+const resolveAuthChain = vi.fn(async ({ chain }: { chain: AuthLike[] }) => {
+  const index = chain.findIndex(auth => auth && auth.type !== "inherit");
+  return index === -1
+    ? { auth: { type: "none" }, sourceIndex: null }
+    : { auth: chain[index], sourceIndex: index };
+});
 
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -43,6 +50,7 @@ beforeEach(() => {
   setUiState.mockClear();
   httpSend.mockClear();
   resolveRequest.mockClear();
+  resolveAuthChain.mockClear();
 
   vi.stubGlobal("window", {
     wttp: {
@@ -52,7 +60,7 @@ beforeEach(() => {
       dialog: { saveFile: vi.fn() },
       env: { list: vi.fn(async () => []) },
       secret: { get: vi.fn(async () => null) },
-      variables: { resolveText: vi.fn(), resolveRequest },
+      variables: { resolveText: vi.fn(), resolveRequest, resolveAuthChain },
     },
   });
 
