@@ -8,20 +8,21 @@ Para executar uma task, use a skill `wttp-task`.
 
 ## MVP — v0.1
 
-| Épico                                    | Título                            | Status    |
-| ---------------------------------------- | --------------------------------- | --------- |
-| [EP-01](EP-01-fundacao.md)               | Fundação electron-vite            | Concluída |
-| [EP-02](EP-02-design-system.md)          | Design system e shell de layout   | Concluída (verificação visual pendente) |
-| [EP-03](EP-03-nucleo-http.md)            | Núcleo HTTP                       | Concluída (verificação visual pendente) |
-| [EP-04](EP-04-persistencia.md)           | Formato de arquivo e persistência | Concluída |
-| [EP-05](EP-05-workspaces-collections.md) | Workspaces, collections e tabs    | Concluída (verificação visual pendente) |
-| [EP-06](EP-06-environments-variaveis.md) | Environments e variáveis          | Concluída (verificação visual pendente) |
-| [EP-06.1](EP-06.1-refinamentos-ux.md)    | Correções e refinamentos de UX (não planejado) | Concluída (verificação visual pendente) |
-| [EP-07](EP-07-autenticacao.md)           | Autenticação                      | Concluída (verificação visual pendente) |
-| [EP-08](EP-08-importadores.md)           | Importadores                      | Concluída (verificação visual pendente) |
-| [EP-09](EP-09-scripts.md)                | Scripts e testes                  | Concluída (verificação visual pendente) |
-| [EP-10](EP-10-qualidade-ci.md)           | Qualidade e CI                    | Pendente  |
-| [EP-11](EP-11-distribuicao.md)           | Empacotamento e distribuição      | Pendente  |
+| Épico                                       | Título                                                         | Status                                  |
+| ------------------------------------------- | -------------------------------------------------------------- | --------------------------------------- |
+| [EP-01](EP-01-fundacao.md)                  | Fundação electron-vite                                         | Concluída                               |
+| [EP-02](EP-02-design-system.md)             | Design system e shell de layout                                | Concluída (verificação visual pendente) |
+| [EP-03](EP-03-nucleo-http.md)               | Núcleo HTTP                                                    | Concluída (verificação visual pendente) |
+| [EP-04](EP-04-persistencia.md)              | Formato de arquivo e persistência                              | Concluída                               |
+| [EP-05](EP-05-workspaces-collections.md)    | Workspaces, collections e tabs                                 | Concluída (verificação visual pendente) |
+| [EP-06](EP-06-environments-variaveis.md)    | Environments e variáveis                                       | Concluída (verificação visual pendente) |
+| [EP-06.1](EP-06.1-refinamentos-ux.md)       | Correções e refinamentos de UX (não planejado)                 | Concluída (verificação visual pendente) |
+| [EP-07](EP-07-autenticacao.md)              | Autenticação                                                   | Concluída (verificação visual pendente) |
+| [EP-08](EP-08-importadores.md)              | Importadores                                                   | Concluída (verificação visual pendente) |
+| [EP-08.1](EP-08.1-sessao-historico-docs.md) | Sessão, histórico, documentação e preferências (não planejado) | Em andamento                            |
+| [EP-09](EP-09-scripts.md)                   | Scripts e testes                                               | Concluída (verificação visual pendente) |
+| [EP-10](EP-10-qualidade-ci.md)              | Qualidade e CI                                                 | Pendente                                |
+| [EP-11](EP-11-distribuicao.md)              | Empacotamento e distribuição                                   | Pendente                                |
 
 ## Pós-MVP
 
@@ -31,6 +32,7 @@ Para executar uma task, use a skill `wttp-task`.
 | [EP-13](EP-13-runner-cli.md)           | Collection Runner e CLI         | v0.2  |
 | [EP-14](EP-14-extensibilidade.md)      | Extensibilidade e plugins       | v0.3  |
 | [EP-15](EP-15-protocolos-avancados.md) | Protocolos e recursos avançados | v0.3+ |
+| [EP-16](EP-16-terminal-git.md)         | Terminal e versionamento Git    | v0.2  |
 
 ---
 

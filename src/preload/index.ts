@@ -44,10 +44,12 @@ import type {
   ScriptRunResult,
   ScriptRunSpec,
   SecretStorageStatus,
+  SetWorkspaceDraftsPayload,
   SetWorkspaceUiStatePayload,
   SetWorkspaceVariablesPayload,
   UiState,
   WorkspaceChangedEvent,
+  WorkspaceDrafts,
   WorkspaceRootPayload,
   WorkspaceTree,
   WorkspaceUiState,
@@ -107,6 +109,10 @@ const wttp = {
       invoke("workspace:getUiState", payload),
     setUiState: (payload: SetWorkspaceUiStatePayload): Promise<void> =>
       invoke("workspace:setUiState", payload),
+    getDrafts: (payload: WorkspaceRootPayload): Promise<WorkspaceDrafts> =>
+      invoke("workspace:getDrafts", payload),
+    setDrafts: (payload: SetWorkspaceDraftsPayload): Promise<void> =>
+      invoke("workspace:setDrafts", payload),
     setVariables: (payload: SetWorkspaceVariablesPayload): Promise<WorkspaceTree> =>
       invoke("workspace:setVariables", payload),
     listInDir: (payload: ListWorkspacesInDirPayload): Promise<DiscoveredWorkspace[]> =>

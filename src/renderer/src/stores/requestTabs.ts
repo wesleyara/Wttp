@@ -14,6 +14,7 @@ import type {
   SaveFileResult,
   ScriptAssertion,
   ScriptConsoleEntry,
+  WorkspaceDrafts,
   WttpError,
 } from "@shared";
 
@@ -184,6 +185,56 @@ function isCollectionPath(path: string): boolean {
   return !path.includes("/");
 }
 
+/** `RequestFile` equivalente ao estado atual da aba — usado tanto por `save` quanto pelo rascunho debounced (EP-08.1-T01), que precisa do mesmo formato sem escrever em disco. */
+function buildRequestFileData(tab: RequestTabState): RequestFile {
+  return {
+    ...unwrap(tab.originalData),
+    method: tab.method,
+    url: tab.url,
+    pathParams: unwrap(tab.pathParams),
+    query: unwrap(tab.query),
+    headers: unwrap(tab.headers),
+    auth: unwrap(tab.auth),
+    body: unwrap(tab.body),
+    scripts: cleanScripts(tab.scripts),
+    docs: tab.docs || undefined,
+  };
+}
+
+/** Como `buildRequestFileData`, para aba de pasta/collection. */
+function buildFolderFileData(tab: FolderTabState): FolderFile {
+  return {
+    ...unwrap(tab.originalData),
+    auth: unwrap(tab.auth),
+    docs: tab.docs || undefined,
+    variables: unwrap(tab.variables).filter(v => v.name.trim() !== ""),
+    scripts: cleanScripts(tab.scripts),
+  };
+}
+
+/** Aplica um rascunho gravado sobre a aba recém-reconstruída do YAML salvo (EP-08.1-T01) — a aba volta já suja, com o que estava sendo digitado. */
+function applyRequestDraft(tab: RequestTabState, data: RequestFile): void {
+  tab.method = data.method;
+  tab.url = data.url;
+  tab.pathParams = data.pathParams ?? [];
+  tab.query = data.query ?? [];
+  tab.headers = data.headers ?? [];
+  tab.body = data.body ?? { type: "none" };
+  tab.auth = data.auth ?? { type: "none" };
+  tab.docs = data.docs ?? "";
+  tab.scripts = { ...data.scripts };
+  tab.dirty = true;
+}
+
+/** Como `applyRequestDraft`, para aba de pasta/collection. */
+function applyFolderDraft(tab: FolderTabState, data: FolderFile): void {
+  tab.auth = data.auth ?? { type: "inherit" };
+  tab.docs = data.docs ?? "";
+  tab.variables = (data.variables ?? []).map(v => ({ ...v }));
+  tab.scripts = { ...data.scripts };
+  tab.dirty = true;
+}
+
 /**
  * Abas abertas no strip central (EP-05-T05, generalizado em EP-07.1 para também
  * cobrir settings de pasta/collection) — cada uma com seu próprio estado,
@@ -204,6 +255,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   /** Aba com variável não resolvida a confirmar antes de enviar (EP-06-T05) — `null` = nenhuma pergunta pendente. */
   const unresolvedSendId = ref<string | null>(null);
   const unresolvedSendNames = ref<string[]>([]);
+
+  /** Debounce do rascunho em `.wttp/drafts.json` (EP-08.1-T01) — mais curto que o de `patchUiState` porque cobre texto digitado, não só a lista de abas. */
+  const PERSIST_DRAFTS_DEBOUNCE_MS = 500;
+  let persistDraftsTimer: ReturnType<typeof setTimeout> | null = null;
 
   const active = computed(() => tabs.value.find(tab => tab.id === activeId.value) ?? null);
   const closeConfirmTab = computed(
@@ -230,6 +285,33 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     persistSession();
   }
 
+  /** Uma entrada por aba suja, no formato gravado em disco — usado tanto pelo debounce quanto pelo flush imediato. */
+  function currentDrafts(): WorkspaceDrafts {
+    const drafts: WorkspaceDrafts = {};
+    for (const tab of tabs.value) {
+      if (!tab.dirty) continue;
+      drafts[tab.path] =
+        tab.kind === "request"
+          ? { kind: "request", data: buildRequestFileData(tab) }
+          : { kind: "folder", data: buildFolderFileData(tab) };
+    }
+    return drafts;
+  }
+
+  /** Cancela o debounce e grava `.wttp/drafts.json` na hora — depois de salvar/descartar uma aba (a entrada correspondente já sai do mapa, pois a aba não está mais suja) e no fechamento do app (`beforeunload`, `AppShell.vue`). `root` explícito porque é chamado também na troca de workspace, quando `workspace.root` já é o novo. */
+  function flushDrafts(root = workspace.root): void {
+    if (!root) return;
+    if (persistDraftsTimer) clearTimeout(persistDraftsTimer);
+    persistDraftsTimer = null;
+    void window.wttp.workspace.setDrafts({ root, drafts: currentDrafts() });
+  }
+
+  function scheduleDraftSave(): void {
+    if (!workspace.root) return;
+    if (persistDraftsTimer) clearTimeout(persistDraftsTimer);
+    persistDraftsTimer = setTimeout(() => flushDrafts(), PERSIST_DRAFTS_DEBOUNCE_MS);
+  }
+
   /** Edição em qualquer campo marca suja e promove uma aba de preview a fixa (não-op para pasta, sempre fixa). */
   function markActiveDirty(): void {
     const tab = active.value;
@@ -239,6 +321,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       tab.pinned = true;
       persistSession();
     }
+    scheduleDraftSave();
   }
 
   async function openTab(path: string, pinned: boolean): Promise<void> {
@@ -296,6 +379,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     }
     if (closeConfirmId.value === id) closeConfirmId.value = null;
     persistSession();
+    flushDrafts();
   }
 
   function requestClose(id: string): void {
@@ -334,18 +418,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     const tab = tabs.value.find(t => t.id === id);
     if (!tab || !isRequestTab(tab) || !workspace.root) return;
 
-    const data: RequestFile = {
-      ...unwrap(tab.originalData),
-      method: tab.method,
-      url: tab.url,
-      pathParams: unwrap(tab.pathParams),
-      query: unwrap(tab.query),
-      headers: unwrap(tab.headers),
-      auth: unwrap(tab.auth),
-      body: unwrap(tab.body),
-      scripts: cleanScripts(tab.scripts),
-      docs: tab.docs || undefined,
-    };
+    const data = buildRequestFileData(tab);
     const node: RequestNode = {
       kind: "request",
       path: tab.path,
@@ -356,6 +429,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     await window.wttp.node.write({ root: workspace.root, path: tab.path, node });
     tab.originalData = data;
     tab.dirty = false;
+    flushDrafts();
     // O watcher de filesystem ignora a própria escrita (evita loop com o save),
     // então a árvore só reflete campos como `method` se pedirmos o refresh aqui.
     await workspace.refreshTree();
@@ -367,13 +441,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     const tab = tabs.value.find(t => t.id === id);
     if (!tab || !isFolderTab(tab) || !workspace.root) return;
 
-    const data: FolderFile = {
-      ...unwrap(tab.originalData),
-      auth: unwrap(tab.auth),
-      docs: tab.docs || undefined,
-      variables: unwrap(tab.variables).filter(v => v.name.trim() !== ""),
-      scripts: cleanScripts(tab.scripts),
-    };
+    const data = buildFolderFileData(tab);
     const node: FolderNode = {
       kind: "folder",
       path: tab.path,
@@ -387,6 +455,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     await window.wttp.node.write({ root: workspace.root, path: tab.path, node });
     tab.originalData = data;
     tab.dirty = false;
+    flushDrafts();
     await workspace.refreshTree();
     toast.push(`"${tab.title}" saved`, "success");
   }
@@ -781,16 +850,27 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (!workspace.root) return;
     const root = workspace.root;
     const state = workspace.uiState;
+    // Aplicado por cima do nó recém-lido do YAML salvo (EP-08.1-T01) — sem draft, a aba
+    // volta limpa como sempre voltou.
+    const drafts = await window.wttp.workspace.getDrafts({ root });
 
     const loaded: OpenTab[] = [];
     for (const entry of state.openTabs) {
       try {
         if (entry.kind === "folder") {
           const node = (await window.wttp.node.read({ root, path: entry.path })) as FolderNode;
-          loaded.push(buildFolderTab(node, isCollectionPath(entry.path)));
+          const tab = buildFolderTab(node, isCollectionPath(entry.path));
+          const draft = drafts[entry.path];
+          if (draft?.kind === "folder") applyFolderDraft(tab, draft.data);
+          loaded.push(tab);
         } else {
           const node = (await window.wttp.node.read({ root, path: entry.path })) as RequestNode;
-          if (node.data) loaded.push(buildTab(node, entry.pinned));
+          if (node.data) {
+            const tab = buildTab(node, entry.pinned);
+            const draft = drafts[entry.path];
+            if (draft?.kind === "request") applyRequestDraft(tab, draft.data);
+            loaded.push(tab);
+          }
         }
       } catch {
         // Arquivo sumiu ou foi renomeado por fora enquanto o app estava fechado —
@@ -804,13 +884,16 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       : (loaded[0]?.path ?? null);
   }
 
-  // Workspace fechado: nenhuma aba faz sentido mais. Workspace trocado (`uiStateVersion`
-  // avança só quando `loadUiState` lê um `.wttp/ui-state.json` de verdade, nunca no
-  // merge de `patchUiState`): reidrata a sessão salva daquele workspace.
+  // Workspace fechado ou trocado: grava o rascunho pendente da raiz anterior na hora, o
+  // debounce de 500 ms não teria mais chance de rodar. Workspace fechado (`newRoot`
+  // nulo): nenhuma aba faz sentido mais. Workspace trocado (`uiStateVersion` avança só
+  // quando `loadUiState` lê um `.wttp/ui-state.json` de verdade, nunca no merge de
+  // `patchUiState`): reidrata a sessão salva daquele workspace.
   watch(
     () => workspace.root,
-    root => {
-      if (root) return;
+    (newRoot, oldRoot) => {
+      if (oldRoot) flushDrafts(oldRoot);
+      if (newRoot) return;
       tabs.value = [];
       activeId.value = null;
       closeConfirmId.value = null;
@@ -856,5 +939,6 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     cancel,
     saveResponseToFile,
     restoreSession,
+    flushDrafts,
   };
 });

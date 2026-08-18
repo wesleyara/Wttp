@@ -30,6 +30,7 @@ import type {
   FolderNode,
   RecentWorkspace,
   RequestNode,
+  WorkspaceDrafts,
   WorkspaceTree,
   WorkspaceUiState,
 } from "./storage";
@@ -188,6 +189,12 @@ export interface WorkspaceRootPayload {
 export interface SetWorkspaceUiStatePayload {
   root: string;
   state: WorkspaceUiState;
+}
+
+/** Payload de `workspace:setDrafts` (EP-08.1-T01). */
+export interface SetWorkspaceDraftsPayload {
+  root: string;
+  drafts: WorkspaceDrafts;
 }
 
 /** Payload de `workspace:setVariables` (EP-06-T03) — aba de variáveis globais do editor de environments. */
@@ -353,6 +360,8 @@ export interface IpcContract {
   "workspace:removeRecent": { payload: RemoveRecentWorkspacePayload; result: RecentWorkspace[] };
   "workspace:getUiState": { payload: WorkspaceRootPayload; result: WorkspaceUiState };
   "workspace:setUiState": { payload: SetWorkspaceUiStatePayload; result: void };
+  "workspace:getDrafts": { payload: WorkspaceRootPayload; result: WorkspaceDrafts };
+  "workspace:setDrafts": { payload: SetWorkspaceDraftsPayload; result: void };
   "workspace:setVariables": { payload: SetWorkspaceVariablesPayload; result: WorkspaceTree };
   /** Rescan sem efeitos colaterais (não toca recentes nem reinicia o watcher) — usado depois de um `node:*` que a store já sabe que aconteceu. */
   "workspace:rescan": { payload: WorkspaceRootPayload; result: WorkspaceTree };

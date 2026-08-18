@@ -129,6 +129,16 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
 
 let stopListeningToMenu: (() => void) | null = null;
 
+/**
+ * Fechamento do app (EP-08.1-T01) — sem isso, a última mudança de sessão (aba aberta/
+ * fechada/reordenada, ou o rascunho de uma aba suja) se perde nos 300 ms/500 ms de
+ * debounce de `patchUiState`/`flushDrafts`, que nunca chegam a rodar.
+ */
+function flushSessionOnUnload(): void {
+  workspace.flushUiState();
+  requestTabs.flushDrafts();
+}
+
 onMounted(() => {
   void ui.load();
   void workspace.init();
@@ -142,9 +152,13 @@ onMounted(() => {
     "search:quickOpen": () => (paletteOpen.value = true),
     "preferences:open": () => (preferencesOpen.value = true),
   });
+  window.addEventListener("beforeunload", flushSessionOnUnload);
 });
 
-onUnmounted(() => stopListeningToMenu?.());
+onUnmounted(() => {
+  stopListeningToMenu?.();
+  window.removeEventListener("beforeunload", flushSessionOnUnload);
+});
 </script>
 
 <template>

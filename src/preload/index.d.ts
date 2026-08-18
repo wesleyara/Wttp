@@ -45,10 +45,12 @@ import type {
   ScriptRunResult,
   ScriptRunSpec,
   SecretStorageStatus,
+  SetWorkspaceDraftsPayload,
   SetWorkspaceUiStatePayload,
   SetWorkspaceVariablesPayload,
   UiState,
   WorkspaceChangedEvent,
+  WorkspaceDrafts,
   WorkspaceRootPayload,
   WorkspaceTree,
   WorkspaceUiState,
@@ -85,6 +87,8 @@ interface WttpApi {
     rescan: (payload: WorkspaceRootPayload) => Promise<WorkspaceTree>;
     getUiState: (payload: WorkspaceRootPayload) => Promise<WorkspaceUiState>;
     setUiState: (payload: SetWorkspaceUiStatePayload) => Promise<void>;
+    getDrafts: (payload: WorkspaceRootPayload) => Promise<WorkspaceDrafts>;
+    setDrafts: (payload: SetWorkspaceDraftsPayload) => Promise<void>;
     setVariables: (payload: SetWorkspaceVariablesPayload) => Promise<WorkspaceTree>;
     listInDir: (payload: ListWorkspacesInDirPayload) => Promise<DiscoveredWorkspace[]>;
     onChanged: (callback: (event: WorkspaceChangedEvent) => void) => () => void;
