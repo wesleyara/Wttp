@@ -7,8 +7,15 @@
  * um único byte de JavaScript.
  */
 
-import type { HttpRequestSpec, HttpResponseResult } from "./http";
 import type {
+  AuthConfig,
+  HttpRequestSpec,
+  HttpResponseResult,
+  KeyValueEntry,
+  RequestBody,
+} from "./http";
+import type {
+  EnvironmentListItem,
   FolderNode,
   RecentWorkspace,
   RequestNode,
@@ -145,6 +152,12 @@ export interface SetWorkspaceUiStatePayload {
   state: WorkspaceUiState;
 }
 
+/** Payload de `workspace:setVariables` (EP-06-T03) — aba de variáveis globais do editor de environments. */
+export interface SetWorkspaceVariablesPayload {
+  root: string;
+  variables: KeyValueEntry[];
+}
+
 /**
  * `key` é a chave completa `wttp:<workspaceId>:<env>:<name>` (docs/file-format.md §5) —
  * quem monta essa string é o chamador (a store de environments, EP-06), não o main.
@@ -163,6 +176,85 @@ export interface SetSecretPayload {
 /** `encrypted: false` = os segredos deste workspace estão indo para `.wttp/secrets.json` em texto puro (EP-04-T06). */
 export interface SecretStorageStatus {
   encrypted: boolean;
+}
+
+/**
+ * Estrutura de `src/main/http/resolver.ts` (EP-06-T01) espelhada aqui — o resolvedor é
+ * puro (sem `node:*`/`electron`) mas mora em `main/`, então o contrato IPC redeclara os
+ * mesmos formatos em vez de importar através da fronteira de processo.
+ */
+export type VariableSource = "runtime" | "environment" | "collection" | "workspace" | "dynamic";
+
+export interface ResolvedVariablePayload {
+  name: string;
+  value: string;
+  source: VariableSource;
+}
+
+export interface VariableScopePayload {
+  runtime?: Record<string, string>;
+  environment?: KeyValueEntry[];
+  collection?: KeyValueEntry[];
+  workspace?: KeyValueEntry[];
+}
+
+export interface ResolveTextPayload {
+  text: string;
+  scope: VariableScopePayload;
+}
+
+export interface ResolveTextResultPayload {
+  value: string;
+  unresolved: string[];
+  used: ResolvedVariablePayload[];
+  cycles: string[][];
+}
+
+/** Payload de `variables:resolveRequest` — aplica o resolvedor a URL, query, headers, auth e body de uma vez (EP-06-T01). */
+export interface ResolveRequestPayload {
+  request: {
+    url: string;
+    query: KeyValueEntry[];
+    headers: KeyValueEntry[];
+    auth: AuthConfig;
+    body: RequestBody;
+  };
+  scope: VariableScopePayload;
+}
+
+export interface ResolveRequestResultPayload {
+  url: string;
+  query: KeyValueEntry[];
+  headers: KeyValueEntry[];
+  auth: AuthConfig;
+  body: RequestBody;
+  unresolved: string[];
+  used: ResolvedVariablePayload[];
+  cycles: string[][];
+}
+
+/** Payload de uma variável em `env:save` (EP-06-T02). */
+export interface SaveEnvironmentVariablePayload {
+  name: string;
+  enabled: boolean;
+  description?: string;
+  secret?: boolean;
+  /** `undefined` numa variável secreta = valor não alterado nesta edição — mantém o segredo já salvo. */
+  value?: string;
+}
+
+/** Payload de `env:save` — cria quando `path` está ausente, atualiza quando presente. */
+export interface SaveEnvironmentPayload {
+  root: string;
+  path?: string;
+  name: string;
+  variables: SaveEnvironmentVariablePayload[];
+}
+
+/** Payload comum a `env:delete`/`env:duplicate`. */
+export interface EnvironmentPathPayload {
+  root: string;
+  path: string;
 }
 
 /**
@@ -192,6 +284,7 @@ export interface IpcContract {
   "workspace:removeRecent": { payload: RemoveRecentWorkspacePayload; result: RecentWorkspace[] };
   "workspace:getUiState": { payload: WorkspaceRootPayload; result: WorkspaceUiState };
   "workspace:setUiState": { payload: SetWorkspaceUiStatePayload; result: void };
+  "workspace:setVariables": { payload: SetWorkspaceVariablesPayload; result: WorkspaceTree };
   /** Rescan sem efeitos colaterais (não toca recentes nem reinicia o watcher) — usado depois de um `node:*` que a store já sabe que aconteceu. */
   "workspace:rescan": { payload: WorkspaceRootPayload; result: WorkspaceTree };
   "node:read": { payload: NodePathPayload; result: FolderNode | RequestNode };
@@ -208,6 +301,15 @@ export interface IpcContract {
   "secret:set": { payload: SetSecretPayload; result: void };
   "secret:delete": { payload: SecretKeyPayload; result: void };
   "secret:status": { payload: void; result: SecretStorageStatus };
+  "env:list": { payload: WorkspaceRootPayload; result: EnvironmentListItem[] };
+  "env:save": { payload: SaveEnvironmentPayload; result: EnvironmentListItem };
+  "env:delete": { payload: EnvironmentPathPayload; result: void };
+  "env:duplicate": { payload: EnvironmentPathPayload; result: EnvironmentListItem };
+  "variables:resolveText": { payload: ResolveTextPayload; result: ResolveTextResultPayload };
+  "variables:resolveRequest": {
+    payload: ResolveRequestPayload;
+    result: ResolveRequestResultPayload;
+  };
 }
 
 export type IpcChannel = keyof IpcContract;

@@ -2,6 +2,7 @@
 import type { WorkspaceNode } from "@shared";
 
 import CommandPalette from "@renderer/components/CommandPalette.vue";
+import EnvironmentEditorModal from "@renderer/components/EnvironmentEditorModal.vue";
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
 import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
@@ -45,6 +46,7 @@ function onTabNext(): void {
 }
 
 const paletteOpen = ref(false);
+const environmentEditorOpen = ref(false);
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
   const target = tree.contextMenuTarget;
@@ -189,9 +191,11 @@ onUnmounted(() => stopListeningToMenu?.());
         </template>
       </WSplitPane>
     </div>
-    <StatusBar />
+    <StatusBar @open-environment-editor="environmentEditorOpen = true" />
 
     <CommandPalette :open="paletteOpen" @close="paletteOpen = false" />
+
+    <EnvironmentEditorModal :open="environmentEditorOpen" @close="environmentEditorOpen = false" />
 
     <WContextMenu
       :open="tree.contextMenuTarget !== null"
@@ -213,6 +217,26 @@ onUnmounted(() => stopListeningToMenu?.());
         <WButton variant="ghost" @click="requestTabs.cancelClose">Cancel</WButton>
         <WButton variant="danger" @click="requestTabs.confirmCloseDiscard">Discard</WButton>
         <WButton variant="primary" @click="requestTabs.confirmCloseSave">Save</WButton>
+      </template>
+    </WModal>
+
+    <WModal
+      :open="requestTabs.unresolvedSendId !== null"
+      title="Unresolved variable"
+      @close="requestTabs.cancelSendUnresolved"
+    >
+      <p v-if="requestTabs.unresolvedSendTab" class="font-inter text-sm text-1">
+        "{{ requestTabs.unresolvedSendTab.title }}" has unresolved variable{{
+          requestTabs.unresolvedSendNames.length > 1 ? "s" : ""
+        }}:
+        <span class="font-mono text-status-4xx">{{
+          requestTabs.unresolvedSendNames.join(", ")
+        }}</span
+        >. Send anyway?
+      </p>
+      <template #footer>
+        <WButton variant="ghost" @click="requestTabs.cancelSendUnresolved">Cancel</WButton>
+        <WButton variant="primary" @click="requestTabs.confirmSendUnresolved">Send anyway</WButton>
       </template>
     </WModal>
 

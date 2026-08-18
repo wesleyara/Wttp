@@ -48,6 +48,8 @@ export interface FolderFile extends UnknownFields {
   name: string;
   seq: number;
   auth?: AuthConfig;
+  /** Variáveis de collection/pasta (EP-06) — nível "collection/pasta" da precedência do resolvedor. */
+  variables?: KeyValueEntry[];
   docs?: string;
 }
 
@@ -82,6 +84,17 @@ export interface EnvironmentFile extends UnknownFields {
   wttp: SchemaVersion;
   name: string;
   variables?: EnvironmentVariable[];
+}
+
+/**
+ * Um environment lido do disco, com o nome do arquivo em `environments/` (EP-06-T02) —
+ * mesmo par `path`/`data` de `FolderNode`/`RequestNode`. `path` é fixado na criação e
+ * não muda quando `data.name` é editado depois (evita ter que migrar as chaves de
+ * segredo no keychain, que usam `path` como o segmento `<env>` — docs/file-format.md §5).
+ */
+export interface EnvironmentListItem {
+  path: string;
+  data: EnvironmentFile;
 }
 
 /**
@@ -174,6 +187,8 @@ export interface WorkspaceUiState {
   /** Abas de request abertas, na ordem exibida (EP-05-T05). */
   openTabs: TabState[];
   activeTabPath: string | null;
+  /** `path` do environment ativo (EP-06-T04) — `null` = "No environment". */
+  activeEnvironment: string | null;
 }
 
 /**

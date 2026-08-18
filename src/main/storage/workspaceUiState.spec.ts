@@ -18,7 +18,12 @@ afterEach(async () => {
 describe("workspaceUiState", () => {
   it("devolve o estado vazio quando o arquivo ainda não existe", async () => {
     const state = await readWorkspaceUiState(root);
-    expect(state).toEqual({ expandedPaths: [], openTabs: [], activeTabPath: null });
+    expect(state).toEqual({
+      expandedPaths: [],
+      openTabs: [],
+      activeTabPath: null,
+      activeEnvironment: null,
+    });
   });
 
   it("faz round-trip byte-a-byte do que foi escrito", async () => {
@@ -26,14 +31,25 @@ describe("workspaceUiState", () => {
       expandedPaths: ["users", "users/auth"],
       openTabs: [{ path: "users/list.req.yaml", pinned: true }],
       activeTabPath: "users/list.req.yaml",
+      activeEnvironment: "dev.yaml",
     };
     await writeWorkspaceUiState(root, state);
     expect(await readWorkspaceUiState(root)).toEqual(state);
   });
 
   it("grava sob .wttp/ui-state.json, gitignored", async () => {
-    await writeWorkspaceUiState(root, { expandedPaths: [], openTabs: [], activeTabPath: null });
+    await writeWorkspaceUiState(root, {
+      expandedPaths: [],
+      openTabs: [],
+      activeTabPath: null,
+      activeEnvironment: null,
+    });
     const raw = await fs.readFile(join(root, ".wttp", "ui-state.json"), "utf-8");
-    expect(JSON.parse(raw)).toEqual({ expandedPaths: [], openTabs: [], activeTabPath: null });
+    expect(JSON.parse(raw)).toEqual({
+      expandedPaths: [],
+      openTabs: [],
+      activeTabPath: null,
+      activeEnvironment: null,
+    });
   });
 });

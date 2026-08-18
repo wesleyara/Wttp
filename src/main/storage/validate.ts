@@ -286,6 +286,7 @@ export function validateFolder(raw: string): ValidationResult<FolderFile> {
       checker.required(["name"], "string");
       checker.required(["seq"], "number");
       checker.authConfig(["auth"]);
+      checker.keyValueArray(["variables"]);
       checker.optional(["docs"], "string");
     },
     parseFolder,

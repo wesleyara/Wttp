@@ -85,9 +85,16 @@ export function serializeWorkspace(workspace: WorkspaceFile): string {
 }
 
 export function serializeFolder(folder: FolderFile): string {
-  const known = orderFields({ ...folder, auth: orderAuth(folder.auth) }, FOLDER_FIELD_ORDER);
+  const known = orderFields(
+    {
+      ...folder,
+      auth: orderAuth(folder.auth),
+      variables: orderEntries(folder.variables, KEY_VALUE_ENTRY_FIELD_ORDER),
+    },
+    FOLDER_FIELD_ORDER,
+  );
 
-  const doc = buildDocument({ ...known, ...folder.unknown });
+  const doc = buildDocument({ ...known, ...folder.unknown }, [["variables"]]);
   return stringifyDocument(doc);
 }
 

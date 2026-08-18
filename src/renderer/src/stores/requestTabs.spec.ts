@@ -22,19 +22,37 @@ const nodeRead = vi.fn(async ({ path }: { path: string }) => {
 });
 const nodeWrite = vi.fn(async () => {});
 const setUiState = vi.fn(async () => {});
+const httpSend = vi.fn(async () => ({ ok: true }));
+const resolveRequest = vi.fn(
+  async ({
+    request,
+  }: {
+    request: { url: string; query: unknown; headers: unknown; auth: unknown; body: unknown };
+  }) => ({
+    ...request,
+    unresolved: [] as string[],
+    used: [],
+    cycles: [],
+  }),
+);
 
 beforeEach(() => {
   setActivePinia(createPinia());
   nodeRead.mockClear();
   nodeWrite.mockClear();
   setUiState.mockClear();
+  httpSend.mockClear();
+  resolveRequest.mockClear();
 
   vi.stubGlobal("window", {
     wttp: {
       node: { read: nodeRead, write: nodeWrite },
       workspace: { setUiState, getUiState: vi.fn(), rescan: vi.fn() },
-      http: { send: vi.fn(), cancel: vi.fn() },
+      http: { send: httpSend, cancel: vi.fn() },
       dialog: { saveFile: vi.fn() },
+      env: { list: vi.fn(async () => []) },
+      secret: { get: vi.fn(async () => null) },
+      variables: { resolveText: vi.fn(), resolveRequest },
     },
   });
 
@@ -103,6 +121,7 @@ describe("useRequestTabsStore", () => {
         { path: "a.req.yaml", pinned: false },
       ],
       activeTabPath: "a.req.yaml",
+      activeEnvironment: null,
     };
 
     const tabs = useRequestTabsStore();
@@ -112,5 +131,63 @@ describe("useRequestTabsStore", () => {
     expect(tabs.tabs[0].pinned).toBe(true);
     expect(tabs.tabs[1].pinned).toBe(false);
     expect(tabs.activeId).toBe("a.req.yaml");
+  });
+
+  it("send() resolve variáveis antes de disparar a request (EP-06-T05)", async () => {
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+
+    await tabs.send();
+
+    expect(resolveRequest).toHaveBeenCalledOnce();
+    expect(httpSend).toHaveBeenCalledOnce();
+    expect(tabs.unresolvedSendId).toBeNull();
+  });
+
+  it("send() com variável não resolvida pausa e pede confirmação em vez de disparar", async () => {
+    resolveRequest.mockResolvedValueOnce({
+      url: "https://example.com/{{missing}}",
+      query: [],
+      headers: [],
+      auth: { type: "none" },
+      body: { type: "none" },
+      unresolved: ["missing"],
+      used: [],
+      cycles: [],
+    });
+
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+
+    await tabs.send();
+
+    expect(httpSend).not.toHaveBeenCalled();
+    expect(tabs.unresolvedSendId).toBe("a.req.yaml");
+    expect(tabs.unresolvedSendNames).toEqual(["missing"]);
+
+    await tabs.confirmSendUnresolved();
+    expect(httpSend).toHaveBeenCalledOnce();
+    expect(tabs.unresolvedSendId).toBeNull();
+  });
+
+  it("cancelSendUnresolved descarta a pergunta sem enviar", async () => {
+    resolveRequest.mockResolvedValueOnce({
+      url: "https://example.com/{{missing}}",
+      query: [],
+      headers: [],
+      auth: { type: "none" },
+      body: { type: "none" },
+      unresolved: ["missing"],
+      used: [],
+      cycles: [],
+    });
+
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+    await tabs.send();
+
+    tabs.cancelSendUnresolved();
+    expect(tabs.unresolvedSendId).toBeNull();
+    expect(httpSend).not.toHaveBeenCalled();
   });
 });
