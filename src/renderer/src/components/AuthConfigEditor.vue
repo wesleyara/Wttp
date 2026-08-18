@@ -14,7 +14,7 @@ import type { AuthConfig, KeyValueEntry } from "@shared";
 import { useEffectiveAuth } from "@renderer/composables/useEffectiveAuth";
 import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { useVariablesStore } from "@renderer/stores/variables";
-import { computed, reactive } from "vue";
+import { computed } from "vue";
 
 import WCodeEditor from "./WCodeEditor.vue";
 import WIcon from "./WIcon.vue";
@@ -93,13 +93,6 @@ function patchBasic(patch: Partial<{ username: string; password: string }>): voi
 function patchApikey(patch: Partial<{ key: string; value: string; in: "header" | "query" }>): void {
   if (props.modelValue.type !== "apikey") return;
   emit("update:modelValue", { type: "apikey", apikey: { ...props.modelValue.apikey, ...patch } });
-}
-
-// --- Campos mascarados: revelar é por campo, nunca persistido, nunca revelado por padrão ---
-const revealed = reactive(new Set<string>());
-function toggleReveal(field: string): void {
-  if (revealed.has(field)) revealed.delete(field);
-  else revealed.add(field);
 }
 
 const APIKEY_IN_OPTIONS = [
@@ -206,14 +199,14 @@ const showManualOverrideWarning = computed(
         class="flex items-center gap-2 rounded-md border border-subtle bg-surface-2 px-2 py-1.5 font-mono text-[13px] text-muted"
       >
         <span class="font-inter text-xs text-faint">Token</span>
-        <span class="truncate">••••••••••••</span>
+        <span class="truncate">{{ effective.bearer.token }}</span>
       </div>
       <div
         v-else-if="effective.type === 'basic'"
         class="flex flex-col gap-1 rounded-md border border-subtle bg-surface-2 px-2 py-1.5 font-mono text-[13px] text-muted"
       >
         <span class="font-inter text-xs text-faint">Username: {{ effective.basic.username }}</span>
-        <span class="font-inter text-xs text-faint">Password: ••••••••••••</span>
+        <span class="font-inter text-xs text-faint">Password: {{ effective.basic.password }}</span>
       </div>
       <div
         v-else-if="effective.type === 'apikey'"
@@ -222,7 +215,7 @@ const showManualOverrideWarning = computed(
         <span class="font-inter text-xs text-faint"
           >{{ effective.apikey.key }} ({{ effective.apikey.in }})</span
         >
-        <span class="truncate">••••••••••••</span>
+        <span class="truncate">{{ effective.apikey.value }}</span>
       </div>
     </div>
 
@@ -235,17 +228,7 @@ const showManualOverrideWarning = computed(
       <div
         class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
       >
-        <input
-          v-if="!revealed.has('bearer.token')"
-          type="password"
-          :value="bearerToken"
-          placeholder="{{access_token}}"
-          autocomplete="off"
-          class="min-w-0 flex-1 bg-transparent font-mono text-[13px] text-1 outline-none placeholder:text-faint"
-          @input="patchBearer({ token: ($event.target as HTMLInputElement).value })"
-        />
         <WCodeEditor
-          v-else
           :model-value="bearerToken"
           single-line
           bare
@@ -257,14 +240,6 @@ const showManualOverrideWarning = computed(
           class="min-w-0 flex-1"
           @update:model-value="value => patchBearer({ token: value })"
         />
-        <button
-          type="button"
-          :aria-label="revealed.has('bearer.token') ? 'Hide token' : 'Reveal token'"
-          class="flex size-5 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          @click="toggleReveal('bearer.token')"
-        >
-          <WIcon :name="revealed.has('bearer.token') ? 'eye-off' : 'eye'" />
-        </button>
       </div>
     </div>
 
@@ -291,17 +266,7 @@ const showManualOverrideWarning = computed(
         <div
           class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
         >
-          <input
-            v-if="!revealed.has('basic.password')"
-            type="password"
-            :value="basicPassword"
-            placeholder="{{pass}}"
-            autocomplete="off"
-            class="min-w-0 flex-1 bg-transparent font-mono text-[13px] text-1 outline-none placeholder:text-faint"
-            @input="patchBasic({ password: ($event.target as HTMLInputElement).value })"
-          />
           <WCodeEditor
-            v-else
             :model-value="basicPassword"
             single-line
             bare
@@ -313,14 +278,6 @@ const showManualOverrideWarning = computed(
             class="min-w-0 flex-1"
             @update:model-value="value => patchBasic({ password: value })"
           />
-          <button
-            type="button"
-            :aria-label="revealed.has('basic.password') ? 'Hide password' : 'Reveal password'"
-            class="flex size-5 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            @click="toggleReveal('basic.password')"
-          >
-            <WIcon :name="revealed.has('basic.password') ? 'eye-off' : 'eye'" />
-          </button>
         </div>
       </div>
     </div>
@@ -356,17 +313,7 @@ const showManualOverrideWarning = computed(
         <div
           class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
         >
-          <input
-            v-if="!revealed.has('apikey.value')"
-            type="password"
-            :value="apikeyValue"
-            placeholder="{{api_key}}"
-            autocomplete="off"
-            class="min-w-0 flex-1 bg-transparent font-mono text-[13px] text-1 outline-none placeholder:text-faint"
-            @input="patchApikey({ value: ($event.target as HTMLInputElement).value })"
-          />
           <WCodeEditor
-            v-else
             :model-value="apikeyValue"
             single-line
             bare
@@ -378,14 +325,6 @@ const showManualOverrideWarning = computed(
             class="min-w-0 flex-1"
             @update:model-value="value => patchApikey({ value })"
           />
-          <button
-            type="button"
-            :aria-label="revealed.has('apikey.value') ? 'Hide value' : 'Reveal value'"
-            class="flex size-5 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-            @click="toggleReveal('apikey.value')"
-          >
-            <WIcon :name="revealed.has('apikey.value') ? 'eye-off' : 'eye'" />
-          </button>
         </div>
       </div>
     </div>
