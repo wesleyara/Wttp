@@ -116,11 +116,16 @@ const bodyViewOptions = computed(() => {
 });
 
 // Toda vez que uma nova resposta chega, escolhe a melhor aba padrão para ela — uma
-// imagem abre direto no Preview, o resto abre no Pretty.
+// imagem abre direto no Preview, o resto abre no Pretty. Também traz `mainTab` de volta
+// pra Body: sem isso, mandar uma request enquanto a aba History estava selecionada (ex.
+// request sem `lastResult` desta sessão, EP-08.1-T04) prendia a resposta nova atrás da
+// aba errada — History continuava válida na lista, então o watcher de `mainTabs` não
+// tinha motivo pra mexer nela.
 watch(successResult, result => {
   if (!result) return;
   bodyViewMode.value =
     isImage(contentType.value) || isPdf(contentType.value) ? "preview" : "pretty";
+  mainTab.value = "body";
 });
 
 const decodedBody = computed(() => {

@@ -778,13 +778,15 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         console: [...preRequest.console, ...tests.console],
       };
     } finally {
-      tab.sending = false;
       tab.requestId = null;
       // Persiste o que `wttp.setVar`/`setCollectionVar` mudou (EP-09.2) — mesmo quando
       // o pre-request abortou o envio, o que rodou antes da falha ainda vale.
       await persistEnvVars(scope.envVars);
       await persistCollectionVars(tab.path, scope.collectionVars);
       if (sentSpec && tab.lastResult && workspace.root) {
+        // Antes de `tab.sending = false` — `ResponsePanel` recarrega o histórico assim
+        // que `sending` vira `false` (EP-08.1-T04); virar antes daqui é uma corrida que
+        // recarrega a lista antes desta entrada existir em disco.
         await window.wttp.history.append({
           root: workspace.root,
           path: tab.path,
@@ -793,6 +795,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
           secrets: secretsUsedIn(resolved),
         });
       }
+      tab.sending = false;
     }
   }
 
