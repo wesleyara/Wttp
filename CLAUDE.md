@@ -34,14 +34,36 @@ para o keychain (`env:*`, `EnvironmentEditorModal`), o seletor de environment at
 params, headers e body — `useRequestTabsStore.send()` resolve a request inteira antes
 de disparar e pede confirmação quando sobra alguma `{{var}}` não resolvida.
 `useRequestStore` continua uma fachada sobre a aba ativa — nenhum componente de EP-03
-precisou mudar. Auth e scripts ainda são placeholder — chegam em EP-07/EP-09. A
-verificação visual de EP-02/EP-03/EP-05/EP-06 (dois temas, interações reais numa
-janela) ainda não foi feita — este ambiente de desenvolvimento não tem `xvfb`/`sudo`
-para abrir uma; pendente antes de considerar qualquer um dos quatro épicos fechado de
-fato. Ver nota no topo de [EP-02](docs/backlog/EP-02-design-system.md) e as notas por
-task em [EP-03](docs/backlog/EP-03-nucleo-http.md),
+precisou mudar. A verificação visual de EP-02/EP-03/EP-05/EP-06 (dois temas, interações
+reais numa janela) ainda não foi feita — este ambiente de desenvolvimento não tem
+`xvfb`/`sudo` para abrir uma; pendente antes de considerar qualquer um dos quatro
+épicos fechado de fato. Ver nota no topo de [EP-02](docs/backlog/EP-02-design-system.md)
+e as notas por task em [EP-03](docs/backlog/EP-03-nucleo-http.md),
 [EP-05](docs/backlog/EP-05-workspaces-collections.md) e
 [EP-06](docs/backlog/EP-06-environments-variaveis.md).
+
+**EP-07** (Autenticação) também está pronto: `AuthConfig` (`@shared`) como union por
+`type` — `none`/`inherit`/`bearer`/`basic`/`apikey` — já existia desde a preparação de
+EP-06 no formato de arquivo e no storage; o que faltava era resolver a herança e
+aplicá-la. `resolveAuthChain` (`src/main/http/authInheritance.ts`, puro, exposto via
+`variables:resolveAuthChain`) sobe request → pasta → pasta pai → collection até achar
+a primeira camada que não seja `inherit`, com `none` cortando a herança explicitamente
+e nenhuma auth em lugar nenhum resolvendo em "sem header" sem erro. `applyAuth`
+(`src/main/http/auth.ts`) roda no início de `sendHttpRequest` e vira `Authorization:
+Bearer`/`Basic <base64 UTF-8>` ou header/query de API key, cedendo a um `Authorization`
+manual já presente nos headers. A Aba Auth (`AuthConfigEditor.vue`) existe nos dois
+níveis — request (`RequestConfigTabs`) e pasta/collection, esta última pela primeira
+vez editável na UI via `FolderAuthModal` (menu de contexto "Edit auth") — com
+rascunho por tipo preservado ao trocar, campos secretos mascarados com revelar por
+campo, e o modo `inherit` mostrando de onde a auth efetiva vem, não só a palavra
+"inherit" (`useEffectiveAuth`). A aba "Auth" de `RequestConfigTabs` carrega um badge
+com o tipo efetivo (`WTabs` ganhou `badge`/`warning` por aba) e acende aviso quando a
+auth (própria ou herdada) depende de `{{var}}` não resolvida — o mesmo fluxo de
+confirmação de EP-06-T05 cobre isso antes do envio, sem UI nova. Os três tipos de auth
+foram verificados só por teste unitário, não contra um servidor de teste real — não há
+harness de servidor HTTP de integração no repo, registrado como pendência em
+[EP-07](docs/backlog/EP-07-autenticacao.md). Scripts ainda são placeholder — chegam em
+EP-09. Mesma pendência de verificação visual das notas acima.
 
 **EP-06.1** (não planejado, aberto após feedback de uso real) também está pronto:
 `@iconify/vue` com o set Lucide empacotado offline (`WIcon`, sem SVG duplicado nos
@@ -56,7 +78,7 @@ o token `stripe` (novo em `docs/design-system.md`), a árvore sincronizando apó
 salvar uma aba, e diretório padrão de workspace configurável (`defaultWorkspaceDir`).
 Mesma pendência de verificação visual das notas acima.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-07**.
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → épico **EP-08**.
 
 ---
 

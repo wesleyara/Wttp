@@ -1,7 +1,17 @@
 <script setup lang="ts">
+import WIcon from "./WIcon.vue";
+
 const props = defineProps<{
   modelValue: string;
-  tabs: { value: string; label: string; count?: number }[];
+  tabs: {
+    value: string;
+    label: string;
+    count?: number;
+    /** Rótulo curto (EP-07-T04) — ex. o tipo efetivo de auth ("Bearer", "Inherited") sem abrir a aba. Mutuamente exclusivo com `count` na mesma tab. */
+    badge?: string;
+    /** Ícone de alerta ao lado do rótulo — ex. `{{var}}` de auth não resolvida antes do envio (EP-07-T04). */
+    warning?: boolean;
+  }[];
 }>();
 
 const emit = defineEmits<{
@@ -48,11 +58,24 @@ function onKeydown(event: KeyboardEvent): void {
       @click="select(tab.value)"
     >
       {{ tab.label }}
+      <WIcon
+        v-if="tab.warning"
+        name="alert-triangle"
+        size="3"
+        class="ml-1 text-status-4xx"
+        aria-label="Unresolved variable"
+      />
       <span
         v-if="tab.count"
         class="ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-surface-1 px-1 font-mono text-[10px] text-muted"
       >
         {{ tab.count }}
+      </span>
+      <span
+        v-if="tab.badge"
+        class="ml-1.5 rounded-full bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-muted"
+      >
+        {{ tab.badge }}
       </span>
       <span
         v-if="tab.value === modelValue"

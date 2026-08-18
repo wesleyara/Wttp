@@ -2,6 +2,7 @@
 import type { MultipartEntry, RequestBody } from "@shared";
 
 import { useAutoContentType } from "@renderer/composables/useAutoContentType";
+import { useEffectiveAuth } from "@renderer/composables/useEffectiveAuth";
 import { useKeyValueRows } from "@renderer/composables/useKeyValueRows";
 import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { useRequestStore } from "@renderer/stores/request";
@@ -11,6 +12,7 @@ import { computed, ref } from "vue";
 
 import type { KeyValueRow } from "./WKeyValueTable.vue";
 
+import AuthConfigEditor from "./AuthConfigEditor.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
@@ -20,7 +22,7 @@ import WSelect from "./WSelect.vue";
 import WTabs from "./WTabs.vue";
 
 const store = useRequestStore();
-const { pathParams, query, headers, body, docs, path } = storeToRefs(store);
+const { pathParams, query, headers, body, auth, docs, path } = storeToRefs(store);
 const variablesStore = useVariablesStore();
 
 const activeTab = ref("params");
@@ -78,6 +80,42 @@ const { unresolved: multipartUnresolved, tooltips: multipartTooltips } = useVari
 
 const { unresolved: docsUnresolved, tooltips: docsTooltips } = useVariablePreview(docs, path);
 
+// --- Auth (EP-07-T03/T04): badge/aviso na própria WTabs, sem precisar abrir a aba ---
+const selfLabel = computed(() => "This request");
+const { effective: effectiveAuth, inherited: authInherited } = useEffectiveAuth(
+  auth,
+  path,
+  selfLabel,
+);
+
+const effectiveAuthLabel = computed(() => {
+  switch (effectiveAuth.value.type) {
+    case "bearer":
+      return "Bearer";
+    case "basic":
+      return "Basic";
+    case "apikey":
+      return "API Key";
+    default:
+      return null;
+  }
+});
+
+const authBadge = computed(() => {
+  if (!effectiveAuthLabel.value) return undefined;
+  return authInherited.value ? `${effectiveAuthLabel.value} ↑` : effectiveAuthLabel.value;
+});
+
+/** Texto com os campos de texto da auth *efetiva* (já com a herança resolvida) — uma variável não resolvida numa pasta herdada precisa avisar aqui tanto quanto uma da própria request. */
+const effectiveAuthText = computed(() => {
+  const value = effectiveAuth.value;
+  if (value.type === "bearer") return value.bearer.token;
+  if (value.type === "basic") return `${value.basic.username}\n${value.basic.password}`;
+  if (value.type === "apikey") return `${value.apikey.key}\n${value.apikey.value}`;
+  return "";
+});
+const { unresolved: authUnresolved } = useVariablePreview(effectiveAuthText, path);
+
 function unresolvedNamesIn(names: string[], value: string): string[] {
   return names.filter(name => new RegExp(`\\{\\{\\s*${escapeRegExp(name)}\\s*\\}\\}`).test(value));
 }
@@ -115,7 +153,12 @@ const tabs = computed(() => [
   },
   { value: "headers", label: "Headers", count: countActive(headers.value) },
   { value: "body", label: "Body", count: bodyCount.value },
-  { value: "auth", label: "Auth" },
+  {
+    value: "auth",
+    label: "Auth",
+    badge: authBadge.value,
+    warning: authUnresolved.value.length > 0,
+  },
   { value: "scripts", label: "Scripts" },
   { value: "docs", label: "Docs" },
 ]);
@@ -401,11 +444,8 @@ useAutoContentType(body, headers);
       </div>
     </div>
 
-    <div v-else-if="activeTab === 'auth'" class="pt-2">
-      <WEmptyState
-        title="No auth configured"
-        description="Bearer, Basic and API key auth are coming in a future release."
-      />
+    <div v-else-if="activeTab === 'auth'">
+      <AuthConfigEditor v-model="auth" :path="path" :headers="headers" />
     </div>
 
     <div v-else-if="activeTab === 'scripts'" class="pt-2">
