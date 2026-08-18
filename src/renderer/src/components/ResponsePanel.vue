@@ -292,6 +292,7 @@ async function saveBody(): Promise<void> {
             :model-value="displayText"
             :language="editorLanguage"
             read-only
+            line-wrap
           />
           <WEmptyState
             v-else
