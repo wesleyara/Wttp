@@ -2,6 +2,7 @@ import type { ElectronAPI } from "@electron-toolkit/preload";
 import type {
   AppendHistoryPayload,
   AppInfo,
+  AppOpenExternalPayload,
   AppSettings,
   CreateNodePayload,
   CreateWorkspacePayload,
@@ -63,6 +64,7 @@ import type {
 interface WttpApi {
   app: {
     ping: () => Promise<AppInfo>;
+    openExternal: (payload: AppOpenExternalPayload) => Promise<void>;
   };
   ui: {
     getState: () => Promise<UiState>;

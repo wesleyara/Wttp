@@ -20,5 +20,10 @@ export const useAppStore = defineStore("app", () => {
     }
   }
 
-  return { info, error, ping };
+  /** Abre `url` no browser do SO — o main recusa qualquer coisa fora da allowlist (EP-08.1-T05). */
+  function openExternal(url: string): void {
+    void window.wttp.app.openExternal({ url });
+  }
+
+  return { info, error, ping, openExternal };
 });
