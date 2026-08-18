@@ -9,11 +9,17 @@ import type {
   RequestBody,
   RequestFile,
   RequestNode,
+  RequestScripts,
   ResolveRequestResultPayload,
   SaveFileResult,
+  ScriptAssertion,
+  ScriptConsoleEntry,
+  WttpError,
 } from "@shared";
 
 import { suggestedFileName } from "@renderer/lib/content-type";
+import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/scriptChain";
+import { useScriptRuntimeStore } from "@renderer/stores/scriptRuntime";
 import { useToastStore } from "@renderer/stores/toast";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
@@ -23,6 +29,26 @@ import { computed, ref, toRaw, watch } from "vue";
 /** Tira a reatividade do Pinia antes de cruzar a ponte de IPC — Proxy reativo não é clonável pelo Electron. */
 function unwrap<T>(value: T): T {
   return JSON.parse(JSON.stringify(toRaw(value))) as T;
+}
+
+/** `{}`/campos vazios não vão para o YAML — mesmo cuidado que `docs: tab.docs || undefined` já toma. */
+function cleanScripts(scripts: RequestScripts): RequestScripts | undefined {
+  const preRequest = scripts.preRequest?.trim() ? scripts.preRequest : undefined;
+  const tests = scripts.tests?.trim() ? scripts.tests : undefined;
+  if (!preRequest && !tests) return undefined;
+  return { preRequest, tests };
+}
+
+/** Uma asserção ou linha de console já com de qual elo da cadeia (request/pasta/collection) ela veio (EP-09-T05). */
+export type ScriptAssertionWithSource = ScriptAssertion & { source: string };
+export type ScriptConsoleEntryWithSource = ScriptConsoleEntry & { source: string };
+
+/** Resultado dos scripts do último envio (EP-09-T05) — `null` até a primeira vez que a aba envia. */
+export interface ScriptRunSummary {
+  assertions: ScriptAssertionWithSource[];
+  console: ScriptConsoleEntryWithSource[];
+  /** Exceção não tratada no pre-request de algum elo da cadeia — abortou o envio. */
+  preRequestError?: { source: string; error: WttpError };
 }
 
 export interface RequestTabState {
@@ -43,9 +69,11 @@ export interface RequestTabState {
   body: RequestBody;
   auth: AuthConfig;
   docs: string;
+  scripts: RequestScripts;
   sending: boolean;
   requestId: string | null;
   lastResult: HttpResponseResult | null;
+  scriptRun: ScriptRunSummary | null;
   /** Último `RequestFile` salvo — base do próximo `save`, preserva `settings`/`scripts`/`unknown`. */
   originalData: RequestFile;
 }
@@ -100,9 +128,11 @@ function buildTab(node: RequestNode, pinned: boolean): RequestTabState {
     body: data.body ?? { type: "none" },
     auth: data.auth ?? { type: "none" },
     docs: data.docs ?? "",
+    scripts: { ...data.scripts },
     sending: false,
     requestId: null,
     lastResult: null,
+    scriptRun: null,
     originalData: data,
   };
 }
@@ -292,6 +322,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       headers: unwrap(tab.headers),
       auth: unwrap(tab.auth),
       body: unwrap(tab.body),
+      scripts: cleanScripts(tab.scripts),
       docs: tab.docs || undefined,
     };
     const node: RequestNode = {
@@ -372,6 +403,102 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     persistSession();
   }
 
+  function scriptTimeoutFor(): number | undefined {
+    return workspace.tree?.data?.settings?.scriptTimeout;
+  }
+
+  /**
+   * Roda a cadeia de pre-request (EP-09-T03) — collection mais distante primeiro,
+   * request por último, logo antes do envio — mutando `spec` a cada elo. Aborta no
+   * primeiro elo que falhar: um pre-request quebrado nunca deixa a request sair.
+   */
+  async function runPreRequestChain(
+    tab: RequestTabState,
+    initialSpec: HttpRequestSpec,
+  ): Promise<
+    | { ok: true; spec: HttpRequestSpec; console: ScriptConsoleEntryWithSource[] }
+    | {
+        ok: false;
+        console: ScriptConsoleEntryWithSource[];
+        error: { source: string; error: WttpError };
+      }
+  > {
+    const scriptRuntime = useScriptRuntimeStore();
+    const chain = orderForPhase(
+      buildScriptChain(tab.scripts, variables.folderChain(tab.path)),
+      "preRequest",
+    );
+    const links = linksWithCode(chain, "preRequest");
+    const timeoutMs = scriptTimeoutFor();
+    const consoleEntries: ScriptConsoleEntryWithSource[] = [];
+    let spec = initialSpec;
+
+    for (const link of links) {
+      const result = await window.wttp.script.run({
+        code: link.code,
+        phase: "preRequest",
+        vars: unwrap(scriptRuntime.vars),
+        req: spec,
+        timeoutMs,
+      });
+      consoleEntries.push(...result.console.map(entry => ({ ...entry, source: link.source })));
+      scriptRuntime.setAll(result.vars);
+      if (!result.ok) {
+        return {
+          ok: false,
+          console: consoleEntries,
+          error: {
+            source: link.source,
+            error: result.error ?? { code: "UNKNOWN", message: "Pre-request script failed" },
+          },
+        };
+      }
+      if (result.req) spec = result.req;
+    }
+
+    return { ok: true, spec, console: consoleEntries };
+  }
+
+  /** Roda a cadeia de tests (EP-09-T03) — request primeiro, subindo até a collection. Nunca aborta: falha de um script não invalida a resposta já recebida. */
+  async function runTestsChain(
+    tab: RequestTabState,
+    res: HttpResponseResult,
+  ): Promise<{ assertions: ScriptAssertionWithSource[]; console: ScriptConsoleEntryWithSource[] }> {
+    const scriptRuntime = useScriptRuntimeStore();
+    const chain = orderForPhase(
+      buildScriptChain(tab.scripts, variables.folderChain(tab.path)),
+      "tests",
+    );
+    const links = linksWithCode(chain, "tests");
+    const timeoutMs = scriptTimeoutFor();
+    const assertions: ScriptAssertionWithSource[] = [];
+    const consoleEntries: ScriptConsoleEntryWithSource[] = [];
+
+    for (const link of links) {
+      const result = await window.wttp.script.run({
+        code: link.code,
+        phase: "tests",
+        vars: unwrap(scriptRuntime.vars),
+        res,
+        timeoutMs,
+      });
+      assertions.push(...result.assertions.map(a => ({ ...a, source: link.source })));
+      consoleEntries.push(...result.console.map(entry => ({ ...entry, source: link.source })));
+      scriptRuntime.setAll(result.vars);
+      if (!result.ok && result.error) {
+        assertions.push({
+          name: `${link.source} script`,
+          passed: false,
+          message: result.error.message,
+          durationMs: 0,
+          source: link.source,
+        });
+      }
+    }
+
+    return { assertions, console: consoleEntries };
+  }
+
   async function dispatch(
     tab: RequestTabState,
     resolved: ResolveRequestResultPayload,
@@ -379,9 +506,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     const id = crypto.randomUUID();
     tab.requestId = id;
     tab.sending = true;
+    tab.scriptRun = null;
 
     try {
-      const spec: HttpRequestSpec = {
+      const initialSpec: HttpRequestSpec = {
         requestId: id,
         method: tab.method,
         url: resolved.url,
@@ -390,7 +518,28 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         auth: resolved.auth,
         body: resolved.body,
       };
-      tab.lastResult = await window.wttp.http.send(spec);
+
+      const preRequest = await runPreRequestChain(tab, initialSpec);
+      if (!preRequest.ok) {
+        tab.scriptRun = {
+          assertions: [],
+          console: preRequest.console,
+          preRequestError: preRequest.error,
+        };
+        toast.push(
+          `Pre-request script failed (${preRequest.error.source}): ${preRequest.error.error.message}`,
+          "error",
+        );
+        return;
+      }
+
+      tab.lastResult = await window.wttp.http.send(preRequest.spec);
+
+      const tests = await runTestsChain(tab, tab.lastResult);
+      tab.scriptRun = {
+        assertions: tests.assertions,
+        console: [...preRequest.console, ...tests.console],
+      };
     } finally {
       tab.sending = false;
       tab.requestId = null;

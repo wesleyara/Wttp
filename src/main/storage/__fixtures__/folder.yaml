@@ -5,5 +5,10 @@ auth:
   type: none
 variables:
   - { name: scope, value: openid profile, enabled: true }
+scripts:
+  preRequest: |
+    wttp.setVar("run_started_at", Date.now());
+  tests: |
+    test("no server error", () => expect(res.status).toBeTruthy());
 docs: |
   Endpoints de autenticação e renovação de sessão.

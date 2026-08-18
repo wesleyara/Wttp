@@ -287,6 +287,10 @@ export function validateFolder(raw: string): ValidationResult<FolderFile> {
       checker.required(["seq"], "number");
       checker.authConfig(["auth"]);
       checker.keyValueArray(["variables"]);
+      if (checker.get(["scripts"]) !== undefined) {
+        checker.optional(["scripts", "preRequest"], "string");
+        checker.optional(["scripts", "tests"], "string");
+      }
       checker.optional(["docs"], "string");
     },
     parseFolder,
