@@ -3,6 +3,7 @@ import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { ref } from "vue";
 
 import WIcon from "./WIcon.vue";
+import WMethodBadge from "./WMethodBadge.vue";
 
 const tabs = useRequestTabsStore();
 
@@ -67,6 +68,12 @@ function onClose(id: string, event: MouseEvent): void {
       @pointerdown="onPointerDown(tab.id, $event)"
     >
       <span v-if="tab.dirty" class="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+      <WMethodBadge
+        v-if="tab.kind === 'request'"
+        :method="tab.method"
+        class="w-8 shrink-0 text-[10px]"
+      />
+      <WIcon v-else name="folder" size="3.5" class="shrink-0 text-faint" />
       <span class="max-w-40 truncate" :class="{ italic: !tab.pinned }">{{ tab.title }}</span>
       <button
         type="button"

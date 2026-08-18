@@ -1,5 +1,7 @@
 import type {
   AuthConfig,
+  FolderFile,
+  FolderNode,
   HttpMethod,
   HttpRequestSpec,
   HttpResponseResult,
@@ -24,6 +26,7 @@ function unwrap<T>(value: T): T {
 }
 
 export interface RequestTabState {
+  kind: "request";
   /** Igual a `path` — muda junto quando a request é renomeada (`renamePath`). */
   id: string;
   path: string;
@@ -47,9 +50,43 @@ export interface RequestTabState {
   originalData: RequestFile;
 }
 
+/**
+ * Aba de settings de pasta/collection (EP-07.1) — mesmo `folder.yaml` que
+ * `useTreeStore` editava por modal antes, agora vivendo no mesmo strip das abas de
+ * request. Sempre `pinned: true`: não existe conceito de preview para uma pasta, um
+ * clique simples já abre/ativa a aba definitiva, como uma request fixada.
+ */
+export interface FolderTabState {
+  kind: "folder";
+  id: string;
+  path: string;
+  /** Nome do nó — só muda por rename na árvore. */
+  title: string;
+  /** `true` quando a pasta está na raiz do workspace — rótulo "Collection" vs "Folder" na UI, sem campo novo no formato de arquivo. */
+  isCollection: boolean;
+  pinned: true;
+  dirty: boolean;
+  auth: AuthConfig;
+  docs: string;
+  variables: KeyValueEntry[];
+  /** Último `FolderFile` salvo — base do próximo save, preserva campos desconhecidos e os que esta UI não edita. */
+  originalData: FolderFile;
+}
+
+export type OpenTab = RequestTabState | FolderTabState;
+
+export function isRequestTab(tab: OpenTab | null | undefined): tab is RequestTabState {
+  return tab?.kind === "request";
+}
+
+export function isFolderTab(tab: OpenTab | null | undefined): tab is FolderTabState {
+  return tab?.kind === "folder";
+}
+
 function buildTab(node: RequestNode, pinned: boolean): RequestTabState {
   const data = node.data as RequestFile;
   return {
+    kind: "request",
     id: node.path,
     path: node.path,
     title: node.name,
@@ -70,18 +107,46 @@ function buildTab(node: RequestNode, pinned: boolean): RequestTabState {
   };
 }
 
+/** Sem `folder.yaml` em disco ainda (pasta "nua", válida) — mesmo mínimo que o antigo `useTreeStore.openAuthEditor` usava, antes de virar aba. */
+function emptyFolderFile(node: FolderNode): FolderFile {
+  return { wttp: 1, name: node.name, seq: node.seq };
+}
+
+function buildFolderTab(node: FolderNode, isCollection: boolean): FolderTabState {
+  const data = node.data ?? emptyFolderFile(node);
+  return {
+    kind: "folder",
+    id: node.path,
+    path: node.path,
+    title: node.name,
+    isCollection,
+    pinned: true,
+    dirty: false,
+    auth: data.auth ?? { type: "inherit" },
+    docs: data.docs ?? "",
+    variables: (data.variables ?? []).map(v => ({ ...v })),
+    originalData: data,
+  };
+}
+
+/** Uma pasta na raiz do workspace é uma "Collection" na UI — path relativo sem `/` (docs/file-format.md não distingue os dois, é só rótulo). */
+function isCollectionPath(path: string): boolean {
+  return !path.includes("/");
+}
+
 /**
- * Abas de request abertas (EP-05-T05) — cada uma com seu próprio método/URL/body/
- * resposta, independente das outras. `useRequestStore` vira uma fachada sobre
- * `active` (computeds com setter), então `RequestConfigTabs`/`RequestUrlBar`/
- * `ResponsePanel` continuam chamando `useRequestStore()` sem saber que existem abas.
+ * Abas abertas no strip central (EP-05-T05, generalizado em EP-07.1 para também
+ * cobrir settings de pasta/collection) — cada uma com seu próprio estado,
+ * independente das outras. `useRequestStore` continua uma fachada sobre a aba ativa
+ * *de request*; `FolderConfigTabs` lê a aba ativa *de pasta* direto daqui, já que só
+ * um componente consome esse formato.
  */
 export const useRequestTabsStore = defineStore("requestTabs", () => {
   const workspace = useWorkspaceStore();
   const variables = useVariablesStore();
   const toast = useToastStore();
 
-  const tabs = ref<RequestTabState[]>([]);
+  const tabs = ref<OpenTab[]>([]);
   const activeId = ref<string | null>(null);
   /** Aba com confirmação de fechar pendente (suja) — `null` quando nenhuma pergunta está aberta. */
   const closeConfirmId = ref<string | null>(null);
@@ -93,13 +158,18 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   const closeConfirmTab = computed(
     () => tabs.value.find(tab => tab.id === closeConfirmId.value) ?? null,
   );
-  const unresolvedSendTab = computed(
-    () => tabs.value.find(tab => tab.id === unresolvedSendId.value) ?? null,
-  );
+  const unresolvedSendTab = computed(() => {
+    const tab = tabs.value.find(t => t.id === unresolvedSendId.value) ?? null;
+    return isRequestTab(tab) ? tab : null;
+  });
 
   function persistSession(): void {
     workspace.patchUiState({
-      openTabs: tabs.value.map(tab => ({ path: tab.path, pinned: tab.pinned })),
+      openTabs: tabs.value.map(tab => ({
+        path: tab.path,
+        pinned: tab.pinned,
+        kind: tab.kind,
+      })),
       activeTabPath: activeId.value,
     });
   }
@@ -109,7 +179,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     persistSession();
   }
 
-  /** Edição em qualquer campo marca suja e promove uma aba de preview a fixa. */
+  /** Edição em qualquer campo marca suja e promove uma aba de preview a fixa (não-op para pasta, sempre fixa). */
   function markActiveDirty(): void {
     const tab = active.value;
     if (!tab) return;
@@ -123,7 +193,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   async function openTab(path: string, pinned: boolean): Promise<void> {
     if (!workspace.root) return;
 
-    const existing = tabs.value.find(tab => tab.path === path);
+    const existing = tabs.value.find(tab => tab.path === path && tab.kind === "request");
     if (existing) {
       if (pinned && !existing.pinned) existing.pinned = true;
       activate(existing.id);
@@ -135,7 +205,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
 
     const newTab = buildTab(node, pinned);
     if (!pinned) {
-      const previewIndex = tabs.value.findIndex(tab => !tab.pinned);
+      const previewIndex = tabs.value.findIndex(tab => tab.kind === "request" && !tab.pinned);
       if (previewIndex !== -1) {
         if (tabs.value[previewIndex].dirty) tabs.value[previewIndex].pinned = true;
         else tabs.value.splice(previewIndex, 1);
@@ -148,6 +218,22 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
 
   const openPreview = (path: string): Promise<void> => openTab(path, false);
   const openPinned = (path: string): Promise<void> => openTab(path, true);
+
+  /** Abre (ou ativa, se já aberta) a aba de settings de uma pasta/collection (EP-07.1) — relê `folder.yaml` fresco, mesmo cuidado que `save()` já toma para request. */
+  async function openFolderTab(path: string): Promise<void> {
+    if (!workspace.root) return;
+
+    const existing = tabs.value.find(tab => tab.path === path && tab.kind === "folder");
+    if (existing) {
+      activate(existing.id);
+      return;
+    }
+
+    const node = (await window.wttp.node.read({ root: workspace.root, path })) as FolderNode;
+    const newTab = buildFolderTab(node, isCollectionPath(path));
+    tabs.value.push(newTab);
+    activate(newTab.id);
+  }
 
   function forceClose(id: string): void {
     const index = tabs.value.findIndex(tab => tab.id === id);
@@ -174,27 +260,28 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (tab) forceClose(tab.id);
   }
 
-  /** Como `closeByPath`, mas também fecha abas de requests dentro de uma pasta excluída. */
+  /** Como `closeByPath`, mas também fecha abas (de request ou de pasta) dentro de uma pasta excluída. */
   function closeUnderPath(path: string): void {
     const affected = tabs.value.filter(t => t.path === path || t.path.startsWith(`${path}/`));
     affected.forEach(t => forceClose(t.id));
   }
 
-  /** A árvore renomeou o nó (EP-05-T03) — mantém a aba aberta apontando pro novo path. */
+  /** A árvore renomeou o nó (EP-05-T03) — mantém a aba aberta apontando pro novo path, request ou pasta. */
   function renamePath(oldPath: string, newPath: string, newName: string): void {
     const tab = tabs.value.find(t => t.path === oldPath);
     if (!tab) return;
     tab.path = newPath;
     tab.id = newPath;
     tab.title = newName;
-    tab.originalData = { ...tab.originalData, name: newName };
+    if (tab.kind === "request") tab.originalData = { ...tab.originalData, name: newName };
+    else tab.originalData = { ...tab.originalData, name: newName };
     if (activeId.value === oldPath) activeId.value = newPath;
     persistSession();
   }
 
   async function save(id: string): Promise<void> {
     const tab = tabs.value.find(t => t.id === id);
-    if (!tab || !workspace.root) return;
+    if (!tab || !isRequestTab(tab) || !workspace.root) return;
 
     const data: RequestFile = {
       ...unwrap(tab.originalData),
@@ -223,14 +310,46 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     toast.push(`"${tab.title}" saved`, "success");
   }
 
+  /** Grava `folder.yaml` com auth/docs/variables da aba, preservando campos desconhecidos já presentes — mesmo cuidado que `useTreeStore.saveFolderAuth` tomava antes de virar aba. */
+  async function saveFolderTab(id: string): Promise<void> {
+    const tab = tabs.value.find(t => t.id === id);
+    if (!tab || !isFolderTab(tab) || !workspace.root) return;
+
+    const data: FolderFile = {
+      ...unwrap(tab.originalData),
+      auth: unwrap(tab.auth),
+      docs: tab.docs || undefined,
+      variables: unwrap(tab.variables).filter(v => v.name.trim() !== ""),
+    };
+    const node: FolderNode = {
+      kind: "folder",
+      path: tab.path,
+      name: tab.originalData.name,
+      seq: tab.originalData.seq,
+      data,
+      // `writeNode` no main só olha `kind`/`data` (src/main/storage/tree.ts) — `children`
+      // é só para satisfazer o tipo `FolderNode`, nunca é lido pela escrita.
+      children: [],
+    };
+    await window.wttp.node.write({ root: workspace.root, path: tab.path, node });
+    tab.originalData = data;
+    tab.dirty = false;
+    await workspace.refreshTree();
+    toast.push(`"${tab.title}" saved`, "success");
+  }
+
   function saveActive(): Promise<void> {
-    return activeId.value ? save(activeId.value) : Promise.resolve();
+    const tab = active.value;
+    if (!tab) return Promise.resolve();
+    return tab.kind === "folder" ? saveFolderTab(tab.id) : save(tab.id);
   }
 
   async function confirmCloseSave(): Promise<void> {
     if (!closeConfirmId.value) return;
     const id = closeConfirmId.value;
-    await save(id);
+    const tab = tabs.value.find(t => t.id === id);
+    if (tab?.kind === "folder") await saveFolderTab(id);
+    else await save(id);
     forceClose(id);
   }
 
@@ -292,7 +411,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   /** Resolve `{{var}}` (EP-06-T01) antes de enviar; variável não resolvida pausa e pede confirmação em vez de mandar a request quebrada. */
   async function send(): Promise<void> {
     const tab = active.value;
-    if (!tab || tab.sending) return;
+    if (!isRequestTab(tab) || tab.sending) return;
 
     const auth = await effectiveAuthFor(tab);
     const resolved = await variables.resolveRequestSpec(
@@ -345,12 +464,13 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
 
   function cancel(): void {
     const tab = active.value;
-    if (!tab?.sending || !tab.requestId) return;
+    if (!isRequestTab(tab) || !tab.sending || !tab.requestId) return;
     void window.wttp.http.cancel(tab.requestId);
   }
 
   async function saveResponseToFile(): Promise<SaveFileResult | null> {
-    const result = active.value?.lastResult;
+    const tab = active.value;
+    const result = isRequestTab(tab) ? tab.lastResult : null;
     if (!result?.ok) return null;
     const contentType =
       result.headers.find(h => h.name.toLowerCase() === "content-type")?.value ?? "";
@@ -365,11 +485,16 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     const root = workspace.root;
     const state = workspace.uiState;
 
-    const loaded: RequestTabState[] = [];
+    const loaded: OpenTab[] = [];
     for (const entry of state.openTabs) {
       try {
-        const node = (await window.wttp.node.read({ root, path: entry.path })) as RequestNode;
-        if (node.data) loaded.push(buildTab(node, entry.pinned));
+        if (entry.kind === "folder") {
+          const node = (await window.wttp.node.read({ root, path: entry.path })) as FolderNode;
+          loaded.push(buildFolderTab(node, isCollectionPath(entry.path)));
+        } else {
+          const node = (await window.wttp.node.read({ root, path: entry.path })) as RequestNode;
+          if (node.data) loaded.push(buildTab(node, entry.pinned));
+        }
       } catch {
         // Arquivo sumiu ou foi renomeado por fora enquanto o app estava fechado —
         // só não restaura essa aba, o resto da sessão continua.
@@ -412,12 +537,14 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     markActiveDirty,
     openPreview,
     openPinned,
+    openFolderTab,
     requestClose,
     forceClose,
     closeByPath,
     closeUnderPath,
     renamePath,
     save,
+    saveFolderTab,
     saveActive,
     confirmCloseSave,
     confirmCloseDiscard,

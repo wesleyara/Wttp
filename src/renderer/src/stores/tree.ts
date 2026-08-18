@@ -1,4 +1,4 @@
-import type { AuthConfig, FolderFile, FolderNode, WorkspaceNode } from "@shared";
+import type { WorkspaceNode } from "@shared";
 
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useToastStore } from "@renderer/stores/toast";
@@ -55,12 +55,6 @@ export const useTreeStore = defineStore("tree", () => {
   const editingPath = ref<string | null>(null);
   const contextMenuTarget = ref<ContextMenuTarget | null>(null);
   const deleteTarget = ref<DeleteTarget | null>(null);
-
-  /** Pasta/collection sendo editada no `FolderAuthModal` (EP-07-T03) — `null` = modal fechado. */
-  const authEditNode = ref<FolderNode | null>(null);
-  /** `authEditNode.value.data`, ou um `FolderFile` mínimo quando a pasta ainda não tem `folder.yaml` — nunca `null` com o modal aberto. */
-  const authEditData = ref<FolderFile | null>(null);
-  const authEditPath = computed(() => authEditNode.value?.path ?? null);
 
   const expandedPaths = computed<Set<string>>(() => new Set(workspace.uiState.expandedPaths));
 
@@ -120,6 +114,21 @@ export const useTreeStore = defineStore("tree", () => {
     toast.push("Folder created", "success");
   }
 
+  /** Como `createFolder`, mas sempre na raiz do workspace — "New collection" no menu "+" (EP-07.1), independente da seleção atual na árvore. */
+  async function createCollection(): Promise<void> {
+    if (!workspace.root) return;
+    const node = await window.wttp.node.create({
+      root: workspace.root,
+      parentPath: "",
+      kind: "folder",
+      name: "New collection",
+    });
+    await workspace.refreshTree();
+    selectedPath.value = node.path;
+    editingPath.value = node.path;
+    toast.push("Collection created", "success");
+  }
+
   function startRename(path: string): void {
     editingPath.value = path;
   }
@@ -134,7 +143,9 @@ export const useTreeStore = defineStore("tree", () => {
     const node = await window.wttp.node.rename({ root: workspace.root, path, name });
     await workspace.refreshTree();
     selectedPath.value = node.path;
-    if (node.kind === "request") requestTabs.renamePath(path, node.path, node.name);
+    // Request ou pasta/collection: as duas podem ter aba aberta (EP-07.1) — `renamePath`
+    // é um no-op se nenhuma aba apontar para `path`.
+    requestTabs.renamePath(path, node.path, node.name);
   }
 
   async function duplicate(path: string): Promise<void> {
@@ -142,39 +153,6 @@ export const useTreeStore = defineStore("tree", () => {
     const node = await window.wttp.node.duplicate({ root: workspace.root, path });
     await workspace.refreshTree();
     selectedPath.value = node.path;
-  }
-
-  /** Abre o `FolderAuthModal` (EP-07-T03) — relê o nó para pegar `folder.yaml` mais recente, mesmo cuidado de `save()` em `requestTabs.ts`. */
-  async function openAuthEditor(node: WorkspaceNode): Promise<void> {
-    if (node.kind !== "folder" || !workspace.root) return;
-    const fresh = (await window.wttp.node.read({
-      root: workspace.root,
-      path: node.path,
-    })) as FolderNode;
-    authEditNode.value = fresh;
-    authEditData.value = fresh.data ?? {
-      wttp: 1,
-      name: fresh.name,
-      seq: fresh.seq,
-      auth: { type: "inherit" },
-    };
-  }
-
-  function closeAuthEditor(): void {
-    authEditNode.value = null;
-    authEditData.value = null;
-  }
-
-  /** Grava `folder.yaml` com a nova auth, preservando `variables`/`docs`/campos desconhecidos já presentes. */
-  async function saveFolderAuth(auth: AuthConfig): Promise<void> {
-    if (!workspace.root || !authEditNode.value || !authEditData.value) return;
-    const data: FolderFile = { ...authEditData.value, auth };
-    const node: FolderNode = { ...authEditNode.value, data };
-    await window.wttp.node.write({ root: workspace.root, path: node.path, node });
-    const name = authEditNode.value.name;
-    closeAuthEditor();
-    await workspace.refreshTree();
-    toast.push(`Auth updated for "${name}"`, "success");
   }
 
   function openContextMenu(node: WorkspaceNode, event: MouseEvent): void {
@@ -218,7 +196,7 @@ export const useTreeStore = defineStore("tree", () => {
     const node = await window.wttp.node.moveInto({ root: workspace.root, from, targetDir, index });
     await workspace.refreshTree();
     selectedPath.value = node.path;
-    if (node.kind === "request") requestTabs.renamePath(from, node.path, node.name);
+    requestTabs.renamePath(from, node.path, node.name);
   }
 
   async function reveal(path: string): Promise<void> {
@@ -242,8 +220,6 @@ export const useTreeStore = defineStore("tree", () => {
       editingPath.value = null;
       contextMenuTarget.value = null;
       deleteTarget.value = null;
-      authEditNode.value = null;
-      authEditData.value = null;
     },
   );
 
@@ -254,13 +230,11 @@ export const useTreeStore = defineStore("tree", () => {
     expandedPaths,
     contextMenuTarget,
     deleteTarget,
-    authEditNode,
-    authEditData,
-    authEditPath,
     setExpandedPaths,
     toggleExpanded,
     createRequest,
     createFolder,
+    createCollection,
     startRename,
     cancelRename,
     confirmRename,
@@ -273,8 +247,5 @@ export const useTreeStore = defineStore("tree", () => {
     moveInto,
     reveal,
     onShortcut,
-    openAuthEditor,
-    closeAuthEditor,
-    saveFolderAuth,
   };
 });

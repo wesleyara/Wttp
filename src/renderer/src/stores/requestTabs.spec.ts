@@ -1,10 +1,10 @@
-import type { RequestFile, RequestNode } from "@shared";
+import type { FolderFile, FolderNode, RequestFile, RequestNode } from "@shared";
 
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useRequestTabsStore } from "./requestTabs";
+import { isFolderTab, isRequestTab, useRequestTabsStore } from "./requestTabs";
 
 const ROOT = "/workspace";
 
@@ -16,11 +16,22 @@ function requestNode(path: string, name: string): RequestNode {
   return { kind: "request", path, name, seq: 1, data: requestFile(name) };
 }
 
+function folderFile(name: string): FolderFile {
+  return { wttp: 1, name, seq: 1 };
+}
+
+function folderNode(path: string, name: string): FolderNode {
+  return { kind: "folder", path, name, seq: 1, data: folderFile(name), children: [] };
+}
+
 const nodeRead = vi.fn(async ({ path }: { path: string }) => {
+  if (!path.endsWith(".req.yaml")) return folderNode(path, path);
   const name = path.replace(".req.yaml", "");
   return requestNode(path, name);
 });
-const nodeWrite = vi.fn(async () => {});
+const nodeWrite = vi.fn(
+  async (args: { root: string; path: string; node: FolderNode | RequestNode }) => args,
+);
 const setUiState = vi.fn(async () => {});
 const httpSend = vi.fn(async () => ({ ok: true }));
 const resolveRequest = vi.fn(
@@ -55,7 +66,19 @@ beforeEach(() => {
   vi.stubGlobal("window", {
     wttp: {
       node: { read: nodeRead, write: nodeWrite },
-      workspace: { setUiState, getUiState: vi.fn(), rescan: vi.fn() },
+      workspace: {
+        setUiState,
+        getUiState: vi.fn(),
+        // `save`/`saveFolderTab` chamam `refreshTree()` depois de escrever — precisa
+        // devolver uma árvore com o mesmo `root`, senão o watcher de `workspace.root`
+        // (em `requestTabs.ts`) vê `null` e fecha todas as abas por engano.
+        rescan: vi.fn(async () => ({
+          root: ROOT,
+          data: { wttp: 1, name: "Test" },
+          environments: [],
+          children: [],
+        })),
+      },
       http: { send: httpSend, cancel: vi.fn() },
       dialog: { saveFile: vi.fn() },
       env: { list: vi.fn(async () => []) },
@@ -86,7 +109,9 @@ describe("useRequestTabsStore", () => {
     await tabs.openPreview("a.req.yaml");
 
     expect(tabs.active?.pinned).toBe(false);
-    tabs.active!.url = "https://example.com/changed";
+    const active = tabs.active;
+    if (!isRequestTab(active)) throw new Error("expected a request tab");
+    active.url = "https://example.com/changed";
     tabs.markActiveDirty();
 
     expect(tabs.active?.pinned).toBe(true);
@@ -197,5 +222,44 @@ describe("useRequestTabsStore", () => {
     tabs.cancelSendUnresolved();
     expect(tabs.unresolvedSendId).toBeNull();
     expect(httpSend).not.toHaveBeenCalled();
+  });
+
+  it("abrir settings de uma pasta cria uma aba fixa; reabrir só ativa (EP-07.1)", async () => {
+    const tabs = useRequestTabsStore();
+
+    await tabs.openFolderTab("Users");
+    expect(tabs.tabs).toHaveLength(1);
+    expect(tabs.tabs[0].kind).toBe("folder");
+    expect(tabs.tabs[0].pinned).toBe(true);
+    expect(tabs.activeId).toBe("Users");
+
+    await tabs.openPinned("a.req.yaml");
+    expect(tabs.tabs).toHaveLength(2);
+
+    await tabs.openFolderTab("Users");
+    expect(tabs.tabs).toHaveLength(2);
+    expect(tabs.activeId).toBe("Users");
+  });
+
+  it("saveFolderTab grava auth/docs/variables preservando o resto de folder.yaml", async () => {
+    const tabs = useRequestTabsStore();
+    await tabs.openFolderTab("Users");
+
+    const active = tabs.active;
+    if (!isFolderTab(active)) throw new Error("expected a folder tab");
+    active.docs = "some docs";
+    active.variables = [{ name: "base", value: "https://api.test", enabled: true }];
+    tabs.markActiveDirty();
+    expect(tabs.active?.dirty).toBe(true);
+
+    await tabs.saveFolderTab(active.id);
+
+    expect(nodeWrite).toHaveBeenCalledOnce();
+    const written = nodeWrite.mock.calls[0][0].node as FolderNode;
+    expect(written.data?.docs).toBe("some docs");
+    expect(written.data?.variables).toEqual([
+      { name: "base", value: "https://api.test", enabled: true },
+    ]);
+    expect(tabs.active?.dirty).toBe(false);
   });
 });

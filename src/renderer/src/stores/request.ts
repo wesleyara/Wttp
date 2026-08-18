@@ -7,7 +7,7 @@ import type {
   SaveFileResult,
 } from "@shared";
 
-import { useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { defineStore } from "pinia";
 import { computed } from "vue";
 
@@ -22,83 +22,92 @@ import { computed } from "vue";
 export const useRequestStore = defineStore("request", () => {
   const tabs = useRequestTabsStore();
 
+  // A aba ativa pode agora ser de pasta/collection (EP-07.1) — esta fachada só faz
+  // sentido para uma de request; os componentes que a consomem (`RequestConfigTabs`,
+  // `RequestUrlBar`, `ResponsePanel`) só montam quando `AppShell` já garantiu isso, mas
+  // os getters continuam com fallback seguro mesmo assim.
+  const active = computed(() => {
+    const tab = tabs.active;
+    return isRequestTab(tab) ? tab : null;
+  });
+
   /** Caminho da request ativa, relativo à raiz do workspace — para resolução de variáveis (EP-06-T05), que precisa saber a cadeia de pastas. Só leitura: renomear é feito pela árvore, não aqui. */
-  const path = computed<string>(() => tabs.active?.path ?? "");
+  const path = computed<string>(() => active.value?.path ?? "");
 
   const method = computed<HttpMethod>({
-    get: () => tabs.active?.method ?? "GET",
+    get: () => active.value?.method ?? "GET",
     set: value => {
-      if (!tabs.active) return;
-      tabs.active.method = value;
+      if (!active.value) return;
+      active.value.method = value;
       tabs.markActiveDirty();
     },
   });
 
   const url = computed<string>({
-    get: () => tabs.active?.url ?? "",
+    get: () => active.value?.url ?? "",
     set: value => {
-      if (!tabs.active) return;
-      tabs.active.url = value;
+      if (!active.value) return;
+      active.value.url = value;
       tabs.markActiveDirty();
     },
   });
 
   const pathParams = computed<KeyValueEntry[]>({
-    get: () => tabs.active?.pathParams ?? [],
+    get: () => active.value?.pathParams ?? [],
     set: value => {
-      if (!tabs.active) return;
-      tabs.active.pathParams = value;
+      if (!active.value) return;
+      active.value.pathParams = value;
       tabs.markActiveDirty();
     },
   });
 
   const query = computed<KeyValueEntry[]>({
-    get: () => tabs.active?.query ?? [],
+    get: () => active.value?.query ?? [],
     set: value => {
-      if (!tabs.active) return;
-      tabs.active.query = value;
+      if (!active.value) return;
+      active.value.query = value;
       tabs.markActiveDirty();
     },
   });
 
   const headers = computed<KeyValueEntry[]>({
-    get: () => tabs.active?.headers ?? [],
+    get: () => active.value?.headers ?? [],
     set: value => {
-      if (!tabs.active) return;
-      tabs.active.headers = value;
+      if (!active.value) return;
+      active.value.headers = value;
       tabs.markActiveDirty();
     },
   });
 
   const body = computed<RequestBody>({
-    get: () => tabs.active?.body ?? { type: "none" },
+    get: () => active.value?.body ?? { type: "none" },
     set: value => {
-      if (!tabs.active) return;
-      tabs.active.body = value;
+      if (!active.value) return;
+      active.value.body = value;
       tabs.markActiveDirty();
     },
   });
 
   const auth = computed<AuthConfig>({
-    get: () => tabs.active?.auth ?? { type: "none" },
+    get: () => active.value?.auth ?? { type: "none" },
     set: value => {
-      if (!tabs.active) return;
-      tabs.active.auth = value;
+      if (!active.value) return;
+      active.value.auth = value;
       tabs.markActiveDirty();
     },
   });
 
   const docs = computed<string>({
-    get: () => tabs.active?.docs ?? "",
+    get: () => active.value?.docs ?? "",
     set: value => {
-      if (!tabs.active) return;
-      tabs.active.docs = value;
+      if (!active.value) return;
+      active.value.docs = value;
       tabs.markActiveDirty();
     },
   });
 
-  const sending = computed(() => tabs.active?.sending ?? false);
-  const lastResult = computed<HttpResponseResult | null>(() => tabs.active?.lastResult ?? null);
+  const sending = computed(() => active.value?.sending ?? false);
+  const lastResult = computed<HttpResponseResult | null>(() => active.value?.lastResult ?? null);
 
   function send(): Promise<void> {
     return tabs.send();
