@@ -59,7 +59,7 @@ function onClose(id: string, event: MouseEvent): void {
       data-request-tab
       role="tab"
       :aria-selected="tab.id === tabs.activeId"
-      class="flex shrink-0 cursor-grab select-none items-center gap-1.5 border-r border-subtle px-3 font-inter text-xs"
+      class="flex shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-subtle px-3 font-inter text-xs"
       :class="[
         tab.id === tabs.activeId ? 'bg-surface-3 text-1' : 'text-muted hover:bg-surface-3/50',
         draggingId === tab.id

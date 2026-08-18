@@ -414,7 +414,7 @@ function onKeydown(event: KeyboardEvent): void {
           :aria-selected="row.node.path === selectedPath"
           :aria-expanded="row.node.kind === 'folder' ? row.expanded : undefined"
           :style="{ height: `${ROW_HEIGHT}px`, paddingLeft: `${row.depth * 16 + 4}px` }"
-          class="relative flex cursor-grab select-none items-center gap-1 pr-2 font-inter text-xs"
+          class="relative flex cursor-pointer select-none items-center gap-1 pr-2 font-inter text-xs"
           :class="[
             row.node.path === selectedPath
               ? 'bg-surface-3 text-1'
