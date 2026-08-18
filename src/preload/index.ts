@@ -1,6 +1,7 @@
 import type {
   AppendHistoryPayload,
   AppInfo,
+  AppOpenExternalPayload,
   AppSettings,
   CreateNodePayload,
   CreateWorkspacePayload,
@@ -70,6 +71,8 @@ import { invoke } from "./ipc";
 const wttp = {
   app: {
     ping: (): Promise<AppInfo> => invoke("app:ping"),
+    openExternal: (payload: AppOpenExternalPayload): Promise<void> =>
+      invoke("app:openExternal", payload),
   },
   ui: {
     getState: (): Promise<UiState> => invoke("ui:getState"),

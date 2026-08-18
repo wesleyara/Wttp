@@ -198,6 +198,15 @@ export interface SetWorkspaceDraftsPayload {
   drafts: WorkspaceDrafts;
 }
 
+/**
+ * Payload de `app:openExternal` (EP-08.1-T05, canal adiantado do escopo original de
+ * EP-08.1-T07) — o main recusa qualquer `url` fora da allowlist, nunca abre o que o
+ * renderer mandar sem checar.
+ */
+export interface AppOpenExternalPayload {
+  url: string;
+}
+
 /** Payload de `history:list`/`history:clear` (EP-08.1-T03) — `path` da request dona do histórico. */
 export interface RequestHistoryPayload {
   root: string;
@@ -360,6 +369,7 @@ export interface DiscoveredWorkspace {
  */
 export interface IpcContract {
   "app:ping": { payload: void; result: AppInfo };
+  "app:openExternal": { payload: AppOpenExternalPayload; result: void };
   "ui:getState": { payload: void; result: UiState };
   "ui:setState": { payload: Partial<UiState>; result: UiState };
   "settings:get": { payload: void; result: AppSettings };
