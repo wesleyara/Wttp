@@ -45,6 +45,8 @@ const props = withDefaults(
     emptyPathParams?: string[];
     /** Autocomplete de `wttp`/`req`/`res`/`test`/`expect` (EP-09-T04) — só a aba Scripts usa isso, uma fase por editor. */
     scriptPhase?: ScriptPhase;
+    /** Quebra linhas longas em vez de rolar horizontalmente — usado no preview de body da resposta. */
+    lineWrap?: boolean;
   }>(),
   {
     language: "text",
@@ -59,6 +61,7 @@ const props = withDefaults(
     highlightPathParams: false,
     emptyPathParams: () => [],
     scriptPhase: undefined,
+    lineWrap: false,
   },
 );
 
@@ -352,6 +355,7 @@ onMounted(() => {
         props.highlightPathParams ? pathParamHighlightExtension(props.emptyPathParams) : [],
       ),
       props.scriptPhase ? jsSyntaxLintExtension() : [],
+      props.lineWrap ? EditorView.lineWrapping : [],
       buildEditorTheme(props.bare),
       syntaxTheme,
       EditorView.updateListener.of(update => {

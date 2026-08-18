@@ -50,6 +50,21 @@ async function createWindow(): Promise<void> {
     return { action: "deny" };
   });
 
+  // Electron shows no native context menu on right-click by default — every text
+  // field/editor in the app (including read-only ones like the response body
+  // viewer) needs this to offer Copy/Cut/Paste/Select All.
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    if (!params.isEditable && params.selectionText.trim() === "") return;
+
+    Menu.buildFromTemplate([
+      { role: "cut", visible: params.isEditable, enabled: params.editFlags.canCut },
+      { role: "copy", enabled: params.editFlags.canCopy },
+      { role: "paste", visible: params.isEditable, enabled: params.editFlags.canPaste },
+      { type: "separator", visible: params.isEditable },
+      { role: "selectAll", enabled: params.editFlags.canSelectAll },
+    ]).popup();
+  });
+
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
