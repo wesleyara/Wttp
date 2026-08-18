@@ -80,7 +80,7 @@ Referência: [architecture.md §5](../architecture.md)
 - [x] Ordem verificada por teste, incluindo herança de pasta — pre-request de fora pra dentro (collection → pasta → request), tests de dentro pra fora, `scriptChain.spec.ts` + `requestTabs.spec.ts`
 - [x] Erro no pre-request impede o envio, com mensagem clara — `runPreRequestChain` aborta no primeiro elo que falhar, toast com a origem e a mensagem, `requestTabs.spec.ts`
 
-**Nota:** scripts de pasta/collection existem no formato de arquivo e são herdados na execução, mas ainda não têm editor próprio na UI (só a request tem "Aba Scripts", EP-09-T04) — editar `folder.yaml` à mão é o caminho até uma task de UI dedicada, mesmo padrão que `auth` de pasta seguiu entre EP-07-T01 e EP-07-T02.
+**Nota (superada):** a versão original desta nota dizia que scripts de pasta/collection não tinham editor próprio — corrigido depois, ver EP-09-T04: `FolderConfigTabs.vue` agora edita `scripts.preRequest`/`scripts.tests` da pasta/collection, mesmo padrão da request.
 
 ---
 
@@ -99,9 +99,10 @@ Referência: [architecture.md §5](../architecture.md)
 
 **Critérios de aceite.**
 
-- [x] Autocomplete cobre toda a API documentada — `wttp.*`/`req.*`/`res.*`/`console.*`/matchers de `expect`, restrito ao que existe em cada fase, `scriptCompletions.spec.ts`
+- [x] Autocomplete cobre toda a API documentada — `wttp.*`/`req.*`/`res.*`/`console.*`/matchers de `expect`, restrito ao que existe em cada fase, `scriptCompletions.spec.ts` (verificado com `CompletionContext` real do CodeMirror, não só um mock)
 - [x] Erro de sintaxe é sinalizado antes do envio — `@codemirror/lint` com os nós de erro da árvore do lezer, gutter vermelho na aba Scripts
 - [x] Scripts persistem no YAML como bloco literal legível — reaproveita o serializer de `scripts` já testado em EP-04 (`SCRIPTS_FIELD_ORDER`, round-trip byte a byte)
+- [x] Editor de scripts também existe a nível de pasta/collection — `FolderConfigTabs.vue`, mesmo `WCodeEditor`/autocomplete/lint da request, gravando em `folder.yaml` via `saveFolderTab`
 
 **Nota:** `@codemirror/lint` (usado pelo linter de sintaxe) já vem transitivo via `codemirror`/`@codemirror/lang-javascript`, mas eu não consegui promovê-lo a dependência direta no `package.json` — `yarn install` neste ambiente falha em `@babel/generator@8.0.0` (exige Node ≥22.18, o ambiente tem 22.13.1), um problema de ambiente sem relação com EP-09. Fica como pendência de infra, não deste épico.
 

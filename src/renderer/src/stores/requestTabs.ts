@@ -97,6 +97,8 @@ export interface FolderTabState {
   auth: AuthConfig;
   docs: string;
   variables: KeyValueEntry[];
+  /** Herdados por toda request abaixo desta pasta/collection (EP-09-T03). */
+  scripts: RequestScripts;
   /** Último `FolderFile` salvo — base do próximo save, preserva campos desconhecidos e os que esta UI não edita. */
   originalData: FolderFile;
 }
@@ -155,6 +157,7 @@ function buildFolderTab(node: FolderNode, isCollection: boolean): FolderTabState
     auth: data.auth ?? { type: "inherit" },
     docs: data.docs ?? "",
     variables: (data.variables ?? []).map(v => ({ ...v })),
+    scripts: { ...data.scripts },
     originalData: data,
   };
 }
@@ -351,6 +354,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       auth: unwrap(tab.auth),
       docs: tab.docs || undefined,
       variables: unwrap(tab.variables).filter(v => v.name.trim() !== ""),
+      scripts: cleanScripts(tab.scripts),
     };
     const node: FolderNode = {
       kind: "folder",

@@ -91,9 +91,10 @@ restart do app — `runner.ts`/`sandbox.ts`/`worker.ts`), com a API `wttp.setVar
 com `wttp.setVar` persistindo entre envios via `useScriptRuntimeStore` — é o que faz
 "login guarda token, request seguinte autentica sozinha" funcionar; falha no pre-request
 aborta o envio com mensagem clara. `folder.yaml` ganhou um campo `scripts` opcional para
-herança de collection/pasta, mas ainda sem editor próprio na UI — só a request tem a
-aba Scripts (`RequestConfigTabs`, dois `WCodeEditor` com autocomplete da API inteira,
-snippets e sinalização de erro de sintaxe via `@codemirror/lint`). `ResponsePanel` ganhou
+herança de collection/pasta, editável tanto na request (`RequestConfigTabs`) quanto na
+pasta/collection (`FolderConfigTabs`) — os dois com dois `WCodeEditor` (pre-request/
+tests), autocomplete da API inteira, snippets e sinalização de erro de sintaxe via
+`@codemirror/lint`. `ResponsePanel` ganhou
 a aba Tests (`ScriptResultsPanel`) com asserções passou/falhou e o console de scripts
 por fase, e o `StatusBar` mostra um resumo de falhas da aba ativa. `@codemirror/lint`
 segue como dependência transitiva (via `codemirror`/`@codemirror/lang-javascript`) — não
