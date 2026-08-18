@@ -791,11 +791,13 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
           // Antes de `tab.sending = false` — `ResponsePanel` recarrega o histórico assim
           // que `sending` vira `false` (EP-08.1-T04); virar antes daqui é uma corrida que
           // recarrega a lista antes desta entrada existir em disco.
+          // `deepToRaw`, não `unwrap` — `tab.lastResult.body` é um `Uint8Array`, que um
+          // round-trip de JSON corromperia (mesmo motivo de `req`/`res` em `script:run`).
           await window.wttp.history.append({
             root: workspace.root,
             path: tab.path,
-            request: sentSpec,
-            response: tab.lastResult,
+            request: deepToRaw(sentSpec),
+            response: deepToRaw(tab.lastResult),
             secrets: secretsUsedIn(resolved),
           });
         }
