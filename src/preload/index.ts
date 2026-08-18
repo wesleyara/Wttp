@@ -22,6 +22,8 @@ import type {
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
   RequestNode,
+  ResolveAuthChainPayload,
+  ResolveAuthChainResultPayload,
   ResolveRequestPayload,
   ResolveRequestResultPayload,
   ResolveTextPayload,
@@ -140,6 +142,8 @@ const wttp = {
       invoke("variables:resolveText", payload),
     resolveRequest: (payload: ResolveRequestPayload): Promise<ResolveRequestResultPayload> =>
       invoke("variables:resolveRequest", payload),
+    resolveAuthChain: (payload: ResolveAuthChainPayload): Promise<ResolveAuthChainResultPayload> =>
+      invoke("variables:resolveAuthChain", payload),
   },
   menu: {
     // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).

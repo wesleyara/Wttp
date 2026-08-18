@@ -14,6 +14,7 @@ import type { IncomingMessage } from "node:http";
 import { Agent as HttpAgent, request as httpRequest } from "node:http";
 import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
 
+import { applyAuth } from "./auth";
 import { buildRequestBody } from "./body";
 import { detectCharset } from "./charset";
 
@@ -53,17 +54,19 @@ export function cancelHttpRequest(requestId: string): boolean {
  * timeout ou cancelamento é um `HttpResponseResult` com `ok: false`, nunca uma
  * exceção lançada (EP-03-T01).
  *
- * `spec.auth` não é aplicado aqui: por ora a engine recebe headers/query já prontos
- * — a resolução de auth é EP-07 e vai injetar nesses mesmos campos antes de chamar
- * esta função, do jeito que já faz com variáveis (EP-06).
+ * `spec.auth` (já com herança resolvida e variáveis substituídas — EP-07) vira header
+ * ou query aqui, via `applyAuth`, antes de qualquer coisa: o resto da função nunca
+ * soube que `auth` existe, só enxerga `headers`/`query` já prontos, do jeito que já
+ * fazia com variáveis (EP-06).
  *
  * `onProgress`, quando informado, é chamado a cada chunk recebido — quem chama decide
  * se emite isso como `http:progress` no IPC (EP-03-T03) ou ignora.
  */
 export async function sendHttpRequest(
-  spec: HttpRequestSpec,
+  requestSpec: HttpRequestSpec,
   onProgress?: (event: HttpProgressEvent) => void,
 ): Promise<HttpResponseResult> {
+  const spec = applyAuth(requestSpec);
   const controller = new AbortController();
   inFlight.set(spec.requestId, controller);
 

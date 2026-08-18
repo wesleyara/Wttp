@@ -278,18 +278,30 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     }
   }
 
+  /**
+   * Resolve a herança de auth (EP-07-T01) antes de tudo: `tab.auth` normalmente é
+   * `{ type: "inherit" }`, e é a auth efetiva (de uma pasta ou da collection) que
+   * precisa passar pelo resolvedor de variáveis a seguir — senão um `{{token}}` numa
+   * pasta nunca seria substituído nem sinalizado como não resolvido.
+   */
+  async function effectiveAuthFor(tab: RequestTabState): Promise<AuthConfig> {
+    const { resolution } = await variables.resolveEffectiveAuth(tab.path, tab.auth);
+    return resolution.auth;
+  }
+
   /** Resolve `{{var}}` (EP-06-T01) antes de enviar; variável não resolvida pausa e pede confirmação em vez de mandar a request quebrada. */
   async function send(): Promise<void> {
     const tab = active.value;
     if (!tab || tab.sending) return;
 
+    const auth = await effectiveAuthFor(tab);
     const resolved = await variables.resolveRequestSpec(
       {
         url: tab.url,
         pathParams: tab.pathParams,
         query: tab.query,
         headers: tab.headers,
-        auth: tab.auth,
+        auth,
         body: tab.body,
       },
       tab.path,
@@ -311,13 +323,14 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     unresolvedSendNames.value = [];
     if (!tab) return;
 
+    const auth = await effectiveAuthFor(tab);
     const resolved = await variables.resolveRequestSpec(
       {
         url: tab.url,
         pathParams: tab.pathParams,
         query: tab.query,
         headers: tab.headers,
-        auth: tab.auth,
+        auth,
         body: tab.body,
       },
       tab.path,

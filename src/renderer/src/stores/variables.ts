@@ -1,6 +1,8 @@
 import type {
+  AuthConfig,
   FolderNode,
   KeyValueEntry,
+  ResolveAuthChainResultPayload,
   ResolveRequestPayload,
   ResolveRequestResultPayload,
   ResolveTextResultPayload,
@@ -15,6 +17,13 @@ import { computed, ref, toRaw, watch } from "vue";
 /** Tira a reatividade do Pinia antes de cruzar a ponte de IPC — Proxy reativo não é clonável pelo Electron. */
 function unwrap<T>(value: T): T {
   return JSON.parse(JSON.stringify(toRaw(value))) as T;
+}
+
+/** Rótulo exibido no modo `inherit` da Aba Auth (EP-07-T03) para o elo de `authChain` que forneceu a auth efetiva — `chain[0]` é sempre a própria request. */
+export interface EffectiveAuthSource {
+  /** `"request"` quando a própria request define a auth; `"folder"` quando vem de uma pasta/collection; `"none"` quando ninguém na cadeia define nada. */
+  kind: "request" | "folder" | "none";
+  label: string;
 }
 
 /**
@@ -67,8 +76,8 @@ export const useVariablesStore = defineStore("variables", () => {
     );
   });
 
-  /** Variáveis de `folder.yaml` na cadeia até a request, pasta mais próxima primeiro (vence — docs/file-format.md §8). */
-  function collectionScope(requestPath: string): KeyValueEntry[] {
+  /** Pastas na cadeia entre a raiz da collection e `requestPath`, pasta mais próxima da request primeiro — base de `collectionScope` (EP-06) e `authChain` (EP-07-T01). */
+  function folderChain(requestPath: string): FolderNode[] {
     const tree = workspace.tree;
     if (!tree) return [];
 
@@ -87,7 +96,12 @@ export const useVariablesStore = defineStore("variables", () => {
       siblings = folder.children;
     }
 
-    return chain.reverse().flatMap(folder => folder.data?.variables ?? []);
+    return chain.reverse();
+  }
+
+  /** Variáveis de `folder.yaml` na cadeia até a request, pasta mais próxima primeiro (vence — docs/file-format.md §8). */
+  function collectionScope(requestPath: string): KeyValueEntry[] {
+    return folderChain(requestPath).flatMap(folder => folder.data?.variables ?? []);
   }
 
   /**
@@ -138,12 +152,46 @@ export const useVariablesStore = defineStore("variables", () => {
     });
   }
 
+  /**
+   * Cadeia de auth da request até a raiz da collection (EP-07-T01), mesma ordem de
+   * `folderChain`: `chain[0]` é a auth da própria request, o resto é `folder.auth` de
+   * cada pasta, mais próxima primeiro. `undefined` = pasta sem `folder.yaml`/sem
+   * `auth` — o resolvedor no main trata como `inherit`.
+   */
+  function authChain(requestPath: string, requestAuth: AuthConfig): (AuthConfig | undefined)[] {
+    return [requestAuth, ...folderChain(requestPath).map(folder => folder.data?.auth)];
+  }
+
+  /** Resolve a herança de auth (EP-07-T01) e devolve também de onde ela veio, para o modo `inherit` da Aba Auth (EP-07-T03/T04) mostrar a origem em vez da palavra "inherit". */
+  async function resolveEffectiveAuth(
+    requestPath: string,
+    requestAuth: AuthConfig,
+  ): Promise<{ resolution: ResolveAuthChainResultPayload; source: EffectiveAuthSource }> {
+    const folders = folderChain(requestPath);
+    const chain = authChain(requestPath, requestAuth);
+    const resolution = await window.wttp.variables.resolveAuthChain({ chain: unwrap(chain) });
+
+    const source: EffectiveAuthSource =
+      resolution.sourceIndex === null
+        ? { kind: "none", label: "No auth configured" }
+        : resolution.sourceIndex === 0
+          ? { kind: "request", label: "This request" }
+          : {
+              kind: "folder",
+              label: folders[resolution.sourceIndex - 1]?.name ?? "Collection",
+            };
+
+    return { resolution, source };
+  }
+
   return {
     scopeFor,
     scopeSignal,
     variableNamesFor,
     resolveText,
     resolveRequestSpec,
+    authChain,
+    resolveEffectiveAuth,
     refreshSecrets,
   };
 });

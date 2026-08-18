@@ -249,6 +249,23 @@ export interface ResolveRequestResultPayload {
   cycles: string[][];
 }
 
+/**
+ * Payload de `variables:resolveAuthChain` (EP-07-T01) — a cadeia já montada por quem
+ * chama, request em `chain[0]` e pastas até a raiz da collection depois, pasta mais
+ * próxima primeiro (mesma ordem de `VariableScopePayload.collection`). `undefined` é
+ * uma pasta sem `folder.yaml`/sem campo `auth` — se comporta como `inherit`.
+ */
+export interface ResolveAuthChainPayload {
+  chain: (AuthConfig | undefined)[];
+}
+
+export interface ResolveAuthChainResultPayload {
+  /** Nunca `"inherit"` — tipo concreto, ou `"none"` quando a cadeia inteira herda. */
+  auth: AuthConfig;
+  /** Índice em `chain` que forneceu `auth`; `null` quando nada a interrompeu. */
+  sourceIndex: number | null;
+}
+
 /** Payload de uma variável em `env:save` (EP-06-T02). */
 export interface SaveEnvironmentVariablePayload {
   name: string;
@@ -339,6 +356,10 @@ export interface IpcContract {
   "variables:resolveRequest": {
     payload: ResolveRequestPayload;
     result: ResolveRequestResultPayload;
+  };
+  "variables:resolveAuthChain": {
+    payload: ResolveAuthChainPayload;
+    result: ResolveAuthChainResultPayload;
   };
 }
 
