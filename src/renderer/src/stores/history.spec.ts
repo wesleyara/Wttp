@@ -89,4 +89,44 @@ describe("useHistoryStore", () => {
     await history.clear();
     expect(clear).not.toHaveBeenCalled();
   });
+
+  it("loadFor limpa entries na hora, antes do IPC resolver — nunca mostra a request errada por um instante", async () => {
+    list.mockResolvedValueOnce([
+      {
+        id: "1",
+        at: "2026-01-01T00:00:00.000Z",
+        request: {
+          method: "GET",
+          url: "https://example.com/a",
+          query: [],
+          headers: [],
+          body: { type: "none" },
+        },
+        response: {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          headers: [],
+          charset: "utf-8",
+          size: { headersSent: 0, bodySent: 0, headersReceived: 0, bodyReceived: 0 },
+          timing: { dns: 0, connect: 0, tls: 0, ttfb: 0, download: 0, total: 0 },
+          body: "{}",
+          bodyTruncated: false,
+        },
+      },
+    ]);
+    const history = useHistoryStore();
+    await history.loadFor("a.req.yaml");
+    expect(history.entries).toHaveLength(1);
+
+    let entriesWhenListCalled: unknown;
+    list.mockImplementationOnce(async () => {
+      entriesWhenListCalled = history.entries;
+      return [];
+    });
+
+    await history.loadFor("b.req.yaml");
+
+    expect(entriesWhenListCalled).toEqual([]);
+  });
 });

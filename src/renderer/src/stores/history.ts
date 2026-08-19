@@ -17,10 +17,12 @@ export const useHistoryStore = defineStore("history", () => {
 
   async function loadFor(requestPath: string | null): Promise<void> {
     path.value = requestPath;
-    if (!workspace.root || !requestPath) {
-      entries.value = [];
-      return;
-    }
+    // Limpa na hora, antes do IPC resolver — sem isso, trocar de aba deixaria as
+    // entradas da request anterior visíveis por um instante (`ResponsePanel` já usa a
+    // mais recente como fallback de Body/Headers/Cookies, EP-08.1-T04, então mostrar a
+    // resposta errada nem que seja por um instante é pior que uma tela vazia).
+    entries.value = [];
+    if (!workspace.root || !requestPath) return;
     entries.value = await window.wttp.history.list({ root: workspace.root, path: requestPath });
   }
 

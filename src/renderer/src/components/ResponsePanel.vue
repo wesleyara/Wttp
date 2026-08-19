@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { HttpResponseResult } from "@shared";
+
 import { isHtml, isImage, isPdf, isTextual } from "@renderer/lib/content-type";
 import { parseSetCookieHeader } from "@renderer/lib/cookies";
 import { formatBytes, formatDuration } from "@renderer/lib/format";
@@ -34,11 +36,6 @@ const MAX_DISPLAY_BYTES = 2_000_000;
 const store = useRequestStore();
 const { sending, lastResult, scriptRun, path } = storeToRefs(store);
 
-const successResult = computed(() => (lastResult.value?.ok ? lastResult.value : null));
-const failureResult = computed(() =>
-  lastResult.value && !lastResult.value.ok ? lastResult.value : null,
-);
-
 // --- History (EP-08.1-T04) ------------------------------------------------------------
 const historyStore = useHistoryStore();
 const { entries: historyEntries } = storeToRefs(historyStore);
@@ -50,6 +47,42 @@ watch(path, requestPath => void historyStore.loadFor(requestPath || null), { imm
 watch(sending, (isSending, wasSending) => {
   if (wasSending && !isSending) void historyStore.loadFor(path.value || null);
 });
+
+/**
+ * Fallback quando a aba não tem `lastResult` desta sessão (app reaberto): reconstrói um
+ * `HttpResponseResult` a partir da entrada mais recente do histórico, pra Body/Headers/
+ * Cookies abrirem já respondidos em vez de forçar passar pela aba History primeiro. O
+ * corpo salvo em `.wttp/history/*.json` já é texto decodificado (e pode estar mascarado/
+ * truncado, EP-08.1-T03) — reencodado em UTF-8, não no `charset` original.
+ */
+const historyAsResult = computed<HttpResponseResult | null>(() => {
+  const entry = historyEntries.value[0];
+  if (!entry) return null;
+  if (!entry.response.ok) return { ok: false, requestId: "", error: entry.response.error };
+  return {
+    ok: true,
+    requestId: "",
+    status: entry.response.status,
+    statusText: entry.response.statusText,
+    headers: entry.response.headers,
+    body: new TextEncoder().encode(entry.response.body),
+    charset: "utf-8",
+    size: entry.response.size,
+    timing: entry.response.timing,
+  };
+});
+
+/** `true` quando Body/Headers/Cookies estão mostrando o fallback do histórico, não uma resposta desta sessão. */
+const isShowingHistoryFallback = computed(
+  () => !lastResult.value && Boolean(historyAsResult.value),
+);
+
+const effectiveResult = computed(() => lastResult.value ?? historyAsResult.value);
+
+const successResult = computed(() => (effectiveResult.value?.ok ? effectiveResult.value : null));
+const failureResult = computed(() =>
+  effectiveResult.value && !effectiveResult.value.ok ? effectiveResult.value : null,
+);
 
 function onClearHistory(): void {
   void historyStore.clear();
@@ -257,9 +290,19 @@ async function saveBody(): Promise<void> {
         <span class="font-mono text-[13px] text-muted">
           {{ formatBytes(successResult.size.bodyReceived) }}
         </span>
+        <span
+          v-if="isShowingHistoryFallback"
+          class="flex items-center gap-1 font-inter text-[11px] text-faint"
+          title="No response sent this session yet — showing the last one from history."
+        >
+          <WIcon name="history" size="3" />
+          Last response
+        </span>
         <div class="ml-auto flex items-center gap-2">
           <WButton size="sm" variant="ghost" @click="copyBody">Copy</WButton>
-          <WButton size="sm" variant="ghost" @click="saveBody">Save</WButton>
+          <WButton v-if="!isShowingHistoryFallback" size="sm" variant="ghost" @click="saveBody">
+            Save
+          </WButton>
         </div>
       </div>
 
@@ -274,6 +317,13 @@ async function saveBody(): Promise<void> {
         </p>
         <p v-if="failureResult.error.detail" class="font-mono text-xs text-faint">
           {{ failureResult.error.detail }}
+        </p>
+        <p
+          v-if="isShowingHistoryFallback"
+          class="flex items-center gap-1 font-inter text-[11px] text-faint"
+        >
+          <WIcon name="history" size="3" />
+          No response sent this session yet — showing the last one from history.
         </p>
       </div>
 
