@@ -3,6 +3,7 @@ import type { AuthConfig, FolderNode, WorkspaceTree } from "@shared";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useEnvironmentStore } from "./environment";
 import { useVariablesStore } from "./variables";
 import { useWorkspaceStore } from "./workspace";
 
@@ -131,5 +132,72 @@ describe("useVariablesStore — auth inheritance (EP-07-T01)", () => {
 
     expect(resolution).toEqual({ auth: { type: "none" }, sourceIndex: null });
     expect(source).toEqual({ kind: "none", label: "No auth configured" });
+  });
+});
+
+describe("useVariablesStore — race entre carregar secrets e a primeira request", () => {
+  it("resolveRequestSpec espera o keychain antes de montar o escopo, mesmo na primeira chamada após ativar o environment", async () => {
+    let resolveSecret!: (value: string) => void;
+    const secretGet = vi.fn(() => new Promise<string>(resolve => (resolveSecret = resolve)));
+    const capturedScopes: { environment: unknown[] }[] = [];
+    const resolveRequest = vi.fn(async (payload: { scope: { environment: unknown[] } }) => {
+      capturedScopes.push(payload.scope);
+      return { resolved: {}, unresolved: [] as string[] };
+    });
+
+    vi.stubGlobal("window", {
+      wttp: {
+        variables: { resolveText: vi.fn(), resolveRequest, resolveAuthChain },
+        secret: { get: secretGet },
+      },
+    });
+
+    const workspace = useWorkspaceStore();
+    workspace.tree = {
+      root: ROOT,
+      data: { wttp: 1, name: "Test" },
+      environments: [],
+      children: [],
+    };
+
+    const environment = useEnvironmentStore();
+    environment.items = [
+      {
+        path: "env.yaml",
+        data: {
+          wttp: 1,
+          name: "Dev",
+          variables: [{ name: "token", enabled: true, secret: true, value: "" }],
+        },
+      },
+    ];
+    // Ativar o environment dispara o `watch(..., { immediate: true })` de
+    // `refreshSecrets` em `variables.ts` — é essa promise que a request precisa esperar.
+    workspace.uiState.activeEnvironment = "env.yaml";
+
+    const variables = useVariablesStore();
+
+    const send = variables.resolveRequestSpec(
+      {
+        url: "{{token}}",
+        headers: [],
+        query: [],
+        pathParams: [],
+        auth: { type: "none" },
+        body: { type: "none" },
+      },
+      "login.req.yaml",
+    );
+
+    // Ainda não resolveu o secret — `resolveRequest` não pode ter sido chamado com escopo vazio.
+    expect(resolveRequest).not.toHaveBeenCalled();
+
+    resolveSecret("real-token");
+    await send;
+
+    expect(capturedScopes).toHaveLength(1);
+    expect(capturedScopes[0]?.environment).toEqual([
+      { name: "token", enabled: true, secret: true, value: "real-token" },
+    ]);
   });
 });

@@ -87,7 +87,7 @@ const selectedContentType = computed(() => {
           <span v-if="entry.response.ok" class="w-16 shrink-0 text-right text-faint">
             {{ formatBytes(entry.response.size.bodyReceived) }}
           </span>
-          <span class="w-20 shrink-0 text-right text-faint">
+          <span class="w-24 shrink-0 whitespace-nowrap text-right text-faint">
             {{ new Date(entry.at).toLocaleTimeString() }}
           </span>
         </button>
