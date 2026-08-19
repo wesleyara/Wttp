@@ -106,6 +106,21 @@ const contentType = computed(
     successResult.value?.headers.find(h => h.name.toLowerCase() === "content-type")?.value ?? "",
 );
 
+/**
+ * Declarado antes de `mainTabs`, que a referencia — `watch()` (abaixo) roda o getter de
+ * `mainTabs` de forma síncrona já na configuração do componente para capturar o valor
+ * inicial, mesmo sem `immediate: true`; se `cookies` viesse depois, isso era um TDZ
+ * (`Cannot access 'cookies' before initialization`) toda vez que o painel remonta com uma
+ * resposta já disponível (ex. troca de posição do painel via `ui.responsePanelPosition`).
+ */
+const cookies = computed(() => {
+  const result = successResult.value;
+  if (!result) return [];
+  return result.headers
+    .filter(h => h.name.toLowerCase() === "set-cookie")
+    .map(h => parseSetCookieHeader(h.value));
+});
+
 const mainTab = ref<"body" | "headers" | "cookies" | "history" | "tests">("body");
 const mainTabs = computed(() => {
   const tabs: { value: string; label: string; count?: number; warning?: boolean }[] = [];
@@ -219,14 +234,6 @@ watch(successResult, result => {
 });
 
 onBeforeUnmount(revokePreviewUrl);
-
-const cookies = computed(() => {
-  const result = successResult.value;
-  if (!result) return [];
-  return result.headers
-    .filter(h => h.name.toLowerCase() === "set-cookie")
-    .map(h => parseSetCookieHeader(h.value));
-});
 
 const timingTitle = computed(() => {
   const timing = successResult.value?.timing;

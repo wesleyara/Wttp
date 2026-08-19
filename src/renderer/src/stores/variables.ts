@@ -39,6 +39,15 @@ export const useVariablesStore = defineStore("variables", () => {
   /** Valor real das variáveis `secret: true` do environment ativo, buscado no keychain (nunca no YAML). */
   const secretValues = ref<Map<string, string>>(new Map());
 
+  /**
+   * Promise do carregamento de secrets em curso — `resolveRequestSpec` aguarda antes
+   * de montar o escopo, senão a primeira request após abrir o environment ativo lê
+   * `""` para qualquer variável `secret: true` (o `await` do IPC ainda não voltou) e
+   * manda auth quebrada sem sinalizar variável não resolvida, já que o nome existe no
+   * escopo.
+   */
+  let secretsReady: Promise<void> = Promise.resolve();
+
   function secretKey(varName: string): string {
     return `wttp:${workspace.root}:${environment.activePath}:${varName}`;
   }
@@ -62,7 +71,9 @@ export const useVariablesStore = defineStore("variables", () => {
 
   watch(
     () => environment.active?.path,
-    () => void refreshSecrets(),
+    () => {
+      secretsReady = refreshSecrets();
+    },
     { immediate: true },
   );
 
@@ -141,10 +152,11 @@ export const useVariablesStore = defineStore("variables", () => {
     return window.wttp.variables.resolveText({ text, scope: unwrap(scopeFor(requestPath)) });
   }
 
-  function resolveRequestSpec(
+  async function resolveRequestSpec(
     request: ResolveRequestPayload["request"],
     requestPath: string,
   ): Promise<ResolveRequestResultPayload> {
+    await secretsReady;
     return window.wttp.variables.resolveRequest({
       request: unwrap(request),
       scope: unwrap(scopeFor(requestPath)),
