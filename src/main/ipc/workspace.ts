@@ -32,9 +32,18 @@ function startWatching(root: string, sender: WebContents): void {
   activeWatcher = null;
 
   try {
-    activeWatcher = watchWorkspace(root, event => {
-      if (!sender.isDestroyed()) sender.send("workspace:changed", event);
-    });
+    activeWatcher = watchWorkspace(
+      root,
+      event => {
+        if (!sender.isDestroyed()) sender.send("workspace:changed", event);
+      },
+      error => {
+        // Falha assíncrona (ex: ENOSPC do limite de inotify do SO) — o workspace
+        // continua funcionando, só sem live-reload de edições externas.
+        console.error(`workspace watcher for "${root}" stopped`, error);
+        activeWatcher = null;
+      },
+    );
   } catch (error) {
     // Plataforma sem suporte a watch recursivo: o workspace continua funcionando,
     // só sem live-reload de edições externas.

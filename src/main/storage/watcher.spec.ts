@@ -1,12 +1,18 @@
 import type { WorkspaceChangedEvent } from "@shared";
 
-import { promises as fs } from "node:fs";
+import { EventEmitter } from "node:events";
+import { promises as fs, watch as watchFs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { writeFileAtomic } from "./fsAtomic";
 import { watchWorkspace, type WorkspaceWatcher } from "./watcher";
+
+vi.mock("node:fs", async () => {
+  const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
+  return { ...actual, watch: vi.fn(actual.watch) };
+});
 
 let root: string;
 let watcher: WorkspaceWatcher | null;
@@ -61,6 +67,22 @@ describe("watchWorkspace", () => {
     // Dá tempo do watcher processar o evento de fs, se algum chegar — não deve.
     await new Promise(resolve => setTimeout(resolve, 500));
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("reporta erro assíncrono do FSWatcher via onError em vez de lançar", async () => {
+    const fakeFsWatcher = new EventEmitter() as unknown as ReturnType<typeof watchFs>;
+    fakeFsWatcher.close = vi.fn();
+    vi.mocked(watchFs).mockReturnValueOnce(fakeFsWatcher);
+
+    const onChange = vi.fn<(event: WorkspaceChangedEvent) => void>();
+    const onError = vi.fn<(error: Error) => void>();
+    watcher = watchWorkspace(root, onChange, onError);
+
+    const enospc = Object.assign(new Error("ENOSPC"), { code: "ENOSPC" });
+    expect(() => (fakeFsWatcher as unknown as EventEmitter).emit("error", enospc)).not.toThrow();
+
+    expect(onError).toHaveBeenCalledWith(enospc);
+    expect(fakeFsWatcher.close).toHaveBeenCalled();
   });
 
   it("ignora mudanças dentro de .wttp/", async () => {

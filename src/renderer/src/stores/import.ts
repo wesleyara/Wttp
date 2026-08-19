@@ -137,11 +137,6 @@ export const useImportStore = defineStore("import", () => {
     format.value = next;
   }
 
-  async function pickWorkspaceDir(defaultPath?: string): Promise<void> {
-    const result = await window.wttp.dialog.pickFolder({ defaultPath });
-    if (!result.canceled && result.path) workspaceDir.value = result.path;
-  }
-
   async function loadPreview(): Promise<void> {
     if (!format.value) return;
     loading.value = true;
@@ -245,7 +240,6 @@ export const useImportStore = defineStore("import", () => {
     setContent,
     loadFromFile,
     setFormat,
-    pickWorkspaceDir,
     loadPreview,
     confirm,
     saveReportToFile,

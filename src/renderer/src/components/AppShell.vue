@@ -164,7 +164,7 @@ onUnmounted(() => {
 <template>
   <div class="flex h-screen flex-col bg-surface-1">
     <div class="min-h-0 flex-1">
-      <WorkspaceLanding v-if="!workspace.ready" />
+      <WorkspaceLanding v-if="!workspace.ready" @open-preferences="preferencesOpen = true" />
       <WSplitPane
         v-else-if="ui.loaded"
         direction="horizontal"

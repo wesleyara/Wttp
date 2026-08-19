@@ -974,5 +974,29 @@ describe("useRequestTabsStore", () => {
         data: expect.objectContaining({ url: "https://example.com/changed" }),
       });
     });
+
+    it("sair de uma pasta que nunca virou workspace (needsInit) não grava .wttp/drafts.json nela", async () => {
+      useRequestTabsStore();
+      const workspace = useWorkspaceStore();
+
+      // Usuário abriu uma pasta sem `wttp.yaml` (tela "Not a workspace yet") e depois
+      // escolheu outra pasta — `root` mudou, mas a anterior nunca foi um workspace de
+      // verdade, então nada devia ser gravado nela.
+      workspace.tree = { root: "/not-a-workspace", data: null, environments: [], children: [] };
+      await nextTick();
+      setDrafts.mockClear();
+
+      workspace.tree = {
+        root: "/other-workspace",
+        data: { wttp: 1, name: "Other" },
+        environments: [],
+        children: [],
+      };
+      await nextTick();
+
+      expect(setDrafts).not.toHaveBeenCalledWith(
+        expect.objectContaining({ root: "/not-a-workspace" }),
+      );
+    });
   });
 });

@@ -11,7 +11,6 @@ import { computed, ref, watch } from "vue";
  */
 export const useSettingsStore = defineStore("settings", () => {
   const theme = ref<AppSettings["theme"]>("system");
-  const defaultWorkspaceDir = ref<string | undefined>(undefined);
   const workspacesRootDir = ref<string | undefined>(undefined);
   const systemPrefersLight = ref(
     typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: light)").matches : false,
@@ -36,7 +35,6 @@ export const useSettingsStore = defineStore("settings", () => {
   async function load(): Promise<void> {
     const settings = await window.wttp.settings.get();
     theme.value = settings.theme;
-    defaultWorkspaceDir.value = settings.defaultWorkspaceDir;
     workspacesRootDir.value = settings.workspacesRootDir;
     applyToDocument();
   }
@@ -46,14 +44,16 @@ export const useSettingsStore = defineStore("settings", () => {
     void window.wttp.settings.set({ theme: next });
   }
 
-  function setDefaultWorkspaceDir(next: string | undefined): void {
-    defaultWorkspaceDir.value = next;
-    void window.wttp.settings.set({ defaultWorkspaceDir: next });
-  }
-
   function setWorkspacesRootDir(next: string | undefined): void {
     workspacesRootDir.value = next;
     void window.wttp.settings.set({ workspacesRootDir: next });
+  }
+
+  async function resetToDefaults(): Promise<void> {
+    const settings = await window.wttp.settings.reset();
+    theme.value = settings.theme;
+    workspacesRootDir.value = settings.workspacesRootDir;
+    applyToDocument();
   }
 
   if (typeof matchMedia === "function") {
@@ -65,12 +65,11 @@ export const useSettingsStore = defineStore("settings", () => {
   return {
     theme,
     resolvedTheme,
-    defaultWorkspaceDir,
     workspacesRootDir,
     workspacesContainerDir,
     load,
     setTheme,
-    setDefaultWorkspaceDir,
     setWorkspacesRootDir,
+    resetToDefaults,
   };
 });

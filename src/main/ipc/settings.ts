@@ -18,4 +18,10 @@ export function registerSettingsHandlers(): void {
     await writeJsonFile(dir, FILE, next);
     return next;
   });
+
+  registerHandler("settings:reset", async () => {
+    const dir = appDataDir();
+    await writeJsonFile(dir, FILE, DEFAULT_SETTINGS);
+    return DEFAULT_SETTINGS;
+  });
 }

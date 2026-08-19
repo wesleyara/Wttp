@@ -77,7 +77,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
 
   /** Mescla `patch` no estado local e agenda a escrita em disco (debounced). */
   function patchUiState(patch: Partial<WorkspaceUiState>): void {
-    if (!root.value) return;
+    if (!ready.value || !root.value) return;
     uiState.value = { ...uiState.value, ...patch };
 
     const currentRoot = root.value;
@@ -95,7 +95,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
    * de debounce que `patchUiState` normalmente espera.
    */
   function flushUiState(): void {
-    if (!root.value) return;
+    if (!ready.value || !root.value) return;
     if (persistUiStateTimer) clearTimeout(persistUiStateTimer);
     persistUiStateTimer = null;
     void window.wttp.workspace.setUiState({ root: root.value, state: unwrap(uiState.value) });

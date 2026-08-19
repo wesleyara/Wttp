@@ -39,10 +39,17 @@ export interface WorkspaceWatcher {
  * escrita do próprio app. Lança se o filesystem não suportar `recursive: true`
  * (Linux exige um kernel recente o bastante para inotify recursivo) — quem chama
  * decide se isso impede abrir o workspace ou só desativa o live-reload.
+ *
+ * `fs.watch(recursive: true)` no Linux instala um inotify watch por subpasta ao
+ * caminhar a árvore de forma assíncrona, depois desta função já ter retornado — um
+ * limite do SO (`ENOSPC`, ex: árvore com muitas subpastas) chega como `error` no
+ * `FSWatcher`, não como exceção síncrona. Sem `onError`, isso derrubaria o processo
+ * main inteiro (comportamento padrão de `EventEmitter` para `error` sem listener).
  */
 export function watchWorkspace(
   root: string,
   onChange: (event: WorkspaceChangedEvent) => void,
+  onError?: (error: Error) => void,
 ): WorkspaceWatcher {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let changedPaths = new Set<string>();
@@ -70,6 +77,12 @@ export function watchWorkspace(
     changedPaths.add(filename.split(sep).join("/"));
     if (timer) clearTimeout(timer);
     timer = setTimeout(flush, DEBOUNCE_MS);
+  });
+
+  fsWatcher.on("error", error => {
+    if (timer) clearTimeout(timer);
+    fsWatcher.close();
+    onError?.(error as Error);
   });
 
   return {

@@ -52,6 +52,21 @@ describe("useWorkspaceStore", () => {
     expect(setUiState).not.toHaveBeenCalled();
   });
 
+  it("flushUiState/patchUiState não escrevem .wttp/ numa pasta que não é workspace ainda (needsInit)", () => {
+    const workspace = useWorkspaceStore();
+    // `data: null` é o que `workspace:open` devolve para uma pasta sem `wttp.yaml` —
+    // `root` já aponta pra ela (pra tela "Not a workspace yet" mostrar o caminho), mas
+    // não é um workspace de verdade: gravar `.wttp/` aqui criaria a pasta no lugar
+    // errado quando o usuário só estava navegando até achar a pasta certa.
+    workspace.tree = { root: ROOT, data: null, environments: [], children: [] };
+    expect(workspace.needsInit).toBe(true);
+
+    workspace.patchUiState({ activeTabPath: "a.req.yaml" });
+    workspace.flushUiState();
+
+    expect(setUiState).not.toHaveBeenCalled();
+  });
+
   it("close() grava o estado pendente antes de limpar o workspace", () => {
     const workspace = useWorkspaceStore();
     workspace.tree = {
