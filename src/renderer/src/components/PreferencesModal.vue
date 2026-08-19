@@ -2,7 +2,7 @@
 import { useAppStore } from "@renderer/stores/app";
 import { useSettingsStore } from "@renderer/stores/settings";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 
 import PreferencesSection from "./PreferencesSection.vue";
 import WButton from "./WButton.vue";
@@ -17,7 +17,7 @@ import WSelect from "./WSelect.vue";
  * Idioma fica de fora da seção General por ora: `AppSettings.language` só existe a
  * partir de EP-08.1-T06, sem i18n nenhum ainda não há o que oferecer aqui.
  */
-defineProps<{
+const props = defineProps<{
   open: boolean;
 }>();
 
@@ -39,6 +39,9 @@ const SECTIONS: { id: SectionId; label: string; icon: string }[] = [
 ];
 
 const activeSection = ref<SectionId>("general");
+
+/** Primeiro clique só avisa — segundo clique (com o aviso visível) reseta de verdade. */
+const resetConfirming = ref(false);
 
 const THEME_OPTIONS = [
   { value: "system", label: "System" },
@@ -73,9 +76,20 @@ async function changeWorkspacesRootDir(): Promise<void> {
   if (path) settings.setWorkspacesRootDir(path);
 }
 
-async function changeDefaultWorkspaceDir(): Promise<void> {
-  const path = await workspace.pickFolder(settings.defaultWorkspaceDir);
-  if (path) settings.setDefaultWorkspaceDir(path);
+watch(
+  () => props.open,
+  isOpen => {
+    if (!isOpen) resetConfirming.value = false;
+  },
+);
+
+async function onRestoreDefaults(): Promise<void> {
+  if (!resetConfirming.value) {
+    resetConfirming.value = true;
+    return;
+  }
+  resetConfirming.value = false;
+  await settings.resetToDefaults();
 }
 </script>
 
@@ -119,6 +133,20 @@ async function changeDefaultWorkspaceDir(): Promise<void> {
               />
             </div>
           </PreferencesSection>
+
+          <PreferencesSection
+            title="Restore factory defaults"
+            description="Resets every app setting on this screen (theme, workspaces root folder) back to its default. Doesn't touch any workspace or its data."
+          >
+            <div class="flex flex-col items-start gap-2">
+              <WButton size="sm" variant="danger" @click="onRestoreDefaults">
+                {{ resetConfirming ? "Click again to confirm" : "Restore factory defaults" }}
+              </WButton>
+              <p v-if="resetConfirming" class="font-inter text-xs text-status-5xx">
+                This can't be undone.
+              </p>
+            </div>
+          </PreferencesSection>
         </div>
 
         <div v-else-if="activeSection === 'workspaces'" class="flex flex-col gap-4">
@@ -139,22 +167,9 @@ async function changeDefaultWorkspaceDir(): Promise<void> {
             <p v-if="settings.workspacesContainerDir" class="font-mono text-[11px] text-faint">
               Workspaces are created in: {{ settings.workspacesContainerDir }}/
             </p>
-          </PreferencesSection>
-
-          <PreferencesSection
-            title="Default folder"
-            description="Starting folder for the open/create workspace and import dialogs — updates automatically to the last folder you pick."
-          >
-            <div class="flex items-center gap-2">
-              <p
-                class="flex-1 truncate rounded-md border border-subtle bg-surface-3 px-2 py-1.5 font-mono text-xs text-1"
-              >
-                {{ settings.defaultWorkspaceDir ?? "Not set" }}
-              </p>
-              <WButton size="sm" variant="secondary" @click="changeDefaultWorkspaceDir">
-                Change…
-              </WButton>
-            </div>
+            <p v-else class="font-inter text-xs text-status-5xx">
+              Set this before creating a workspace — new workspaces can't be created without it.
+            </p>
           </PreferencesSection>
         </div>
 

@@ -59,13 +59,11 @@ export interface UiState {
  */
 export interface AppSettings {
   theme: "dark" | "light" | "system";
-  /** Pasta sugerida como ponto de partida ao criar um novo workspace (EP-06.1). */
-  defaultWorkspaceDir?: string;
   /**
    * Pasta raiz onde o app organiza workspaces sob `<workspacesRootDir>/wttp/`.
-   * Distinta de `defaultWorkspaceDir`: aquele é só o ponto de partida do diálogo
-   * de "Abrir pasta" livre; este é enumerado por `workspace:listInDir` para o
-   * switcher de workspaces (Preferences).
+   * Enumerada por `workspace:listInDir` para o switcher de workspaces (Preferences).
+   * Precisa estar setada antes de criar um workspace novo (via UI ou import) — sem
+   * ela não há onde decidir o destino sem perguntar ao usuário toda vez.
    */
   workspacesRootDir?: string;
 }
@@ -374,6 +372,7 @@ export interface IpcContract {
   "ui:setState": { payload: Partial<UiState>; result: UiState };
   "settings:get": { payload: void; result: AppSettings };
   "settings:set": { payload: Partial<AppSettings>; result: AppSettings };
+  "settings:reset": { payload: void; result: AppSettings };
   /**
    * Nunca rejeita por erro de rede — `HttpResponseResult.ok: false` é o resultado
    * normal para DNS, TLS, timeout ou cancelamento (EP-03-T01).

@@ -10,13 +10,15 @@ import { useSettingsStore } from "@renderer/stores/settings";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { onMounted, ref, watch } from "vue";
 
+const emit = defineEmits<{
+  "open-preferences": [];
+}>();
+
 const workspace = useWorkspaceStore();
 const settings = useSettingsStore();
 const importStore = useImportStore();
 
 const createModalOpen = ref(false);
-/** `null` quando a raiz de workspaces está configurada — o caminho é computado a partir do nome, sem picker. */
-const createPath = ref<string | null>(null);
 const createName = ref("");
 
 const initName = ref("");
@@ -46,33 +48,20 @@ async function onOpen(): Promise<void> {
   await workspace.open();
 }
 
-async function onStartCreate(): Promise<void> {
-  if (settings.workspacesRootDir) {
-    createPath.value = null;
-    createName.value = "";
-    createModalOpen.value = true;
+function onStartCreate(): void {
+  if (!settings.workspacesRootDir) {
+    emit("open-preferences");
     return;
   }
-
-  const path = await workspace.pickFolder(settings.defaultWorkspaceDir);
-  if (!path) return;
-  createPath.value = path;
   createName.value = "";
   createModalOpen.value = true;
-}
-
-/** Muda a pasta padrão sugerida na próxima vez que "Create workspace" abrir o diálogo — não cria nada aqui. */
-async function onChangeDefaultDir(): Promise<void> {
-  const path = await workspace.pickFolder(settings.defaultWorkspaceDir);
-  if (path) settings.setDefaultWorkspaceDir(path);
 }
 
 async function onConfirmCreate(): Promise<void> {
   const name = createName.value.trim();
   if (!name) return;
 
-  const path = createPath.value ?? `${settings.workspacesContainerDir}/${name}`;
-  await workspace.create(path, name);
+  await workspace.create(`${settings.workspacesContainerDir}/${name}`, name);
   createModalOpen.value = false;
   await refreshDiscovered();
 }
@@ -158,17 +147,17 @@ function onOpenImportModal(): void {
         {{ workspace.error.message }}
       </p>
 
-      <div class="flex items-center justify-center gap-1.5 font-inter text-xs text-faint">
-        <span v-if="settings.defaultWorkspaceDir" class="truncate font-mono text-[11px]">
-          Default folder: {{ settings.defaultWorkspaceDir }}
-        </span>
-        <span v-else>No default folder set</span>
+      <div
+        v-if="!settings.workspacesRootDir"
+        class="flex items-center justify-center gap-1.5 font-inter text-xs text-faint"
+      >
+        <span>No workspaces root folder set</span>
         <button
           type="button"
           class="text-accent hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          @click="onChangeDefaultDir"
+          @click="emit('open-preferences')"
         >
-          Change
+          Set it
         </button>
       </div>
 
@@ -229,7 +218,7 @@ function onOpenImportModal(): void {
     <WModal :open="createModalOpen" title="Create workspace" @close="createModalOpen = false">
       <div class="flex flex-col gap-3">
         <p class="font-mono text-[11px] text-faint">
-          {{ createPath ?? `${settings.workspacesContainerDir}/${createName || "…"}` }}
+          {{ `${settings.workspacesContainerDir}/${createName || "…"}` }}
         </p>
         <WInput v-model="createName" placeholder="Workspace name" />
       </div>

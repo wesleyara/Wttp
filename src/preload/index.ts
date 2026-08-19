@@ -81,6 +81,7 @@ const wttp = {
   settings: {
     get: (): Promise<AppSettings> => invoke("settings:get"),
     set: (patch: Partial<AppSettings>): Promise<AppSettings> => invoke("settings:set", patch),
+    reset: (): Promise<AppSettings> => invoke("settings:reset"),
   },
   http: {
     send: (spec: HttpRequestSpec): Promise<HttpResponseResult> => invoke("http:send", spec),

@@ -24,14 +24,10 @@ const store = useImportStore();
 const settings = useSettingsStore();
 
 const destinationPath = computed(() => {
+  if (!settings.workspacesRootDir) return null;
   const name = store.workspaceName.trim() || "…";
-  if (settings.workspacesRootDir) return `${settings.workspacesContainerDir}/${name}`;
-  return store.workspaceDir ? `${store.workspaceDir}/${name}` : null;
+  return `${settings.workspacesContainerDir}/${name}`;
 });
-
-async function onPickDestination(): Promise<void> {
-  await store.pickWorkspaceDir(settings.defaultWorkspaceDir);
-}
 
 async function onConfirm(): Promise<void> {
   if (store.mode === "newWorkspace" && settings.workspacesRootDir) {
@@ -90,19 +86,12 @@ const title = computed(() => {
       <template v-else-if="store.step === 'preview'">
         <div v-if="store.mode === 'newWorkspace'" class="flex flex-col gap-2">
           <WInput v-model="store.workspaceName" placeholder="Workspace name" />
-          <div class="flex items-center gap-2">
-            <WButton
-              v-if="!settings.workspacesRootDir"
-              variant="secondary"
-              size="sm"
-              @click="onPickDestination"
-            >
-              Choose folder…
-            </WButton>
-            <span class="truncate font-mono text-[11px] text-faint">
-              {{ destinationPath ?? "Choose a folder to continue" }}
-            </span>
-          </div>
+          <p v-if="!settings.workspacesRootDir" class="font-inter text-xs text-status-5xx">
+            Set a workspaces root folder in Preferences before importing.
+          </p>
+          <span v-else class="truncate font-mono text-[11px] text-faint">
+            {{ destinationPath }}
+          </span>
         </div>
         <p v-else class="font-inter text-xs text-muted">
           Imports as a new collection at the root of the current workspace.

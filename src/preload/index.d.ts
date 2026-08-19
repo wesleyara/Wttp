@@ -73,6 +73,7 @@ interface WttpApi {
   settings: {
     get: () => Promise<AppSettings>;
     set: (patch: Partial<AppSettings>) => Promise<AppSettings>;
+    reset: () => Promise<AppSettings>;
   };
   http: {
     send: (spec: HttpRequestSpec) => Promise<HttpResponseResult>;

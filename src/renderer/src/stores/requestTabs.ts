@@ -306,8 +306,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     return drafts;
   }
 
-  /** Cancela o debounce e grava `.wttp/drafts.json` na hora — depois de salvar/descartar uma aba (a entrada correspondente já sai do mapa, pois a aba não está mais suja) e no fechamento do app (`beforeunload`, `AppShell.vue`). `root` explícito porque é chamado também na troca de workspace, quando `workspace.root` já é o novo. */
-  function flushDrafts(root = workspace.root): void {
+  /** Cancela o debounce e grava `.wttp/drafts.json` na hora — depois de salvar/descartar uma aba (a entrada correspondente já sai do mapa, pois a aba não está mais suja) e no fechamento do app (`beforeunload`, `AppShell.vue`). `root` explícito porque é chamado também na troca de workspace, quando `workspace.root` já é o novo — mas o default cai em `null` (em vez de `workspace.root`) fora de um workspace pronto, pra nunca criar `.wttp/` numa pasta que só foi aberta no diálogo e nunca virou workspace de verdade (`workspace.needsInit`). */
+  function flushDrafts(root = workspace.ready ? workspace.root : null): void {
     if (!root) return;
     if (persistDraftsTimer) clearTimeout(persistDraftsTimer);
     persistDraftsTimer = null;
@@ -935,6 +935,12 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       : (loaded[0]?.path ?? null);
   }
 
+  // Guarda a raiz do último workspace de verdade (wttp.yaml presente) visto, para
+  // flushar drafts nela — nunca em `oldRoot` puro, que pode ser uma pasta que o usuário
+  // só abriu no diálogo e nunca chegou a inicializar (`workspace.needsInit`); gravar
+  // `.wttp/drafts.json` nela criaria a pasta oculta num lugar que não é um workspace.
+  let lastReadyRoot: string | null = workspace.ready ? workspace.root : null;
+
   // Workspace fechado ou trocado: grava o rascunho pendente da raiz anterior na hora, o
   // debounce de 500 ms não teria mais chance de rodar. Workspace fechado (`newRoot`
   // nulo): nenhuma aba faz sentido mais. Workspace trocado (`uiStateVersion` avança só
@@ -942,8 +948,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   // `patchUiState`): reidrata a sessão salva daquele workspace.
   watch(
     () => workspace.root,
-    (newRoot, oldRoot) => {
-      if (oldRoot) flushDrafts(oldRoot);
+    newRoot => {
+      if (lastReadyRoot) flushDrafts(lastReadyRoot);
+      lastReadyRoot = workspace.ready ? newRoot : null;
+
       if (newRoot) return;
       tabs.value = [];
       activeId.value = null;
