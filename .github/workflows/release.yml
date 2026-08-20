@@ -1,0 +1,137 @@
+name: Release
+
+# EP-11-T04: publicar uma versão é criar uma tag `v*` e dar `git push --tags` — o resto
+# é automático. `quality` roda de novo aqui (não confia só no `ci.yml` de quando a tag
+# foi criada — alguém pode taguear um commit que nunca passou pela `main`), os três SOs
+# empacotam e sobem pro mesmo release do GitHub (por tag, `electron-builder` cuida de
+# criar/reaproveitar), e o release sai como rascunho (`releaseType: draft` em
+# `electron-builder.yml`) até revisão manual — nunca publicado sozinho.
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn lint
+
+      - run: yarn typecheck
+
+      - run: yarn test
+
+  changelog:
+    name: Changelog
+    needs: quality
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.build_changelog.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Histórico inteiro — a action precisa achar a tag anterior para delimitar
+          # o intervalo de commits, um checkout raso não tem essa informação.
+          fetch-depth: 0
+
+      - name: Build changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          configuration: .github/changelog-config.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: Build and publish (${{ matrix.os }})
+    needs: quality
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            script: release:linux
+          - os: macos-latest
+            script: release:mac
+          - os: windows-latest
+            script: release:win
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      # `release:*` (ao contrário de `build:*`, usado em ci.yml) roda com
+      # `--publish always` — cria/atualiza o release do GitHub para a tag e sobe os
+      # instaladores. Assinatura (EP-11-T02) segue opcional: sem os secrets, sai sem
+      # assinar, mas ainda publica.
+      - run: yarn ${{ matrix.script }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      # `electron-builder` já sobe latest.yml/latest-mac.yml/latest-linux.yml (usados
+      # pelo auto-update, EP-11-T03) com SHA512 embutido, mas isso não é um checksum
+      # que alguém baixando o instalador manualmente consegue conferir sozinho —
+      # daí este SHA256SUMS por plataforma, subido à parte pro mesmo release.
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd dist
+          shopt -s nullglob
+          files=(*.exe *.dmg *.AppImage *.deb)
+          if [ ${#files[@]} -gt 0 ]; then
+            sha256sum "${files[@]}" > "SHA256SUMS-${{ runner.os }}.txt"
+          fi
+
+      - name: Upload checksums to release
+        if: hashFiles('dist/SHA256SUMS-*.txt') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" dist/SHA256SUMS-*.txt --clobber
+
+  finalize:
+    name: Attach changelog
+    needs: [changelog, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # `env:` em vez de interpolar `${{ needs.changelog.outputs.changelog }}` direto
+      # no `run:` — o conteúdo vem de mensagens de commit, texto não confiável o
+      # bastante para colar cru dentro de um heredoc de shell.
+      - name: Write changelog to file
+        env:
+          CHANGELOG: ${{ needs.changelog.outputs.changelog }}
+        run: printf '%s\n' "$CHANGELOG" > /tmp/release-notes.md
+
+      - name: Set release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --notes-file /tmp/release-notes.md --draft

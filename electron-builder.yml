@@ -78,3 +78,6 @@ publish:
   provider: github
   owner: wesleyara
   repo: Wttp
+  # EP-11-T04: cada plataforma sobe pro mesmo release (por tag) sem publicá-lo — fica
+  # draft até alguém revisar manualmente e clicar em "Publish release" no GitHub.
+  releaseType: draft

@@ -197,7 +197,7 @@ conversa que abriu esta task).
 
 ### EP-11-T04 — Pipeline de release
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-11-T03
+**Status:** Concluída (nunca disparada de verdade — sem tag publicada) · **Tamanho:** M · **Depende de:** EP-11-T03
 
 **Objetivo.** Publicar uma versão é criar uma tag.
 
@@ -209,9 +209,50 @@ conversa que abriu esta task).
 
 **Critérios de aceite.**
 
-- [ ] `git tag v0.1.0 && git push --tags` produz um release completo
-- [ ] Todos os artefatos e checksums presentes
-- [ ] Changelog legível, agrupado por tipo de mudança
+- [ ] `git tag v0.1.0 && git push --tags` produz um release completo — **não disparado** (ver notas)
+- [x] Todos os artefatos e checksums presentes *(por construção do workflow — não observado num run real)*
+- [x] Changelog legível, agrupado por tipo de mudança *(mesma ressalva)*
+
+**Notas.** `.github/workflows/release.yml` (novo): `quality` (lint/typecheck/test, não
+confia só no `ci.yml` de quando a tag foi criada — uma tag pode apontar pra um commit
+que nunca passou pela `main`) → `changelog` (`mikepenz/release-changelog-builder-action`,
+`.github/changelog-config.json` novo, agrupando por `feat:`/`fix:`/`refactor:`/`docs:`/
+`test:`/`chore:` via `label_extractor` — as mesmas seis categorias de Conventional
+Commits em `docs/conventions.md#Git`, deduzidas do prefixo do commit, não de label de
+PR) e `build` (matriz dos três SOs) correndo em paralelo depois de `quality`, e por
+fim `finalize`, que escreve o changelog gerado no corpo do release via
+`gh release edit --notes-file` (o conteúdo passa por uma variável de ambiente, não
+interpolado direto num heredoc — mensagem de commit é texto não confiável o bastante
+pra colar cru num script de shell). Cada perna de `build` roda `yarn release:<os>`
+(scripts novos em `package.json`, ao lado de `build:<os>` — a distinção importa, ver
+abaixo) com `GH_TOKEN` + os mesmos cinco secrets de assinatura de EP-11-T02, sobe um
+`SHA256SUMS-<os>.txt` gerado ali mesmo (`sha256sum` dos instaladores) pro mesmo release
+via `gh release upload`. `electron-builder.yml`'s `publish` ganhou `releaseType: draft`
+— o release fica rascunho até alguém clicar "Publish release" no GitHub à mão, nunca
+publicado sozinho pelo workflow.
+
+Achado sério ao testar isto de verdade, não só ler a documentação do
+electron-builder: mudar `publish` pra `provider: github` em EP-11-T03 quebrava
+silenciosamente o job `build` do CI normal (`ci.yml`, EP-10-T03) — electron-builder
+detecta `CI=true` e, sem um `--publish` explícito, assume a política implícita
+`onTagOrDraft`, que pro provider `github` tenta publicar **mesmo fora de uma tag**;
+sem `GH_TOKEN` no job de CI comum (só assinatura, nunca publish), isso derruba o build
+inteiro com "GitHub Personal Access Token is not set". Reproduzido de propósito
+(`CI=true yarn build:linux` sem token, antes do fix) para confirmar antes de escrever
+qualquer workflow novo. Corrigido com dois scripts separados: `build:<os>` (usado por
+`ci.yml` e por qualquer contribuidor local) ganhou `--publish never` explícito, e
+`release:<os>` (só usado por `release.yml`) ganhou `--publish always` explícito — sem
+depender do comportamento implícito do electron-builder em nenhum dos dois casos.
+
+**Não disparado, e não deveria ser por este agente:** nenhuma tag foi criada nem
+publicada — `git tag`/`git push --tags` é uma ação pública e difícil de reverter
+(cria um release real do GitHub, ainda que rascunho), decisão explícita do usuário
+nesta conversa de não fazer isso sem ele. O workflow foi validado por partes onde dava
+— schema do `electron-builder.yml` aceito (`electron-builder --linux --dir` com a nova
+config), `release:linux`/`build:linux` testados de verdade localmente, YAML de
+`release.yml` e JSON de `changelog-config.json` parseados sem erro — mas o run completo
+(os três SOs, o changelog de verdade, o upload de checksums, o release aparecendo como
+draft) só é observável depois de uma tag real, decisão do dono do repositório.
 
 ---
 
