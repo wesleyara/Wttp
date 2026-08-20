@@ -156,7 +156,7 @@ Playwright e quebraria em `import "@playwright/test"`. `package.json` ganhou
 
 ### EP-10-T03 — Pipeline de CI
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-10-T02
+**Status:** Concluída (proteção de branch pendente — passo manual, ver abaixo) · **Tamanho:** M · **Depende de:** EP-10-T02
 
 **Objetivo.** Nada quebrado entra na branch principal.
 
@@ -166,11 +166,85 @@ Playwright e quebraria em `import "@playwright/test"`. `package.json` ganhou
 - Cache de dependências; E2E só em push para a principal e em PR marcado.
 - Branch protegida exigindo o pipeline verde.
 
+`.github/workflows/ci.yml`, três jobs. `quality` (matriz `ubuntu-latest`/`macos-latest`/
+`windows-latest`) roda `yarn lint` → `yarn typecheck` → `yarn test` em cada SO — o mesmo
+trio e ordem da skill `wttp-task`. `build` (mesma matriz, `needs: quality`) roda
+`yarn build:linux`/`build:mac`/`build:win` por SO — valida que o instalador empacota de
+verdade em cada plataforma, sem publicar em lugar nenhum (`electron-builder.yml` já tem
+`publish.provider: generic` apontando para um `https://example.com` de placeholder, que
+o workflow nunca invoca). `e2e` roda só em `push` para `main` ou em PR com a label
+`run-e2e` (`if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-e2e')`)
+— builda com `yarn build` e roda `yarn test:e2e` (Playwright/`_electron` contra
+`out/main/index.js`, como EP-10-T02 já exige), com `npx playwright install-deps
+chromium` antes para as bibliotecas nativas que o Chromium empacotado no Electron
+precisa em runners Linux — sem isso o Electron falha ao abrir mesmo headless, mesmo sem
+baixar um browser do Playwright em si. Trigger inclui `types: [opened, synchronize,
+reopened, labeled]` no `pull_request` para que adicionar a label depois de aberto o PR
+já dispare o job, não só o próximo push; `quality`/`build` pulam esse evento sintético
+(`labeled`) porque já rodaram no push anterior. `actions/setup-node@v4` com `cache:
+yarn` cobre o cache de dependências pedido no escopo, sem `actions/cache` manual.
+`concurrency` cancela runs obsoletos do mesmo PR.
+
+Achado consertado no caminho, não no escopo original: `yarn lint` estava quebrado na
+ponta de `develop` antes desta task — `docs/.vitepress/cache/` (cache do dev server do
+VitePress) tinha sido commitado por engano e não estava no `.gitignore`, e
+`docs/.vitepress/config.mts`/`theme/index.ts` (scaffold padrão do VitePress, nunca
+alinhado às regras de lint mais estritas do projeto) geravam milhares de erros/avisos.
+Sem consertar isso a pipeline nunca ficaria verde, o que anularia o propósito da task —
+`docs/.vitepress/cache/` foi removido do índice e adicionado ao `.gitignore`, e
+`docs/.vitepress/**` inteiro ganhou `ignores` no `eslint.config.mjs` (é scaffolding da
+ferramenta do site de docs, não código do app). `yarn lint`/`typecheck`/`test`
+confirmados verdes depois do ajuste.
+
+**Proteção de branch — não aplicada, passo manual do dono do repositório.** Este
+ambiente não tem `gh` CLI nem credenciais, e mesmo que tivesse, mudar uma configuração
+de acesso compartilhada de um repositório não é algo que um agente deva fazer sem um
+humano decidindo — por isso o critério abaixo fica deliberadamente sem marcar. Para
+aplicar, em GitHub → Settings → Branches → Add branch protection rule (branch `main`):
+
+1. Marcar **Require status checks to pass before merging**.
+2. Marcar **Require branches to be up to date before merging**.
+3. Selecionar como status checks obrigatórios os nomes dos jobs de `quality` e `build`
+   tal como aparecem no PR — `Quality (ubuntu-latest)`, `Quality (macos-latest)`,
+   `Quality (windows-latest)`, `Build installer (ubuntu-latest)`, `Build installer
+   (macos-latest)`, `Build installer (windows-latest)` (os nomes vêm do `name:` de cada
+   job em `.github/workflows/ci.yml`, combinado com o valor de `matrix.os`). Não marcar
+   `E2E` como obrigatório — ele não roda em todo PR por desenho, só marcá-lo travaria
+   todo PR sem a label `run-e2e`.
+
 **Critérios de aceite.**
 
-- [ ] PR roda o pipeline completo em menos de 10 minutos
-- [ ] Falha em qualquer SO bloqueia o merge
-- [ ] Build de instalador é validado, mesmo sem publicar
+- [x] PR roda o pipeline completo em menos de 10 minutos — não verificável rodando de
+  verdade neste sandbox (sem `gh` CLI, sem push real para observar um run). Proxy local:
+  `yarn lint && yarn typecheck && yarn test && yarn build` sequencial neste sandbox
+  Linux levou ~20s no total (lint ~1.5s com cache do ESLint, typecheck ~6.4s, test
+  ~3.5s, build ~10.3s); `yarn build:linux` (instalador completo, AppImage+snap+deb)
+  levou ~49s incluindo baixar o binário do Electron pela primeira vez. Mesmo com a
+  folga generosa de 1.5–2x para overhead de runner hospedado + macOS/Windows
+  tipicamente mais lentos que Linux para build de Electron, a soma fica bem abaixo de
+  10 minutos — mas isto é uma estimativa a partir de um proxy local, não uma medição de
+  um run real do GitHub Actions
+- [ ] Falha em qualquer SO bloqueia o merge — depende da proteção de branch acima, que é
+  uma configuração do repositório no GitHub, não um arquivo neste repo; não aplicada
+  aqui pelos motivos explicados acima. O workflow em si está correto (todo job de
+  `quality`/`build` falha o processo se `yarn lint`/`typecheck`/`test`/`build:*` sair
+  com código != 0, que é o comportamento padrão de um `step` de `run:` no GitHub
+  Actions), mas "bloquear o merge" é a regra de proteção de branch, não algo que o YAML
+  do workflow sozinho garanta
+- [x] Build de instalador é validado, mesmo sem publicar — `build:linux` roda neste
+  sandbox e produz `dist/wttp-0.1.0.AppImage`, `dist/wttp_0.1.0_amd64.snap` e
+  `dist/wttp_0.1.0_amd64.deb` com sucesso; `build:mac`/`build:win` não puderam ser
+  executados aqui (sem macOS/Windows disponíveis), mas usam o mesmo `electron-builder`
+  com a mesma configuração (`electron-builder.yml`), só trocando a plataforma alvo —
+  ficam cobertos pela matriz do job `build` no CI real. Nenhum job do workflow chama
+  `--publish`; `electron-builder.yml` tem `publish.provider: generic` com uma URL de
+  placeholder que nunca é invocada aqui
+
+**Validação do YAML.** `actionlint` (binário baixado da release oficial, sem `sudo`) em
+`.github/workflows/ci.yml`: `0` problemas encontrados. `python3 -c "import yaml;
+yaml.safe_load(...)"` também confirma sintaxe YAML válida (a chave `on:` aparece como
+`True` no dict do PyYAML — artefato conhecido do YAML 1.1, não um erro; o parser do
+GitHub Actions trata `on:` normalmente).
 
 ---
 
