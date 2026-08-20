@@ -52,10 +52,10 @@ Microsoft. Duas opções:
 
 Secrets do repositório:
 
-| Secret             | Conteúdo                                     |
-| ------------------- | --------------------------------------------- |
-| `CSC_LINK`          | Certificado `.pfx` codificado em base64        |
-| `CSC_KEY_PASSWORD`  | Senha do arquivo `.pfx`                        |
+| Secret             | Conteúdo                                |
+| ------------------ | --------------------------------------- |
+| `CSC_LINK`         | Certificado `.pfx` codificado em base64 |
+| `CSC_KEY_PASSWORD` | Senha do arquivo `.pfx`                 |
 
 `electron-builder` lê essas duas variáveis automaticamente (nenhuma flag adicional).
 
@@ -68,13 +68,13 @@ assinado.
 
 Secrets do repositório:
 
-| Secret                        | Conteúdo                                                          |
-| ------------------------------ | ------------------------------------------------------------------ |
-| `CSC_LINK`                     | Certificado Developer ID Application (`.p12`) em base64            |
-| `CSC_KEY_PASSWORD`             | Senha do `.p12`                                                    |
-| `APPLE_ID`                     | Apple ID (e-mail) da conta de desenvolvedor                        |
-| `APPLE_APP_SPECIFIC_PASSWORD`  | Senha de app específica (não a senha da conta) — gerada em appleid.apple.com |
-| `APPLE_TEAM_ID`                | Team ID de 10 caracteres (developer.apple.com/account, seção Membership) |
+| Secret                        | Conteúdo                                                                     |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `CSC_LINK`                    | Certificado Developer ID Application (`.p12`) em base64                      |
+| `CSC_KEY_PASSWORD`            | Senha do `.p12`                                                              |
+| `APPLE_ID`                    | Apple ID (e-mail) da conta de desenvolvedor                                  |
+| `APPLE_APP_SPECIFIC_PASSWORD` | Senha de app específica (não a senha da conta) — gerada em appleid.apple.com |
+| `APPLE_TEAM_ID`               | Team ID de 10 caracteres (developer.apple.com/account, seção Membership)     |
 
 Com essas cinco variáveis presentes, `electron-builder` assina e notariza
 automaticamente (`mac.notarize` não é setado em `electron-builder.yml` — deixado sem
@@ -89,14 +89,14 @@ Sem assinatura de código — não é uma convenção do ecossistema Linux para 
 
 ### Entitlements do macOS
 
-`build/entitlements.mac.plist` só tem as três entitlements que o *hardened runtime* do
+`build/entitlements.mac.plist` só tem as três entitlements que o _hardened runtime_ do
 Electron exige para o V8 rodar (`allow-jit`, `allow-unsigned-executable-memory`,
 `allow-dyld-environment-variables`) — nenhuma delas concede privilégio além do que o
 próprio motor JavaScript precisa. Não habilitamos o **App Sandbox** completo
 (`com.apple.security.app-sandbox` + `network.client` +
 `files.user-selected.read-write`): fora da Mac App Store ele é opcional, e o Wttp deixa
 o usuário apontar `workspacesRootDir` para qualquer pasta persistida entre reinícios
-(`useSettingsStore`) — sob App Sandbox isso exigiria *security-scoped bookmarks* para
+(`useSettingsStore`) — sob App Sandbox isso exigiria _security-scoped bookmarks_ para
 sobreviver a um restart do app, mudança de arquitetura sem relação com empacotamento e
 não verificável sem um Mac real neste ambiente. Fica registrado aqui como trabalho
 futuro caso o Wttp precise entrar na Mac App Store.

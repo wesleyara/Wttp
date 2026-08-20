@@ -1,0 +1,24 @@
+wttp: 1
+name: POST JSON body
+seq: 2
+method: POST
+url: "{{base_url}}/post"
+query: []
+headers:
+  - { name: Content-Type, value: application/json, enabled: true }
+auth:
+  type: inherit
+body:
+  type: json
+  json: |
+    {
+      "message": "hello from Wttp",
+      "when": "{{$isoTimestamp}}"
+    }
+scripts:
+  tests: |
+    test("status 200", () => expect(res.status).toBe(200));
+    test("echoes the body back", () => expect(res.json.json.message).toBe("hello from Wttp"));
+docs: |
+  Same idea as GET request, but for a JSON body — postman-echo.com/post echoes it
+  back under the "json" key of the response.

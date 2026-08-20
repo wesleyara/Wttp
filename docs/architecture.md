@@ -56,44 +56,44 @@ Desde o Electron 20 o preload roda em sandbox por padrão e perde o Node complet
 
 Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos três processos — é a única pasta compartilhada e **não pode conter runtime**, apenas `type`/`interface`/`const enum` de string.
 
-| Canal               | Tipo    | Payload → Retorno                                  |
-| ------------------- | ------- | -------------------------------------------------- |
-| `app:ping`          | invoke  | `void` → `{ version, platform }`                   |
-| `ui:getState`       | invoke  | `void` → `UiState`                                 |
-| `ui:setState`       | invoke  | `Partial<UiState>` → `UiState`                     |
-| `settings:get`      | invoke  | `void` → `AppSettings`                             |
-| `settings:set`      | invoke  | `Partial<AppSettings>` → `AppSettings`             |
-| `http:send`         | invoke  | `HttpRequestSpec` → `HttpResponseResult`           |
-| `http:cancel`       | invoke  | `{ requestId }` → `void`                           |
-| `http:progress`     | event ↓ | `{ requestId, phase, bytes }`                      |
-| `workspace:open`    | invoke  | `{ path? }` → `WorkspaceTree`                      |
-| `workspace:create`  | invoke  | `{ path, name }` → `WorkspaceTree`                 |
-| `workspace:recent`  | invoke  | `void` → `RecentWorkspace[]`                       |
-| `workspace:changed` | event ↓ | `WorkspaceChangedEvent` (`{ tree, changedPaths }`) |
-| `workspace:setVariables` | invoke | `{ root, variables }` → `WorkspaceTree`        |
-| `node:read`         | invoke  | `{ path }` → `RequestNode \| FolderNode`           |
-| `node:write`        | invoke  | `{ path, node }` → `void`                          |
-| `node:move`         | invoke  | `{ from, to, seq }` → `void`                       |
-| `node:delete`       | invoke  | `{ path }` → `void`                                |
-| `env:list`          | invoke  | `{ root }` → `EnvironmentListItem[]`               |
-| `env:save`          | invoke  | `SaveEnvironmentPayload` → `EnvironmentListItem`   |
-| `env:delete`        | invoke  | `{ root, path }` → `void`                          |
-| `env:duplicate`     | invoke  | `{ root, path }` → `EnvironmentListItem`           |
-| `variables:resolveText` | invoke | `{ text, scope }` → `ResolveTextResultPayload` |
-| `variables:resolveRequest` | invoke | `{ request, scope }` → `ResolveRequestResultPayload` |
-| `secret:get`        | invoke  | `{ key }` → `string \| null`                       |
-| `secret:set`        | invoke  | `{ key, value }` → `void`                          |
-| `secret:delete`     | invoke  | `{ key }` → `void`                                 |
-| `secret:status`     | invoke  | `void` → `{ encrypted: boolean }`                  |
-| `script:run`        | invoke  | `ScriptRunSpec` → `ScriptResult`                   |
-| `import:detect`     | invoke  | `{ content, filename? }` → `ImportFormat \| null`  |
-| `import:run`        | invoke  | `{ format, content, root, targetPath }` → `ImportReport` |
-| `import:parseCurl`  | invoke  | `{ content }` → `ParsedCurlRequest \| null`        |
-| `menu:action`       | event ↓ | `MenuAction`                                       |
-| `update:getStatus`  | invoke  | `void` → `UpdateStatus`                            |
-| `update:check`      | invoke  | `void` → `void`                                    |
-| `update:install`    | invoke  | `void` → `void`                                    |
-| `update:status`     | event ↓ | `UpdateStatus`                                     |
+| Canal                      | Tipo    | Payload → Retorno                                        |
+| -------------------------- | ------- | -------------------------------------------------------- |
+| `app:ping`                 | invoke  | `void` → `{ version, platform }`                         |
+| `ui:getState`              | invoke  | `void` → `UiState`                                       |
+| `ui:setState`              | invoke  | `Partial<UiState>` → `UiState`                           |
+| `settings:get`             | invoke  | `void` → `AppSettings`                                   |
+| `settings:set`             | invoke  | `Partial<AppSettings>` → `AppSettings`                   |
+| `http:send`                | invoke  | `HttpRequestSpec` → `HttpResponseResult`                 |
+| `http:cancel`              | invoke  | `{ requestId }` → `void`                                 |
+| `http:progress`            | event ↓ | `{ requestId, phase, bytes }`                            |
+| `workspace:open`           | invoke  | `{ path? }` → `WorkspaceTree`                            |
+| `workspace:create`         | invoke  | `{ path, name }` → `WorkspaceTree`                       |
+| `workspace:recent`         | invoke  | `void` → `RecentWorkspace[]`                             |
+| `workspace:changed`        | event ↓ | `WorkspaceChangedEvent` (`{ tree, changedPaths }`)       |
+| `workspace:setVariables`   | invoke  | `{ root, variables }` → `WorkspaceTree`                  |
+| `node:read`                | invoke  | `{ path }` → `RequestNode \| FolderNode`                 |
+| `node:write`               | invoke  | `{ path, node }` → `void`                                |
+| `node:move`                | invoke  | `{ from, to, seq }` → `void`                             |
+| `node:delete`              | invoke  | `{ path }` → `void`                                      |
+| `env:list`                 | invoke  | `{ root }` → `EnvironmentListItem[]`                     |
+| `env:save`                 | invoke  | `SaveEnvironmentPayload` → `EnvironmentListItem`         |
+| `env:delete`               | invoke  | `{ root, path }` → `void`                                |
+| `env:duplicate`            | invoke  | `{ root, path }` → `EnvironmentListItem`                 |
+| `variables:resolveText`    | invoke  | `{ text, scope }` → `ResolveTextResultPayload`           |
+| `variables:resolveRequest` | invoke  | `{ request, scope }` → `ResolveRequestResultPayload`     |
+| `secret:get`               | invoke  | `{ key }` → `string \| null`                             |
+| `secret:set`               | invoke  | `{ key, value }` → `void`                                |
+| `secret:delete`            | invoke  | `{ key }` → `void`                                       |
+| `secret:status`            | invoke  | `void` → `{ encrypted: boolean }`                        |
+| `script:run`               | invoke  | `ScriptRunSpec` → `ScriptResult`                         |
+| `import:detect`            | invoke  | `{ content, filename? }` → `ImportFormat \| null`        |
+| `import:run`               | invoke  | `{ format, content, root, targetPath }` → `ImportReport` |
+| `import:parseCurl`         | invoke  | `{ content }` → `ParsedCurlRequest \| null`              |
+| `menu:action`              | event ↓ | `MenuAction`                                             |
+| `update:getStatus`         | invoke  | `void` → `UpdateStatus`                                  |
+| `update:check`             | invoke  | `void` → `void`                                          |
+| `update:install`           | invoke  | `void` → `void`                                          |
+| `update:status`            | event ↓ | `UpdateStatus`                                           |
 
 `event ↓` = emitido do main para o renderer.
 

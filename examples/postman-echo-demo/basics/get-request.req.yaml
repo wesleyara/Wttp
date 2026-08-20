@@ -1,0 +1,20 @@
+wttp: 1
+name: GET request
+seq: 1
+method: GET
+url: "{{base_url}}/get"
+query:
+  - { name: source, value: wttp-example, enabled: true }
+headers:
+  - { name: X-Request-Id, value: "{{$uuid}}", enabled: true }
+auth:
+  type: inherit
+body:
+  type: none
+scripts:
+  tests: |
+    test("status 200", () => expect(res.status).toBe(200));
+    test("echoes the query param", () => expect(res.json.args.source).toBe("wttp-example"));
+docs: |
+  postman-echo.com/get echoes back whatever query params, headers and IP it
+  received — useful to see exactly what Wttp sent.

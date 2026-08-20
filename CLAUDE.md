@@ -237,8 +237,51 @@ de qualquer agente neste ambiente: a proteção de branch do GitHub (EP-10-T03) 
 ser aplicada manualmente pelo dono do repositório, passos documentados em
 [EP-10](docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci).
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → próximo épico do
-MVP é **EP-11** (Empacotamento e distribuição), ainda `Pendente`.
+**EP-11** (Empacotamento e distribuição) também está pronto, com pendências explícitas
+fora do alcance de qualquer agente neste ambiente. `electron-builder.yml` preenchido de
+verdade: `dmg` explícito para `x64`+`arm64` no macOS, `nsis` explícito no Windows,
+categoria macOS (`public.app-category.developer-tools`), `fileAssociations` para
+`.wttp.yaml` (funciona em Windows/macOS; o Linux rejeita extensão com ponto no gerador
+de mime-type do próprio electron-builder — limitação real da ferramenta, não algo a
+contornar), e o bloco `files` cortando `docs/`/`e2e/`/`.claude/`/configs de dev que
+antes vazavam inteiros para dentro do `app.asar` (confirmado inspecionando o asar antes/
+depois). Assinatura de código e notarização (EP-11-T02) ficam atrás de cinco secrets
+opcionais do CI (`CSC_LINK`/`CSC_KEY_PASSWORD`/`APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/
+`APPLE_TEAM_ID`, documentados com custo real em [docs/release.md](docs/release.md)) —
+sem eles o build sai sem assinar, sem erro. Auto-update via `electron-updater`
+(`src/main/update/updater.ts`) checa no boot e a cada 4h (respeitando
+`AppSettings.autoUpdateEnabled`, novo), baixa em background e só troca o binário no
+próximo restart natural ou com um clique explícito em "Update now" — nunca sozinho no
+meio de uma sessão; `.deb` nunca checa (detecta `resources/package-type`, escrito só
+pelo electron-builder para pacotes de gerenciador), a aba Updates das Preferences
+explica por quê. `.github/workflows/release.yml` publica pra GitHub Releases como
+rascunho (`releaseType: draft`) ao empurrar uma tag `v*`, com changelog agrupado por
+Conventional Commits — achado sério no caminho: `publish: {provider: github}` fazia o
+job `build` do CI _normal_ (sem tag, sem token) tentar publicar sozinho por causa da
+política implícita `onTagOrDraft` do electron-builder sob CI, quebrando o build;
+corrigido com `build:<os>` sempre `--publish never` e um `release:<os>` novo, só usado
+pelo workflow de release, sempre `--publish always`. `examples/postman-echo-demo/` é um
+workspace de exemplo de verdade (não fixture) exercitando collections, environments,
+auth herdada e um fluxo login→bearer via scripts, verificado rodando as cinco requests
+de verdade contra `postman-echo.com`; as duas screenshots do `README.md`
+(`docs/screenshots/`) são capturas reais do app rodando (`Page.screenshot()` do
+Playwright contra o Chromium headless empacotado, tema trocado pelo botão de verdade da
+UI) — descoberta importante: ao contrário do que as notas de EP-02/EP-03/EP-05/EP-06/
+EP-07 registram, o Chromium headless do Electron renderiza e tira screenshot sem X11
+nenhum neste sandbox, só não abre uma janela _visível_; fica como nota para o dono do
+repositório reconsiderar aquelas pendências de verificação visual, não revisitado aqui.
+**Pendências reais, não contornáveis**: nenhuma tag foi criada (criar uma publica um
+release real, ainda que rascunho — decisão do dono do repositório), então "update
+ponta a ponta com release real" e "pipeline de release disparado de verdade" seguem
+não verificados; e instalação/abertura limpa em Windows e macOS segue impossível neste
+sandbox só-Linux, mesma pendência multi-SO já registrada em EP-10. Detalhes por task em
+[EP-11](docs/backlog/EP-11-distribuicao.md).
+
+Com isso o **MVP (v0.1) está funcionalmente completo** — EP-01 a EP-11 prontos, com as
+pendências de verificação (visual multi-tema numa janela de verdade, multi-SO, e a
+primeira release real) explicitamente registradas em cada épico, não escondidas.
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → os próximos
+épicos (EP-12 em diante) são pós-MVP, v0.2+.
 
 ---
 
@@ -285,15 +328,16 @@ yarn build:linux     # instalador (também :win, :mac)
 
 ## Referência
 
-| Documento                                        | Conteúdo                                         |
-| ------------------------------------------------ | ------------------------------------------------ |
-| [docs/overview.md](docs/overview.md)             | visão do produto                                 |
-| [docs/architecture.md](docs/architecture.md)     | processos, contrato IPC, fluxo de uma requisição |
-| [docs/file-format.md](docs/file-format.md)       | especificação do YAML em disco                   |
-| [docs/design-system.md](docs/design-system.md)   | paleta, tokens, tipografia, componentes base     |
-| [docs/conventions.md](docs/conventions.md)       | código, estado, lint, testes, git                |
-| [docs/release.md](docs/release.md)               | assinatura, notarização e processo de release    |
-| [docs/backlog/README.md](docs/backlog/README.md) | épicos e tasks                                   |
+| Documento                                          | Conteúdo                                          |
+| -------------------------------------------------- | ------------------------------------------------- |
+| [docs/overview.md](docs/overview.md)               | visão do produto                                  |
+| [docs/getting-started.md](docs/getting-started.md) | do download à primeira requisição (usuário final) |
+| [docs/architecture.md](docs/architecture.md)       | processos, contrato IPC, fluxo de uma requisição  |
+| [docs/file-format.md](docs/file-format.md)         | especificação do YAML em disco                    |
+| [docs/design-system.md](docs/design-system.md)     | paleta, tokens, tipografia, componentes base      |
+| [docs/conventions.md](docs/conventions.md)         | código, estado, lint, testes, git                 |
+| [docs/release.md](docs/release.md)                 | assinatura, notarização e processo de release     |
+| [docs/backlog/README.md](docs/backlog/README.md)   | épicos e tasks                                    |
 
 ## Skills
 

@@ -1,0 +1,26 @@
+wttp: 1
+name: Login
+seq: 2
+method: POST
+url: "{{base_url}}/post"
+query: []
+headers:
+  - { name: Content-Type, value: application/json, enabled: true }
+auth:
+  type: none
+body:
+  type: json
+  json: |
+    {
+      "token": "{{$uuid}}"
+    }
+scripts:
+  tests: |
+    test("status 200", () => expect(res.status).toBe(200));
+    wttp.setVar("access_token", res.json.json.token);
+docs: |
+  postman-echo has no real login endpoint, so this fakes one: it posts a random
+  token and, since postman-echo.com/post echoes the body back, the test script
+  reads it from the response and stores it with wttp.setVar — same pattern a
+  real login request would use to save a JWT. Run "Bearer check" right after
+  this one.

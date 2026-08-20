@@ -1,6 +1,6 @@
 # EP-11 — Empacotamento e distribuição
 
-**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-10
+**Status:** Concluída (verificação multi-SO e release real pendentes do dono do repositório) · **Alvo:** v0.1 · **Depende de:** EP-10
 
 Transformar o repositório em um aplicativo que um usuário comum instala com duplo clique. O `electron-builder.yml` já vem do scaffold — aqui ele é configurado de verdade.
 
@@ -104,7 +104,7 @@ runtime do Electron exige para o V8 (JIT), **sem** adicionar App Sandbox complet
 (`app-sandbox`/`network.client`/`files.user-selected.read-write`) como o enunciado da
 task sugeria — decisão explícita, não omissão. Fora da Mac App Store o App Sandbox é
 opcional, e o Wttp persiste `workspacesRootDir` (uma pasta arbitrária escolhida pelo
-usuário) entre reinícios; sob sandbox isso exige *security-scoped bookmarks*, uma
+usuário) entre reinícios; sob sandbox isso exige _security-scoped bookmarks_, uma
 mudança de arquitetura real que não dá para fazer corretamente às cegas sem um Mac para
 testar se o acesso sobrevive a um restart. Registrado em `docs/release.md` como
 trabalho futuro caso o Wttp precise da App Store.
@@ -160,7 +160,7 @@ mesmo padrão de `menu:action`/`workspace:changed`) — e um quarto,
 **`update:getStatus`** (invoke), que não estava no plano original. Achado ao testar de
 verdade contra o binário empacotado: `initAutoUpdater` manda o status inicial
 (`unsupported` num `.deb`, por exemplo) antes de o renderer montar e se inscrever no
-evento — sem uma forma de *puxar* o estado atual sob demanda, esse primeiro status se
+evento — sem uma forma de _puxar_ o estado atual sob demanda, esse primeiro status se
 perdia e a UI ficava presa em "Not checked yet." para sempre. `useUpdateStore.listen()`
 se inscreve e só depois busca o estado atual, nessa ordem, para nenhum dos dois
 perder o outro.
@@ -210,8 +210,8 @@ conversa que abriu esta task).
 **Critérios de aceite.**
 
 - [ ] `git tag v0.1.0 && git push --tags` produz um release completo — **não disparado** (ver notas)
-- [x] Todos os artefatos e checksums presentes *(por construção do workflow — não observado num run real)*
-- [x] Changelog legível, agrupado por tipo de mudança *(mesma ressalva)*
+- [x] Todos os artefatos e checksums presentes _(por construção do workflow — não observado num run real)_
+- [x] Changelog legível, agrupado por tipo de mudança _(mesma ressalva)_
 
 **Notas.** `.github/workflows/release.yml` (novo): `quality` (lint/typecheck/test, não
 confia só no `ci.yml` de quando a tag foi criada — uma tag pode apontar pra um commit
@@ -258,7 +258,7 @@ draft) só é observável depois de uma tag real, decisão do dono do repositór
 
 ### EP-11-T05 — Materiais de lançamento
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-11-T04
+**Status:** Concluída (instalação limpa nos 3 SOs não verificada) · **Tamanho:** M · **Depende de:** EP-11-T04
 
 **Objetivo.** Alguém que nunca ouviu falar do Wttp entende e instala.
 
@@ -270,6 +270,59 @@ draft) só é observável depois de uma tag real, decisão do dono do repositór
 
 **Critérios de aceite.**
 
-- [ ] Screenshots dos dois temas, atualizados com a UI real
-- [ ] Instruções verificadas em instalação limpa nos três SOs
-- [ ] O workspace de exemplo roda sem edição, contra uma API pública
+- [x] Screenshots dos dois temas, atualizados com a UI real
+- [ ] Instruções verificadas em instalação limpa nos três SOs — **não verificável neste ambiente** (ver notas)
+- [x] O workspace de exemplo roda sem edição, contra uma API pública
+
+**Notas.** `examples/postman-echo-demo/` (novo) é um workspace Wttp de verdade — não
+uma fixture de teste — com duas collections: **Basics** (GET/POST simples) e
+**Auth flow** (auth Basic herdada da collection via `folder.yaml`, e um par Login →
+Bearer check que guarda um token em `wttp.setVar` no pre-request/test e autentica a
+request seguinte sozinha, o mesmo fluxo "login guarda token" que o `CLAUDE.md` cita
+desde EP-09). Escolhido `https://postman-echo.com` em vez de `httpbin.org` (a escolha
+óbvia, e a que os arquivos usavam até bem no meio desta task) porque o segundo estava
+retornando 503 de verdade ao testar — descoberto rodando `curl` contra os dois antes
+de decidir, não por suposição; postman-echo é mantido pela própria Postman
+especificamente para esse tipo de demo, e é ironicamente apropriado dado que o README
+compara o Wttp a ela.
+
+Validado em duas camadas, não só lendo os arquivos: `src/main/storage/
+exampleWorkspace.spec.ts` (novo, permanente — roda com o resto da suíte) chama
+`scanWorkspace` de verdade contra a pasta e falha se qualquer nó vier `invalid`; e um
+smoke test Playwright ad hoc (descartado depois de rodar, mesmo padrão das outras
+tasks deste épico) abriu uma **cópia temporária** do workspace — nunca o original, o
+app grava `.wttp/` nele e o script do "Login" reescreve `access_token` no environment
+— e mandou as cinco requests de verdade contra o `postman-echo.com` real, conferindo
+"2/2 passed" (ou "1/1", pra Login) em cada uma. `.gitignore` (novo, dentro da pasta do
+exemplo) com `.wttp/` — os workspaces criados pela própria UI ganham isso automático
+ao inicializar, mas este foi escrito à mão, então precisou do mesmo tratamento
+manualmente.
+
+As duas capturas de tela em `docs/screenshots/` (`dark.png`/`light.png`, usadas no
+README) são renderizações reais do app rodando — mesmo binário, mesmo workspace de
+exemplo, `Page.screenshot()` do Playwright contra o Chromium headless empacotado, alternando
+o tema de verdade pelo botão da UI (não uma classe CSS forçada) — não mockups. Isso é
+mais do que o `CLAUDE.md` esperava ser possível neste sandbox ("sem `xvfb`/`sudo` para
+abrir uma janela"): o Chromium headless do próprio Electron renderiza e tira
+screenshot sem X11 nenhum, só não abre uma janela _visível_ — a pendência de
+verificação visual registrada nos épicos anteriores (EP-02, EP-03, EP-05, EP-06, EP-07,
+etc.) descrevia corretamente a limitação de então, mas não foi revisitada; passa a
+valer como nota para o dono do repositório reconsiderar aquelas pendências à luz desta
+descoberta, sem reabri-las aqui (fora do escopo desta task).
+
+`README.md` reescrito por completo — a versão antiga dizia "pre-alpha, not usable yet"
+e listava só `yarn dev`, desatualizada desde muito antes deste épico (o MVP inteiro,
+EP-01 a EP-10, já estava pronto). Nova versão: as duas screenshots no topo, tabela de
+instalação por SO, tabela de comparação honesta com Postman/Insomnia/Bruno (Bruno
+citado como "parente filosófico mais próximo" — mesma aposta de arquivos em disco sem
+conta —, sem fingir que o Wttp já tem a maturidade dos outros três). `docs/
+getting-started.md` (novo) cobre download → instalar → abrir/criar workspace → primeira
+request → o workspace de exemplo → environments/auth/scripts por alto, cada um
+apontando para a doc de referência completa.
+
+**Não verificado, e não verificável neste sandbox:** "instruções verificadas em
+instalação limpa nos três SOs" — mesma pendência de multi-SO já registrada em
+EP-10-T02/EP-10-T03/EP-11-T01/EP-11-T02 (só Linux disponível aqui). As instruções do
+Linux (`.deb`/`.AppImage`) foram de fato verificadas contra os artefatos reais de
+EP-11-T01; Windows/macOS ficam como pendência do dono do repositório, quando os
+instaladores de um release real existirem (EP-11-T04).

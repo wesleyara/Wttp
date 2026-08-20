@@ -1,0 +1,6 @@
+wttp: 1
+name: demo
+variables:
+  - { name: base_url, value: "https://postman-echo.com", enabled: true }
+  - { name: username, value: postman, enabled: true }
+  - { name: password, value: password, enabled: true }
