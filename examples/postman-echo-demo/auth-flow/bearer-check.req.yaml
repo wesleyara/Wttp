@@ -1,0 +1,25 @@
+wttp: 1
+name: Bearer check
+seq: 3
+method: GET
+url: "{{base_url}}/headers"
+query: []
+headers: []
+auth:
+  type: bearer
+  bearer:
+    token: "{{access_token}}"
+body:
+  type: none
+scripts:
+  tests: |
+    test("status 200", () => expect(res.status).toBe(200));
+    test("token matches what Login stored", () => expect(res.json.headers.authorization).toBe(`Bearer ${wttp.getVar("access_token")}`));
+docs: |
+  Auth here is an explicit Bearer, not "inherit" — it overrides the collection's
+  Basic auth and reads {{access_token}}, the variable "Login" just set.
+  postman-echo.com/headers echoes back every header it received, which is how
+  the test confirms Wttp actually sent "Authorization: Bearer <token>". Run
+  "Login" first; running this one on its own fails because access_token
+  doesn't exist yet, and Wttp blocks the send instead of silently sending
+  "Bearer undefined".

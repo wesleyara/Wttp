@@ -8,22 +8,22 @@ Para executar uma task, use a skill `wttp-task`.
 
 ## MVP — v0.1
 
-| Épico                                       | Título                                                         | Status                                  |
-| ------------------------------------------- | -------------------------------------------------------------- | --------------------------------------- |
-| [EP-01](EP-01-fundacao.md)                  | Fundação electron-vite                                         | Concluída                               |
-| [EP-02](EP-02-design-system.md)             | Design system e shell de layout                                | Concluída (verificação visual pendente) |
-| [EP-03](EP-03-nucleo-http.md)               | Núcleo HTTP                                                    | Concluída (verificação visual pendente) |
-| [EP-04](EP-04-persistencia.md)              | Formato de arquivo e persistência                              | Concluída                               |
-| [EP-05](EP-05-workspaces-collections.md)    | Workspaces, collections e tabs                                 | Concluída (verificação visual pendente) |
-| [EP-06](EP-06-environments-variaveis.md)    | Environments e variáveis                                       | Concluída (verificação visual pendente) |
-| [EP-06.1](EP-06.1-refinamentos-ux.md)       | Correções e refinamentos de UX (não planejado)                 | Concluída (verificação visual pendente) |
-| [EP-07](EP-07-autenticacao.md)              | Autenticação                                                   | Concluída (verificação visual pendente) |
-| [EP-08](EP-08-importadores.md)              | Importadores                                                   | Concluída (verificação visual pendente) |
-| [EP-08.1](EP-08.1-sessao-historico-docs.md) | Sessão, histórico, documentação e preferências (não planejado) | Em andamento                            |
-| [EP-09](EP-09-scripts.md)                   | Scripts e testes                                               | Concluída (verificação visual pendente) |
-| [EP-09.1](EP-09.1-produtividade-e-jwt.md)   | Produtividade de tabs/sidebar e ferramenta JWT (não planejado) | Concluída (verificação visual pendente) |
-| [EP-10](EP-10-qualidade-ci.md)              | Qualidade e CI                                                 | Concluída (proteção de branch pendente) |
-| [EP-11](EP-11-distribuicao.md)              | Empacotamento e distribuição                                   | Em andamento                            |
+| Épico                                       | Título                                                         | Status                                      |
+| ------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------- |
+| [EP-01](EP-01-fundacao.md)                  | Fundação electron-vite                                         | Concluída                                   |
+| [EP-02](EP-02-design-system.md)             | Design system e shell de layout                                | Concluída (verificação visual pendente)     |
+| [EP-03](EP-03-nucleo-http.md)               | Núcleo HTTP                                                    | Concluída (verificação visual pendente)     |
+| [EP-04](EP-04-persistencia.md)              | Formato de arquivo e persistência                              | Concluída                                   |
+| [EP-05](EP-05-workspaces-collections.md)    | Workspaces, collections e tabs                                 | Concluída (verificação visual pendente)     |
+| [EP-06](EP-06-environments-variaveis.md)    | Environments e variáveis                                       | Concluída (verificação visual pendente)     |
+| [EP-06.1](EP-06.1-refinamentos-ux.md)       | Correções e refinamentos de UX (não planejado)                 | Concluída (verificação visual pendente)     |
+| [EP-07](EP-07-autenticacao.md)              | Autenticação                                                   | Concluída (verificação visual pendente)     |
+| [EP-08](EP-08-importadores.md)              | Importadores                                                   | Concluída (verificação visual pendente)     |
+| [EP-08.1](EP-08.1-sessao-historico-docs.md) | Sessão, histórico, documentação e preferências (não planejado) | Em andamento                                |
+| [EP-09](EP-09-scripts.md)                   | Scripts e testes                                               | Concluída (verificação visual pendente)     |
+| [EP-09.1](EP-09.1-produtividade-e-jwt.md)   | Produtividade de tabs/sidebar e ferramenta JWT (não planejado) | Concluída (verificação visual pendente)     |
+| [EP-10](EP-10-qualidade-ci.md)              | Qualidade e CI                                                 | Concluída (proteção de branch pendente)     |
+| [EP-11](EP-11-distribuicao.md)              | Empacotamento e distribuição                                   | Concluída (multi-SO/release real pendentes) |
 
 ## Pós-MVP
 

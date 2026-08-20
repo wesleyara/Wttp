@@ -1,0 +1,8 @@
+wttp: 1
+name: Basics
+seq: 1
+auth:
+  type: none
+variables: []
+docs: |
+  Plain requests against postman-echo.com — no auth involved. Start here.

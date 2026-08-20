@@ -1,0 +1,14 @@
+wttp: 1
+name: Auth flow
+seq: 2
+auth:
+  type: basic
+  basic:
+    username: "{{username}}"
+    password: "{{password}}"
+variables: []
+docs: |
+  Collection-level auth (Basic, from the demo environment) — "Basic auth" below
+  inherits it. "Login" and "Bearer check" show the other flow: a login request
+  stores a token at runtime, the next request authenticates itself with it,
+  without touching the environment file.

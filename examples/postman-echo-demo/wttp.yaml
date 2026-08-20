@@ -1,0 +1,11 @@
+wttp: 1
+name: Postman Echo Demo
+description: Example workspace for Wttp — collections, environments, auth and scripts, all against the public https://postman-echo.com test API.
+defaultEnvironment: demo
+settings:
+  timeout: 30000
+  followRedirects: true
+  maxRedirects: 10
+  validateTls: true
+  scriptTimeout: 5000
+variables: []

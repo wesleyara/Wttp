@@ -1,0 +1,20 @@
+wttp: 1
+name: Basic auth (inherited)
+seq: 1
+method: GET
+url: "{{base_url}}/basic-auth"
+query: []
+headers: []
+auth:
+  type: inherit
+body:
+  type: none
+scripts:
+  tests: |
+    test("status 200", () => expect(res.status).toBe(200));
+    test("server confirms authentication", () => expect(res.json.authenticated).toBe(true));
+docs: |
+  Auth is "inherit" here — the Basic credentials come from the collection
+  (folder.yaml), not from this file. postman-echo.com/basic-auth only returns
+  200 when the Authorization header carries exactly "postman"/"password" — the
+  demo environment's username/password.
