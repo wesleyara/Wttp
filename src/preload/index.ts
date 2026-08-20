@@ -53,6 +53,7 @@ import type {
   SetWorkspaceUiStatePayload,
   SetWorkspaceVariablesPayload,
   UiState,
+  UpdateStatus,
   WorkspaceChangedEvent,
   WorkspaceDrafts,
   WorkspaceRootPayload,
@@ -202,6 +203,18 @@ const wttp = {
       invoke("history:list", payload),
     append: (payload: AppendHistoryPayload): Promise<void> => invoke("history:append", payload),
     clear: (payload: RequestHistoryPayload): Promise<void> => invoke("history:clear", payload),
+  },
+  update: {
+    getStatus: (): Promise<UpdateStatus> => invoke("update:getStatus"),
+    check: (): Promise<void> => invoke("update:check"),
+    install: (): Promise<void> => invoke("update:install"),
+    // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
+    onStatus: (callback: (status: UpdateStatus) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void =>
+        callback(status);
+      ipcRenderer.on("update:status", listener);
+      return () => ipcRenderer.off("update:status", listener);
+    },
   },
 };
 

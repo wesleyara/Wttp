@@ -27,6 +27,7 @@ import { useMenuStore } from "@renderer/stores/menu";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useTreeStore } from "@renderer/stores/tree";
 import { useUiStore } from "@renderer/stores/ui";
+import { useUpdateStore } from "@renderer/stores/update";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
 
@@ -38,6 +39,7 @@ const workspace = useWorkspaceStore();
 const tree = useTreeStore();
 const requestTabs = useRequestTabsStore();
 const importStore = useImportStore();
+const updateStore = useUpdateStore();
 
 const importModalOpen = ref(false);
 
@@ -131,6 +133,7 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
 });
 
 let stopListeningToMenu: (() => void) | null = null;
+let stopListeningToUpdate: (() => void) | null = null;
 
 /**
  * Fechamento do app (EP-08.1-T01) — sem isso, a última mudança de sessão (aba aberta/
@@ -155,11 +158,13 @@ onMounted(() => {
     "search:quickOpen": () => (paletteOpen.value = true),
     "preferences:open": () => (preferencesOpen.value = true),
   });
+  stopListeningToUpdate = updateStore.listen();
   window.addEventListener("beforeunload", flushSessionOnUnload);
 });
 
 onUnmounted(() => {
   stopListeningToMenu?.();
+  stopListeningToUpdate?.();
   window.removeEventListener("beforeunload", flushSessionOnUnload);
 });
 </script>

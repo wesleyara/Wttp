@@ -90,6 +90,10 @@ Canais nomeados `dominio:acao`. Tipos em `src/shared/ipc.ts`, importados pelos t
 | `import:run`        | invoke  | `{ format, content, root, targetPath }` → `ImportReport` |
 | `import:parseCurl`  | invoke  | `{ content }` → `ParsedCurlRequest \| null`        |
 | `menu:action`       | event ↓ | `MenuAction`                                       |
+| `update:getStatus`  | invoke  | `void` → `UpdateStatus`                            |
+| `update:check`      | invoke  | `void` → `void`                                    |
+| `update:install`    | invoke  | `void` → `void`                                    |
+| `update:status`     | event ↓ | `UpdateStatus`                                     |
 
 `event ↓` = emitido do main para o renderer.
 

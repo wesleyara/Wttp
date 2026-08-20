@@ -54,6 +54,7 @@ import type {
   SetWorkspaceUiStatePayload,
   SetWorkspaceVariablesPayload,
   UiState,
+  UpdateStatus,
   WorkspaceChangedEvent,
   WorkspaceDrafts,
   WorkspaceRootPayload,
@@ -146,6 +147,12 @@ interface WttpApi {
     list: (payload: RequestHistoryPayload) => Promise<HistoryEntry[]>;
     append: (payload: AppendHistoryPayload) => Promise<void>;
     clear: (payload: RequestHistoryPayload) => Promise<void>;
+  };
+  update: {
+    getStatus: () => Promise<UpdateStatus>;
+    check: () => Promise<void>;
+    install: () => Promise<void>;
+    onStatus: (callback: (status: UpdateStatus) => void) => () => void;
   };
 }
 

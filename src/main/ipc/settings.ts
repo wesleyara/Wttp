@@ -6,7 +6,7 @@ import { registerHandler } from "./registry";
 
 const FILE = "settings.json";
 
-const DEFAULT_SETTINGS: AppSettings = { theme: "system" };
+const DEFAULT_SETTINGS: AppSettings = { theme: "system", autoUpdateEnabled: true };
 
 export function registerSettingsHandlers(): void {
   registerHandler("settings:get", () => readJsonFile(appDataDir(), FILE, DEFAULT_SETTINGS));

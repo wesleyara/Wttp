@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useAppStore } from "@renderer/stores/app";
 import { useSettingsStore } from "@renderer/stores/settings";
+import { useUpdateStore } from "@renderer/stores/update";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 import PreferencesSection from "./PreferencesSection.vue";
 import WButton from "./WButton.vue";
@@ -28,15 +29,55 @@ const emit = defineEmits<{
 const settings = useSettingsStore();
 const workspace = useWorkspaceStore();
 const appStore = useAppStore();
+const updateStore = useUpdateStore();
 
-type SectionId = "general" | "workspaces" | "shortcuts" | "about";
+type SectionId = "general" | "workspaces" | "updates" | "shortcuts" | "about";
 
 const SECTIONS: { id: SectionId; label: string; icon: string }[] = [
   { id: "general", label: "General", icon: "sun-moon" },
   { id: "workspaces", label: "Workspaces", icon: "folder" },
+  { id: "updates", label: "Updates", icon: "download" },
   { id: "shortcuts", label: "Shortcuts", icon: "keyboard" },
   { id: "about", label: "About", icon: "info" },
 ];
+
+const AUTO_UPDATE_OPTIONS = [
+  { value: "on", label: "On" },
+  { value: "off", label: "Off" },
+];
+
+/**
+ * EP-11-T03 — nunca alarmante mesmo em erro (falha de rede na checagem é silenciosa
+ * por critério de aceite): a pior mensagem daqui é "will retry automatically", nunca
+ * um "something went wrong".
+ */
+const updateStatusLabel = computed<string>(() => {
+  const status = updateStore.status;
+  switch (status.state) {
+    case "idle":
+      return "Not checked yet.";
+    case "checking":
+      return "Checking for updates…";
+    case "available":
+      return `Version ${status.version} found — downloading…`;
+    case "not-available":
+      return "You're up to date.";
+    case "downloading":
+      return `Downloading update… ${status.percent}%`;
+    case "downloaded":
+      return `Version ${status.version} ready — restart to install.`;
+    case "error":
+      return "Couldn't check for updates. Will try again automatically.";
+    case "unsupported":
+      return "Installed from a .deb package — updates come from your package manager (apt/dpkg), not from inside the app.";
+    default:
+      return "";
+  }
+});
+
+const isUnsupportedLinuxPackage = computed<boolean>(
+  () => updateStore.status.state === "unsupported",
+);
 
 const activeSection = ref<SectionId>("general");
 
@@ -170,6 +211,37 @@ async function onRestoreDefaults(): Promise<void> {
             <p v-else class="font-inter text-xs text-status-5xx">
               Set this before creating a workspace — new workspaces can't be created without it.
             </p>
+          </PreferencesSection>
+        </div>
+
+        <div v-else-if="activeSection === 'updates'" class="flex flex-col gap-4">
+          <PreferencesSection
+            title="Automatic updates"
+            description="Checks for a new version on startup and periodically in the background, and downloads it silently — installing still waits for you to restart the app or click Update now."
+          >
+            <div class="w-28">
+              <WSelect
+                :model-value="settings.autoUpdateEnabled ? 'on' : 'off'"
+                :options="AUTO_UPDATE_OPTIONS"
+                :disabled="isUnsupportedLinuxPackage"
+                @update:model-value="value => settings.setAutoUpdateEnabled(value === 'on')"
+              />
+            </div>
+          </PreferencesSection>
+
+          <PreferencesSection title="Status">
+            <p class="font-inter text-xs text-muted">{{ updateStatusLabel }}</p>
+          </PreferencesSection>
+
+          <PreferencesSection v-if="!isUnsupportedLinuxPackage" title="Check now">
+            <WButton
+              size="sm"
+              variant="secondary"
+              :disabled="updateStore.status.state === 'checking'"
+              @click="updateStore.check()"
+            >
+              Check for updates
+            </WButton>
           </PreferencesSection>
         </div>
 
