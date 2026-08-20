@@ -1,7 +1,29 @@
 # Release
 
-Como os instaladores do Wttp são assinados, notarizados e (mais adiante, EP-11-T03/T04)
-publicados. Ver também [docs/backlog/EP-11-distribuicao.md](backlog/EP-11-distribuicao.md).
+Como os instaladores do Wttp são assinados, notarizados e publicados. Ver também
+[docs/backlog/EP-11-distribuicao.md](backlog/EP-11-distribuicao.md).
+
+---
+
+## Publicar uma versão
+
+`git tag v0.1.0 && git push --tags` — o resto é automático via
+[`.github/workflows/release.yml`](../.github/workflows/release.yml) (EP-11-T04):
+lint/typecheck/test rodam de novo (uma tag pode apontar pra um commit que nunca passou
+pela `main`), os três SOs empacotam e sobem os instaladores + um `SHA256SUMS-<SO>.txt`
+para o mesmo release do GitHub, e um changelog agrupado por tipo de commit
+(`feat:`/`fix:`/`refactor:`/`docs:`/`test:`/`chore:`, as categorias de
+[Conventional Commits](conventions.md#git) deste repositório) vira o corpo do release.
+**O release sai como rascunho** (`releaseType: draft` em `electron-builder.yml`) —
+alguém revisa o changelog e os artefatos e clica em "Publish release" no GitHub à mão
+antes de qualquer usuário ver a versão nova.
+
+`yarn build:<os>` (usado pelo CI normal e por qualquer contribuidor local) nunca
+publica nada (`--publish never` explícito) — só `yarn release:<os>`, usado
+exclusivamente pelo workflow acima, publica (`--publish always`). A distinção existe
+porque, sem ela, o electron-builder detecta `CI=true` e tenta publicar sozinho mesmo
+fora de uma tag — quebrava o build normal do CI antes desse fix (achado ao testar,
+registrado em EP-11-T04).
 
 ---
 
