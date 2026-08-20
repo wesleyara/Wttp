@@ -9,32 +9,64 @@ files:
   - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
   - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
   - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+  - "!{postcss.config.js,tailwind.config.js,playwright.config.ts,vitest.config.ts}"
+  - "!{CONTRIBUTING.md,CODE_OF_CONDUCT.md,CLAUDE.md}"
+  - "!.claude{,/**}"
+  - "!docs{,/**}"
+  - "!e2e{,/**}"
+fileAssociations:
+  - ext: wttp.yaml
+    name: Wttp Workspace
+    description: Wttp workspace file
+    icon: build/icon
+    role: Editor
+    # required on Linux for electron-builder to emit the mime-type XML / .desktop
+    # MimeType= entry — Windows/macOS associate by `ext` alone and ignore this. Has no
+    # effect here in practice: electron-builder rejects dotted `ext` values on Linux
+    # (`*.wttp.yaml` glob), so only Windows/macOS actually get the association —
+    # matches the task's "quando o SO permitir" (build logs a skip warning, harmless).
+    mimeType: application/vnd.wttp.workspace+yaml
 asarUnpack:
   - resources/**
 win:
   executableName: wttp
+  target:
+    - nsis
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  # fileAssociations only registers on Windows when the install is per-machine
+  # (electron-builder requirement, not configurable per-association) — accepts the
+  # one-time UAC prompt in exchange for .wttp.yaml opening the app on double-click.
+  perMachine: true
 mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-${arch}.${ext}
 linux:
   target:
     - AppImage
-    - snap
     - deb
   maintainer: https://github.com/wesleyara/Wttp
   category: Development
+  synopsis: Open source HTTP client for developing, testing and documenting APIs
+  syncDesktopName: true
 appImage:
   artifactName: ${name}-${version}.${ext}
+deb:
+  artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: false
 publish:
   provider: generic

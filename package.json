@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "An open source HTTP client for developing, testing and documenting APIs.",
   "main": "./out/main/index.js",
+  "desktopName": "wttp.desktop",
   "author": "wesleyara",
   "homepage": "https://github.com/wesleyara/Wttp",
   "license": "MIT",
