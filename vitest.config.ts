@@ -20,4 +20,20 @@ export default defineConfig({
       "@shared": resolve("src/shared"),
     },
   },
+  test: {
+    // EP-10-T01: cobertura obrigatória só nas três camadas puras e testáveis sem
+    // Electron (docs/conventions.md §Testes). O resto do main (ipc/, config/,
+    // scripts/, secrets/) e o renderer inteiro ficam fora — não é escopo desta task.
+    coverage: {
+      provider: "v8",
+      include: ["src/main/http/**", "src/main/storage/**", "src/main/importers/**"],
+      exclude: ["**/*.spec.ts", "**/__fixtures__/**", "**/__snapshots__/**"],
+      thresholds: {
+        lines: 85,
+        statements: 85,
+        functions: 80,
+        branches: 80,
+      },
+    },
+  },
 });
