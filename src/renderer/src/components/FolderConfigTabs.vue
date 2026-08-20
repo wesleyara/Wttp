@@ -119,7 +119,7 @@ const tabs = computed(() => [
 
     <WTabs v-model="activeTab" :tabs="tabs" />
 
-    <div v-if="activeTab === 'overview'" class="h-48 pt-2">
+    <div v-if="activeTab === 'overview'" class="min-h-48 pt-2">
       <WCodeEditor
         v-model="docs"
         language="text"
@@ -127,6 +127,8 @@ const tabs = computed(() => [
         :unresolved-variables="docsUnresolved"
         :variable-tooltips="docsTooltips"
         :variable-names="variableNames"
+        auto-grow
+        max-height="24rem"
       />
     </div>
 

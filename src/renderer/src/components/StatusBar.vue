@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import JwtToolModal from "@renderer/components/JwtToolModal.vue";
 import WEnvironmentPicker, {
   type EnvironmentPickerItem,
 } from "@renderer/components/WEnvironmentPicker.vue";
@@ -82,6 +83,8 @@ function cycleTheme(): void {
   const nextIndex = (THEME_ORDER.indexOf(settings.theme) + 1) % THEME_ORDER.length;
   settings.setTheme(THEME_ORDER[nextIndex]);
 }
+
+const jwtToolOpen = ref(false);
 </script>
 
 <template>
@@ -153,6 +156,14 @@ function cycleTheme(): void {
     <button
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      title="JWT tool"
+      @click="jwtToolOpen = true"
+    >
+      <WIcon name="key" size="3.5" />
+    </button>
+    <button
+      type="button"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       title="Preferences"
       @click="emit('open-preferences')"
     >
@@ -169,4 +180,6 @@ function cycleTheme(): void {
     @close="environmentPickerOpen = false"
     @select="onEnvironmentChange"
   />
+
+  <JwtToolModal :open="jwtToolOpen" @close="jwtToolOpen = false" />
 </template>

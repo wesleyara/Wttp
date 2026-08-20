@@ -648,3 +648,44 @@ export async function moveNodeInto(
   await moveNode(root, from, to, index);
   return readNode(root, to);
 }
+
+/**
+ * Copia `from` para dentro de `targetDir`, sempre no fim (EP-09.1-T04) — mantém o
+ * original no lugar, ao contrário de `moveNodeInto`. Mesma resolução de nome colidido
+ * de `moveNodeInto`/`duplicateNode`; reaproveita `moveNode(to, to, ...)` só para
+ * renumerar a cópia já no lugar certo, mesmo truque de `duplicateNode`.
+ */
+export async function copyNodeInto(
+  root: string,
+  from: string,
+  targetDir: string,
+): Promise<WorkspaceNode> {
+  const node = await readNode(root, from);
+  if (node.kind === "folder" && (targetDir === from || targetDir.startsWith(`${from}/`))) {
+    throw new DomainError(
+      "INVALID_PAYLOAD",
+      `cannot copy a folder into itself or a descendant: "${from}" → "${targetDir}"`,
+      targetDir,
+    );
+  }
+
+  const basename = from.slice(from.lastIndexOf("/") + 1);
+  const absTargetDir = resolveWorkspacePath(root, targetDir);
+  const existingNames = await listEntryNames(absTargetDir);
+
+  let newBasename = basename;
+  if (existingNames.has(basename)) {
+    const suffix = node.kind === "request" ? REQUEST_SUFFIX : "";
+    newBasename = uniqueSlugName(node.name, suffix, candidate => existingNames.has(candidate));
+  }
+
+  const to = relJoin(targetDir, newBasename);
+  const absFrom = resolveWorkspacePath(root, from);
+  const absTo = resolveWorkspacePath(root, to);
+
+  await fs.mkdir(absTargetDir, { recursive: true });
+  await fs.cp(absFrom, absTo, { recursive: node.kind === "folder" });
+
+  await moveNode(root, to, to, Number.MAX_SAFE_INTEGER);
+  return readNode(root, to);
+}

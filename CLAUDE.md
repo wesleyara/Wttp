@@ -124,6 +124,29 @@ motivo por que "New collection" clicado duas vezes nunca pergunta nada), não h�
 resolução de conflito nem passo extra no modal. Mesma pendência de verificação visual
 das notas acima.
 
+**EP-09.1** (Produtividade de tabs/sidebar e ferramenta JWT, não planejado, aberto após
+uso real do app) também está pronto: menu de contexto na barra de abas com "Fechar
+outras"/"Fechar todas" (`RequestTabsBar.vue`, `closeAll`/`closeOthers` em
+`stores/requestTabs.ts`, confirmação de aba suja encadeada uma por vez via uma fila —
+cancelar no meio interrompe o lote sem fechar o resto), largura de tab fixa
+(`w-44 shrink-0`, corrigindo o "pulo" durante drag-reorder), seleção múltipla na árvore
+com Ctrl/Cmd+click (`WTree.vue`/`stores/tree.ts`, `selectedPaths: Set<string>` ao lado
+do `selectedPath` "ativo" já existente, arrastar qualquer item da seleção move o grupo
+inteiro para o fim do destino), "Mover para..."/"Copiar para..." no menu de contexto da
+árvore (`MoveCopyModal.vue`, lista achatada de pastas/collections com destino inválido
+desabilitado — self/descendente, ou uma collection para dentro de qualquer pasta, já
+que uma collection nunca é aninhada), `WCodeEditor` com a prop `autoGrow` (cresce com o
+conteúdo até um `maxHeight` opcional, usada no body JSON/raw e na aba Docs de request e
+pasta/collection — Scripts e demais editores continuam com altura fixa), e a ferramenta
+JWT (`JwtToolModal.vue`, aberta pelo `StatusBar`) com Decode puro (base64url +
+`TextDecoder`, qualquer algoritmo) e Encode HS256 assinado via `crypto.subtle` do
+renderer, sem `node:crypto` nem canal IPC novo. "Copiar para..." precisou de um canal
+não previsto no escopo original — `node:copyInto` (`src/main/storage/tree.ts`,
+`src/main/ipc/node.ts`) — porque `duplicateNode` só duplicava dentro da mesma pasta;
+coberto por teste em `tree.spec.ts` (request solto, colisão de nome, pasta com filhos,
+guarda contra copiar para dentro de si mesma). Mesma pendência de verificação visual
+das notas acima.
+
 Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → próximo épico do
 MVP é **EP-10** (Qualidade e CI), ainda `Pendente`.
 

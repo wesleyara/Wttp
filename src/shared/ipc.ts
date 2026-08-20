@@ -151,6 +151,13 @@ export interface MoveNodeIntoPayload {
   index: number;
 }
 
+/** Payload de `node:copyInto` (EP-09.1-T04) — "Copy to..." do menu de contexto da árvore. Mantém o original, sempre no fim de `targetDir`. */
+export interface CopyNodeIntoPayload {
+  root: string;
+  from: string;
+  targetDir: string;
+}
+
 /** Payload de `dialog:pickFolder` (EP-05-T01) — `defaultPath` (EP-06.1) abre o diálogo já na pasta padrão configurada, se houver. */
 export interface PickFolderPayload {
   defaultPath?: string;
@@ -408,6 +415,7 @@ export interface IpcContract {
   "node:reveal": { payload: NodePathPayload; result: void };
   "node:trash": { payload: NodePathPayload; result: void };
   "node:moveInto": { payload: MoveNodeIntoPayload; result: FolderNode | RequestNode };
+  "node:copyInto": { payload: CopyNodeIntoPayload; result: FolderNode | RequestNode };
   "secret:get": { payload: SecretKeyPayload; result: string | null };
   "secret:set": { payload: SetSecretPayload; result: void };
   "secret:delete": { payload: SecretKeyPayload; result: void };

@@ -25,16 +25,19 @@ const props = withDefaults(
     nodes: WorkspaceNode[];
     expandedPaths: Set<string>;
     selectedPath: string | null;
+    /** Seleção múltipla via Ctrl/Cmd+click (EP-09.1-T03) — `selectedPath` continua o item "ativo" dentro dela. */
+    selectedPaths?: Set<string>;
     filterText?: string;
     /** Path do nó em edição inline de nome — `null` quando nada está sendo renomeado. */
     editingPath?: string | null;
   }>(),
-  { filterText: "", editingPath: null },
+  { filterText: "", editingPath: null, selectedPaths: () => new Set() },
 );
 
 const emit = defineEmits<{
   "update:expandedPaths": [paths: Set<string>];
   "update:selectedPath": [path: string | null];
+  "update:selectedPaths": [paths: Set<string>];
   activate: [node: WorkspaceNode, mode: "preview" | "pinned"];
   contextmenu: [node: WorkspaceNode, event: MouseEvent];
   rename: [path: string, name: string];
@@ -42,6 +45,8 @@ const emit = defineEmits<{
   shortcut: [type: "rename" | "duplicate" | "delete", node: WorkspaceNode];
   /** Drag & drop soltou `from` dentro de `targetDir`, na posição `index` (1-indexed) — EP-05-T04. */
   move: [from: string, targetDir: string, index: number];
+  /** Drag & drop de uma seleção múltipla — todos os `paths` para o fim de `targetDir` (EP-09.1-T03). */
+  "move-many": [paths: string[], targetDir: string];
 }>();
 
 const parentPathOf = (path: string): string => {
@@ -62,6 +67,17 @@ function findContainingArray(nodes: WorkspaceNode[], path: string): WorkspaceNod
 
 function isDescendantOrSelf(ancestorPath: string, path: string): boolean {
   return path === ancestorPath || path.startsWith(`${ancestorPath}/`);
+}
+
+function findNodeByPath(nodes: WorkspaceNode[], path: string): WorkspaceNode | null {
+  for (const node of nodes) {
+    if (node.path === path) return node;
+    if (node.kind === "folder") {
+      const found = findNodeByPath(node.children, path);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 const editingValue = ref("");
@@ -198,11 +214,28 @@ function activate(node: WorkspaceNode, mode: "preview" | "pinned"): void {
   emit("activate", node, mode);
 }
 
-function onRowClick(node: WorkspaceNode): void {
+/** Ctrl/Cmd+click adiciona/remove `path` da seleção múltipla, semeada com o item ativo atual quando ainda vazia (EP-09.1-T03). */
+function toggleMultiSelection(path: string): void {
+  const next = new Set(props.selectedPaths);
+  if (next.size === 0 && props.selectedPath && props.selectedPath !== path) {
+    next.add(props.selectedPath);
+  }
+  if (next.has(path)) next.delete(path);
+  else next.add(path);
+  emit("update:selectedPaths", next);
+  emit("update:selectedPath", path);
+}
+
+function onRowClick(node: WorkspaceNode, event: MouseEvent): void {
   if (suppressNextClick) {
     suppressNextClick = false;
     return;
   }
+  if (event.ctrlKey || event.metaKey) {
+    toggleMultiSelection(node.path);
+    return;
+  }
+  if (props.selectedPaths.size > 0) emit("update:selectedPaths", new Set());
   select(node.path);
   activate(node, node.kind === "request" ? "preview" : "pinned");
 }
@@ -289,6 +322,12 @@ function endDrag(): void {
 
 onBeforeUnmount(endDrag);
 
+function isValidMoveTarget(path: string, kind: WorkspaceNode["kind"], targetDir: string): boolean {
+  if (path === targetDir) return false;
+  if (kind === "folder" && isDescendantOrSelf(path, targetDir)) return false;
+  return true;
+}
+
 function onDragPointerUp(): void {
   const dragged = draggingNode.value;
   if (dragged) suppressNextClick = true;
@@ -304,12 +343,26 @@ function onDragPointerUp(): void {
     return;
   }
 
+  const targetDir =
+    indicator.mode === "into" ? targetRow.node.path : parentPathOf(targetRow.node.path);
+
+  // Item arrastado faz parte de uma seleção múltipla: move o grupo inteiro, sempre para
+  // o fim do destino — do contrário, preserva 100% o comportamento de item único de
+  // sempre (posição exata `before`/`after`/`into`, EP-05-T04).
+  if (props.selectedPaths.has(dragged.path) && props.selectedPaths.size > 1) {
+    const validPaths = [...props.selectedPaths].filter(path => {
+      const node = findNodeByPath(props.nodes, path);
+      return node ? isValidMoveTarget(path, node.kind, targetDir) : false;
+    });
+    if (validPaths.length > 0) emit("move-many", validPaths, targetDir);
+    endDrag();
+    return;
+  }
+
   if (indicator.mode === "into") {
-    const targetDir = targetRow.node.path;
     const siblings = targetRow.node.kind === "folder" ? targetRow.node.children : [];
     emit("move", dragged.path, targetDir, siblings.length + 1);
   } else {
-    const targetDir = parentPathOf(targetRow.node.path);
     const siblings = findContainingArray(props.nodes, targetRow.node.path) ?? [];
     const targetIndex = siblings.indexOf(targetRow.node);
     const position = indicator.mode === "before" ? targetIndex + 1 : targetIndex + 2;
@@ -416,7 +469,7 @@ function onKeydown(event: KeyboardEvent): void {
           :style="{ height: `${ROW_HEIGHT}px`, paddingLeft: `${row.depth * 16 + 4}px` }"
           class="relative flex cursor-pointer select-none items-center gap-1 pr-2 font-inter text-xs"
           :class="[
-            row.node.path === selectedPath
+            row.node.path === selectedPath || selectedPaths.has(row.node.path)
               ? 'bg-surface-3 text-1'
               : 'text-muted hover:bg-surface-3/50',
             draggingNode?.path === row.node.path
@@ -428,7 +481,7 @@ function onKeydown(event: KeyboardEvent): void {
               ? 'bg-accent/20'
               : '',
           ]"
-          @click="onRowClick(row.node)"
+          @click="onRowClick(row.node, $event)"
           @dblclick="activate(row.node, 'pinned')"
           @contextmenu="onRowContextmenu(row.node, $event)"
           @pointerdown="onRowPointerDown(row.node, $event)"

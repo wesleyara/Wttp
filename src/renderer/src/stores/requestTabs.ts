@@ -252,6 +252,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   const activeId = ref<string | null>(null);
   /** Aba com confirmação de fechar pendente (suja) — `null` quando nenhuma pergunta está aberta. */
   const closeConfirmId = ref<string | null>(null);
+  /** Fila de ids ainda por fechar num `closeAll`/`closeOthers` (EP-09.1-T01) — vazia fora de um fechamento em lote. */
+  const closeQueue = ref<string[]>([]);
   /** Aba com variável não resolvida a confirmar antes de enviar (EP-06-T05) — `null` = nenhuma pergunta pendente. */
   const unresolvedSendId = ref<string | null>(null);
   const unresolvedSendNames = ref<string[]>([]);
@@ -481,17 +483,58 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (tab?.kind === "folder") await saveFolderTab(id);
     else await save(id);
     forceClose(id);
+    if (closeQueue.value[0] === id) closeQueue.value.shift();
+    processCloseQueue();
   }
 
   function confirmCloseDiscard(): void {
     if (!closeConfirmId.value) return;
-    const tab = tabs.value.find(t => t.id === closeConfirmId.value);
-    forceClose(closeConfirmId.value);
+    const id = closeConfirmId.value;
+    const tab = tabs.value.find(t => t.id === id);
+    forceClose(id);
     if (tab) toast.push(`Changes to "${tab.title}" discarded`, "warning");
+    if (closeQueue.value[0] === id) closeQueue.value.shift();
+    processCloseQueue();
   }
 
+  /** Cancela a confirmação atual — interrompe também um `closeAll`/`closeOthers` em andamento, sem fechar as abas restantes da fila. */
   function cancelClose(): void {
     closeConfirmId.value = null;
+    closeQueue.value = [];
+  }
+
+  /**
+   * Avança a fila de um fechamento em lote (EP-09.1-T01): abas limpas fecham direto,
+   * uma por vez; a primeira suja para a fila e abre a confirmação de sempre, retomada
+   * por `confirmCloseSave`/`confirmCloseDiscard`/`cancelClose`.
+   */
+  function processCloseQueue(): void {
+    while (closeQueue.value.length > 0) {
+      const id = closeQueue.value[0];
+      const tab = tabs.value.find(t => t.id === id);
+      if (!tab) {
+        closeQueue.value.shift();
+        continue;
+      }
+      if (tab.dirty) {
+        closeConfirmId.value = id;
+        return;
+      }
+      closeQueue.value.shift();
+      forceClose(id);
+    }
+  }
+
+  /** Fecha todas as abas — confirmação individual encadeada para cada uma suja. */
+  function closeAll(): void {
+    closeQueue.value = tabs.value.map(tab => tab.id);
+    processCloseQueue();
+  }
+
+  /** Fecha todas as abas exceto `id`. */
+  function closeOthers(id: string): void {
+    closeQueue.value = tabs.value.filter(tab => tab.id !== id).map(tab => tab.id);
+    processCloseQueue();
   }
 
   function reorder(id: string, targetIndex: number): void {
@@ -982,6 +1025,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     forceClose,
     closeByPath,
     closeUnderPath,
+    closeAll,
+    closeOthers,
     renamePath,
     save,
     saveFolderTab,

@@ -3,6 +3,7 @@ import type {
   AppInfo,
   AppOpenExternalPayload,
   AppSettings,
+  CopyNodeIntoPayload,
   CreateNodePayload,
   CreateWorkspacePayload,
   DetectImportPayload,
@@ -148,6 +149,8 @@ const wttp = {
     trash: (payload: NodePathPayload): Promise<void> => invoke("node:trash", payload),
     moveInto: (payload: MoveNodeIntoPayload): Promise<FolderNode | RequestNode> =>
       invoke("node:moveInto", payload),
+    copyInto: (payload: CopyNodeIntoPayload): Promise<FolderNode | RequestNode> =>
+      invoke("node:copyInto", payload),
   },
   secret: {
     get: (key: string): Promise<string | null> => invoke("secret:get", { key }),

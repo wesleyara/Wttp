@@ -4,6 +4,7 @@ import type {
   AppInfo,
   AppOpenExternalPayload,
   AppSettings,
+  CopyNodeIntoPayload,
   CreateNodePayload,
   CreateWorkspacePayload,
   DetectImportPayload,
@@ -110,6 +111,7 @@ interface WttpApi {
     reveal: (payload: NodePathPayload) => Promise<void>;
     trash: (payload: NodePathPayload) => Promise<void>;
     moveInto: (payload: MoveNodeIntoPayload) => Promise<FolderNode | RequestNode>;
+    copyInto: (payload: CopyNodeIntoPayload) => Promise<FolderNode | RequestNode>;
   };
   secret: {
     get: (key: string) => Promise<string | null>;

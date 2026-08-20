@@ -9,6 +9,7 @@ import { writeFileAtomic } from "./fsAtomic";
 import { resolveWorkspacePath } from "./paths";
 import { slugify, uniqueSlugName } from "./slug";
 import {
+  copyNodeInto,
   createEnvironment,
   createNode,
   deleteEnvironment,
@@ -276,6 +277,55 @@ describe("moveNodeInto", () => {
     expect(moved.path).toBe("b.req.yaml");
     const tree = await scanWorkspace(root);
     expect(tree.children.map(node => node.name)).toEqual(["B", "A"]);
+  });
+});
+
+describe("copyNodeInto", () => {
+  it("copia mantendo o original no lugar", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml("users/folder.yaml", folderYaml("Users", 2));
+    await writeYaml("auth/login.req.yaml", requestYaml("Login", 1));
+
+    const copied = await copyNodeInto(root, "auth/login.req.yaml", "users");
+
+    expect(copied.path).toBe("users/login.req.yaml");
+    await expect(fs.access(join(root, "auth", "login.req.yaml"))).resolves.toBeUndefined();
+    await expect(fs.access(join(root, "users", "login.req.yaml"))).resolves.toBeUndefined();
+  });
+
+  it("resolve colisão de nome no destino como moveNodeInto resolveria", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml("users/folder.yaml", folderYaml("Users", 2));
+    await writeYaml("auth/login.req.yaml", requestYaml("Login", 1));
+    await writeYaml("users/login.req.yaml", requestYaml("Login", 1));
+
+    const copied = await copyNodeInto(root, "auth/login.req.yaml", "users");
+
+    expect(copied.path).not.toBe("users/login.req.yaml");
+    await expect(fs.access(join(root, "auth", "login.req.yaml"))).resolves.toBeUndefined();
+  });
+
+  it("copia uma pasta com seus filhos", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml("auth/nested/folder.yaml", folderYaml("Nested", 1));
+    await writeYaml("target/folder.yaml", folderYaml("Target", 2));
+
+    const copied = (await copyNodeInto(root, "auth/nested", "target")) as FolderNode;
+
+    expect(copied.path).toBe("target/nested");
+    await expect(fs.access(join(root, "target", "nested", "folder.yaml"))).resolves.toBeUndefined();
+    await expect(fs.access(join(root, "auth", "nested", "folder.yaml"))).resolves.toBeUndefined();
+  });
+
+  it("recusa copiar uma pasta para dentro dela mesma ou de um descendente", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml("auth/nested/folder.yaml", folderYaml("Nested", 1));
+
+    await expect(copyNodeInto(root, "auth", "auth/nested")).rejects.toThrow();
   });
 });
 

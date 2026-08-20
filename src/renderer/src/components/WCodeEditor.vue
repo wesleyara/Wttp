@@ -47,6 +47,10 @@ const props = withDefaults(
     scriptPhase?: ScriptPhase;
     /** Quebra linhas longas em vez de rolar horizontalmente — usado no preview de body da resposta. */
     lineWrap?: boolean;
+    /** Cresce com o conteúdo em vez de preencher 100% do container, como um textarea (EP-09.1-T05). O container precisa fornecer a altura mínima (ex: `min-h-48`). */
+    autoGrow?: boolean;
+    /** Teto de altura quando `autoGrow` está ativo (ex: `"24rem"`) — sem isso, o editor cresce indefinidamente. Sem efeito se `autoGrow` for `false`. */
+    maxHeight?: string;
   }>(),
   {
     language: "text",
@@ -62,6 +66,8 @@ const props = withDefaults(
     emptyPathParams: () => [],
     scriptPhase: undefined,
     lineWrap: false,
+    autoGrow: false,
+    maxHeight: undefined,
   },
 );
 
@@ -220,14 +226,16 @@ function languageExtension(language: WCodeEditorLanguage): Extension {
  * segundo `EditorView.theme()` por cima) — dois temas com regra para o mesmo seletor
  * (`&`) disputam a cascata, o que deixava o fundo branco vazando mesmo com `bare` ativo.
  */
-function buildEditorTheme(bare: boolean): Extension {
+function buildEditorTheme(bare: boolean, autoGrow: boolean, maxHeight?: string): Extension {
   const background = bare ? "transparent" : "rgb(var(--w-surface-2))";
   return EditorView.theme({
     "&": {
       color: "rgb(var(--w-text-1))",
       backgroundColor: background,
-      height: "100%",
       cursor: "text",
+      ...(autoGrow
+        ? { minHeight: "100%", ...(maxHeight ? { maxHeight } : {}) }
+        : { height: "100%" }),
     },
     ".cm-content": {
       fontFamily: "'JetBrains Mono', ui-monospace, monospace",
@@ -356,7 +364,7 @@ onMounted(() => {
       ),
       props.scriptPhase ? jsSyntaxLintExtension() : [],
       props.lineWrap ? EditorView.lineWrapping : [],
-      buildEditorTheme(props.bare),
+      buildEditorTheme(props.bare, props.autoGrow, props.maxHeight),
       syntaxTheme,
       EditorView.updateListener.of(update => {
         if (update.docChanged && !applyingExternalValue) scheduleEmit(update.state.doc.toString());
@@ -440,6 +448,9 @@ watch(
   <div
     ref="host"
     class="overflow-hidden"
-    :class="[singleLine ? 'w-full' : 'size-full', bare ? '' : 'rounded-md border border-subtle']"
+    :class="[
+      singleLine ? 'w-full' : autoGrow ? 'h-auto min-h-full w-full' : 'size-full',
+      bare ? '' : 'rounded-md border border-subtle',
+    ]"
   ></div>
 </template>
