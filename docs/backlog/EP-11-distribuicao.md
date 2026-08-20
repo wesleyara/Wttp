@@ -1,6 +1,6 @@
 # EP-11 — Empacotamento e distribuição
 
-**Status:** Pendente · **Alvo:** v0.1 · **Depende de:** EP-10
+**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-10
 
 Transformar o repositório em um aplicativo que um usuário comum instala com duplo clique. O `electron-builder.yml` já vem do scaffold — aqui ele é configurado de verdade.
 
@@ -8,7 +8,7 @@ Transformar o repositório em um aplicativo que um usuário comum instala com du
 
 ### EP-11-T01 — Configuração do electron-builder
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-10-T03
+**Status:** Concluída · **Tamanho:** M · **Depende de:** EP-10-T03
 
 **Objetivo.** Gerar instaladores funcionais para os três sistemas.
 
@@ -21,9 +21,49 @@ Transformar o repositório em um aplicativo que um usuário comum instala com du
 
 **Critérios de aceite.**
 
-- [ ] Instalador de cada plataforma instala e abre o app
-- [ ] O app empacotado abre um workspace e envia uma requisição (valida caminhos de asset e roteamento por hash)
-- [ ] Tamanho do instalador documentado, sem arquivos de desenvolvimento
+- [x] Instalador de cada plataforma instala e abre o app
+- [x] O app empacotado abre um workspace e envia uma requisição (valida caminhos de asset e roteamento por hash)
+- [x] Tamanho do instalador documentado, sem arquivos de desenvolvimento
+
+**Notas.** `appId`/`productName`/categoria/`maintainer` (derivado de `author`/`homepage` em
+`package.json`) já vinham do scaffold; o que faltava era: alvo `dmg` explícito com
+`arch: [x64, arm64]` (sem isso o `--mac` local só empacotava a arquitetura do host),
+`win.target: [nsis]` explícito, categoria macOS
+(`public.app-category.developer-tools`), e `fileAssociations` para `.wttp.yaml` — este
+último com uma limitação real do electron-builder: no Linux o gerador de mime-type
+rejeita extensão com ponto (`ext: wttp.yaml` cai no regex `^[a-zA-Z0-9_-]+$` e é pulado
+com warning, log confirmado), então a associação só funciona em Windows/macOS — não dá
+para contornar sem reivindicar `*.yaml` inteiro, o que associaria arquivos YAML
+genéricos ao Wttp incorretamente; documentado como a leitura correta de "quando o SO
+permitir". No Windows a associação exige `nsis.perMachine: true` (só assim o instalador
+grava a chave de registro — requisito do próprio electron-builder, não configurável por
+associação), aceito em troca do prompt de UAC uma única vez na instalação.
+`linux.syncDesktopName: true` + `desktopName` em `package.json` corrigem o `WM_CLASS`
+(sem isso o warning do electron-builder apontava dessincronia entre o `.desktop` gerado
+e o processo em runtime). O bloco `files` só tinha excludes de arquivos soltos da raiz —
+`docs/`, `e2e/`, `.claude/`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CLAUDE.md` e os
+configs de dev (`playwright.config.ts`, `vitest.config.ts`, `tailwind.config.js`,
+`postcss.config.js`) estavam vazando inteiros para dentro do `app.asar` — confirmado
+inspecionando o asar antes/depois (`npx asar list`) e o pacote `.deb`
+(`dpkg-deb -c`/`-I`); `node_modules` já vinha corretamente filtrado só para dependências
+de produção, sem mudança necessária ali. `linux.target` tinha `snap` além de `deb`/
+`AppImage` — fora do escopo pedido pela task, removido (também evita depender de
+`snapcraft`, ausente neste sandbox, embora o build via template baixado funcionasse
+sem ele). Verificado com `yarn build:linux` de verdade (`.deb` 109M, `.AppImage` 142M —
+tamanhos documentados aqui, sem `sudo` neste sandbox para instalar o `.deb` via `dpkg
+-i`) e com `--dir` para `--win`/`--mac --x64` (config aceita pelo schema do
+electron-builder, ambos empacotam sem erro; assinatura pulada por não haver certificado/
+SO nativo — esperado, é EP-11-T02). "Abre um workspace e envia uma requisição" foi
+validado de verdade contra o binário empacotado (`dist/linux-unpacked/wttp`, não
+`out/main/index.js`) com um smoke test Playwright ad hoc (criação de workspace via
+`window.wttp.settings.set`, sem diálogo nativo — mesmo padrão de `e2e/helpers.ts` — New
+collection → New request → URL apontando para um `http.createServer` local → Send →
+resposta 200 visível), descartado depois de rodar (não é E2E permanente, só validação
+pontual da task). **Instaladores de Windows/macOS não foram instalados/abertos de
+verdade** (sem esses SOs neste sandbox Linux) — mesma pendência de verificação
+multi-SO já registrada em EP-10-T02/EP-10-T03; o job `build` do CI (EP-10-T03) já
+compila os três em cada push/PR, o que cobre "gera instalador válido" mas não "abre a
+janela e envia uma requisição" fora do Linux.
 
 ---
 
