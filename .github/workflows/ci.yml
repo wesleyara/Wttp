@@ -1,0 +1,119 @@
+name: CI
+
+# EP-10-T03: nothing broken merges into main.
+#
+# - `quality` and `build` run on every PR against main/develop and on push to
+#   main, across the three OSes electron-builder targets.
+# - `e2e` is heavier (a full `yarn build` + a real Electron app per test) and
+#   only runs on push to main or on a PR carrying the `run-e2e` label — add
+#   the label to opt a specific PR in, or drop it to stop running E2E on
+#   further pushes to that PR. `types: [..., labeled]` makes adding the label
+#   itself trigger a run, not just the next push.
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  quality:
+    # A `labeled` event only exists to let `e2e` react to the label being
+    # added — lint/typecheck/test already ran on the push that preceded it,
+    # so skip re-running the whole matrix for it.
+    if: github.event_name != 'pull_request' || github.event.action != 'labeled'
+    name: Quality (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn lint
+
+      - run: yarn typecheck
+
+      - run: yarn test
+
+  build:
+    if: github.event_name != 'pull_request' || github.event.action != 'labeled'
+    name: Build installer (${{ matrix.os }})
+    needs: quality
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            script: build:linux
+          - os: macos-latest
+            script: build:mac
+          - os: windows-latest
+            script: build:win
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      # Validates the installer builds successfully on each OS. Not
+      # published anywhere — electron-builder's `publish` config is never
+      # invoked here.
+      - run: yarn ${{ matrix.script }}
+
+  e2e:
+    name: E2E
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-e2e')
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      # e2e/fixtures.ts launches the app's own bundled Chromium headlessly
+      # (--headless=new) rather than a Playwright-downloaded browser, so no
+      # `playwright install` — but the OS still needs the shared libraries
+      # Chromium links against to run at all.
+      - run: npx playwright install-deps chromium
+
+      # e2e/*.spec.ts drive `out/main/index.js`, the production build — not
+      # the dev server (see docs/backlog/EP-10-qualidade-ci.md, EP-10-T02).
+      - run: yarn build
+
+      - run: yarn test:e2e
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -13,3 +13,7 @@ coverage
 /test-results/
 /playwright-report/
 /blob-report/
+
+# VitePress dev-server cache — regenerated locally, was accidentally committed and
+# broke `yarn lint` (EP-10-T03).
+docs/.vitepress/cache/

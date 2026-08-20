@@ -12,7 +12,10 @@ import vueParser from "vue-eslint-parser";
 const tailwindConfigPath = fileURLToPath(new URL("./tailwind.config.js", import.meta.url));
 
 export default defineConfig(
-  { ignores: ["**/node_modules", "**/dist", "**/out"] },
+  // docs/.vitepress is generated scaffolding for the docs site (config + default
+  // theme), not app source — never brought in line with this project's stricter
+  // TS/perfectionist rules, and its dev-server cache is regenerated on every run.
+  { ignores: ["**/node_modules", "**/dist", "**/out", "docs/.vitepress/**"] },
   tseslint.configs.recommended,
   eslintPluginVue.configs["flat/recommended"],
   eslintPluginTailwindcss.configs["flat/recommended"],

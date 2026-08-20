@@ -195,8 +195,30 @@ falha foi confirmada quebrando uma asserção de propósito; **macOS e Windows n
 verificados** (sandbox só tem Linux) — fica para a matriz de CI de EP-10-T03, mesma
 pendência de verificação já registrada nos épicos com verificação visual adiada acima.
 
+**EP-10-T03** (Pipeline de CI) também está pronto, com uma ressalva. `.github/workflows/
+ci.yml` tem três jobs: `quality` (matriz `ubuntu-latest`/`macos-latest`/`windows-latest`,
+`yarn lint` → `typecheck` → `test`), `build` (mesma matriz, `yarn build:linux`/`build:mac`/
+`build:win` — valida que o instalador empacota em cada SO, sem publicar em lugar nenhum)
+e `e2e` (só em `push` para `main` ou PR com a label `run-e2e`, builda com `yarn build` e
+roda `yarn test:e2e` como EP-10-T02 já exige). Cache de dependência via `actions/
+setup-node`'s `cache: yarn`, sem `actions/cache` manual. No caminho, `yarn lint` estava
+quebrado na ponta de `develop` antes desta task — `docs/.vitepress/cache/` (cache do dev
+server do VitePress) tinha sido commitado por engano, e o scaffold padrão do VitePress
+(`docs/.vitepress/config.mts`/`theme/index.ts`) nunca tinha sido alinhado às regras de
+lint do projeto; ambos consertados (`.gitignore`, `eslint.config.mjs`) porque sem isso a
+pipeline nunca ficaria verde. **Proteção de branch não foi aplicada** — é uma
+configuração do repositório no GitHub (Settings → Branches), não um arquivo versionado, e
+mudar controle de acesso compartilhado não é algo que um agente deva fazer sem um humano
+decidindo; os passos exatos (quais status checks marcar como obrigatórios, com os nomes
+que saem do workflow) ficam documentados em
+[EP-10](docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci) como pendência
+explícita do dono do repositório. "PR roda em menos de 10 minutos" também não foi
+verificado com um run real do GitHub Actions (sem `gh` CLI neste sandbox) — só por um
+proxy local (`lint`+`typecheck`+`test`+`build` sequencial, ~20s neste sandbox Linux),
+registrado no épico com a mesma ressalva.
+
 Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → dentro de EP-10,
-faltam T03 (pipeline de CI) e T04 (onboarding).
+falta só T04 (onboarding).
 
 ---
 
