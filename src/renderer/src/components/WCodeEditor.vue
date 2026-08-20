@@ -51,6 +51,8 @@ const props = withDefaults(
     autoGrow?: boolean;
     /** Teto de altura quando `autoGrow` está ativo (ex: `"24rem"`) — sem isso, o editor cresce indefinidamente. Sem efeito se `autoGrow` for `false`. */
     maxHeight?: string;
+    /** Hover no valor de `exp`/`iat`/`nbf` (timestamp Unix em segundos) mostra a data/hora legível — usado pelo payload decodificado da ferramenta JWT (EP-09.1). */
+    highlightTimestamps?: boolean;
   }>(),
   {
     language: "text",
@@ -68,6 +70,7 @@ const props = withDefaults(
     lineWrap: false,
     autoGrow: false,
     maxHeight: undefined,
+    highlightTimestamps: false,
   },
 );
 
@@ -84,6 +87,7 @@ const readOnlyCompartment = new Compartment();
 const placeholderCompartment = new Compartment();
 const variableHighlightCompartment = new Compartment();
 const pathParamHighlightCompartment = new Compartment();
+const timestampHighlightCompartment = new Compartment();
 const autocompleteCompartment = new Compartment();
 
 /** `\{{nome}}` escapado (docs/file-format.md §8) nunca é decorado como variável — mesmo padrão de `main/http/resolver.ts`. */
@@ -135,6 +139,48 @@ function pathParamHighlightExtension(emptyNames: string[]): Extension {
       update(update: ViewUpdate): void {
         if (update.docChanged) {
           this.decorations = buildPathParamDecorations(update.state.doc.toString(), emptySet);
+        }
+      }
+    },
+    { decorations: pluginInstance => pluginInstance.decorations },
+  );
+}
+
+/** Claims de timestamp Unix (segundos) do JWT (EP-09.1) — só o valor numérico é decorado, não a chave. */
+const TIMESTAMP_CLAIM_PATTERN = /"(exp|iat|nbf)"\s*:\s*(-?\d+)/g;
+
+function formatTimestamp(seconds: number): string {
+  const date = new Date(seconds * 1000);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+}
+
+function buildTimestampDecorations(doc: string): DecorationSet {
+  const ranges: ReturnType<typeof Decoration.prototype.range>[] = [];
+  TIMESTAMP_CLAIM_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = TIMESTAMP_CLAIM_PATTERN.exec(doc))) {
+    const numberText = match[2];
+    const label = formatTimestamp(Number(numberText));
+    if (!label) continue;
+    const end = match.index + match[0].length;
+    const start = end - numberText.length;
+    ranges.push(
+      Decoration.mark({ class: "wttp-timestamp", attributes: { title: label } }).range(start, end),
+    );
+  }
+  return Decoration.set(ranges);
+}
+
+function timestampHighlightExtension(): Extension {
+  return ViewPlugin.fromClass(
+    class {
+      decorations: DecorationSet;
+      constructor(editorView: EditorView) {
+        this.decorations = buildTimestampDecorations(editorView.state.doc.toString());
+      }
+      update(update: ViewUpdate): void {
+        if (update.docChanged) {
+          this.decorations = buildTimestampDecorations(update.state.doc.toString());
         }
       }
     },
@@ -282,6 +328,9 @@ function buildEditorTheme(bare: boolean, autoGrow: boolean, maxHeight?: string):
       color: "rgb(var(--w-status-4xx))",
       textDecoration: "underline wavy",
     },
+    // `exp`/`iat`/`nbf` (EP-09.1) — sublinhado pontilhado sinaliza que o hover mostra a
+    // data/hora legível, sem mudar a cor de número já dada pelo tema de sintaxe.
+    ".wttp-timestamp": { textDecoration: "underline dotted", cursor: "help" },
   });
 }
 
@@ -361,6 +410,9 @@ onMounted(() => {
       autocompleteCompartment.of(autocompleteExtension(props.variableNames, props.scriptPhase)),
       pathParamHighlightCompartment.of(
         props.highlightPathParams ? pathParamHighlightExtension(props.emptyPathParams) : [],
+      ),
+      timestampHighlightCompartment.of(
+        props.highlightTimestamps ? timestampHighlightExtension() : [],
       ),
       props.scriptPhase ? jsSyntaxLintExtension() : [],
       props.lineWrap ? EditorView.lineWrapping : [],

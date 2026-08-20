@@ -7,8 +7,8 @@ const props = withDefaults(
   defineProps<{
     open: boolean;
     title: string;
-    /** `lg` para editores com mais conteúdo (ex. environments, EP-06-T03) — `fullscreen` para telas que precisam do espaço quase todo da janela — `md` continua o padrão de diálogos simples. */
-    size?: "md" | "lg" | "fullscreen";
+    /** `lg` para editores com mais conteúdo (ex. environments, EP-06-T03) — `xl` para layouts em colunas que precisam de mais largura (ex. ferramenta JWT, EP-09.1-T06) — `fullscreen` para telas que precisam do espaço quase todo da janela — `md` continua o padrão de diálogos simples. */
+    size?: "md" | "lg" | "xl" | "fullscreen";
   }>(),
   { size: "md" },
 );
@@ -64,8 +64,18 @@ onBeforeUnmount(() => previouslyFocused?.focus());
         tabindex="-1"
         class="flex w-full flex-col gap-4 rounded-md border border-subtle bg-surface-2 p-4 shadow-lg focus-visible:outline-none"
         :class="[
-          size === 'fullscreen' ? 'max-h-[95vh] max-w-[95vw]' : 'max-h-[80vh]',
-          size === 'lg' ? 'max-w-3xl' : size === 'md' ? 'max-w-md' : '',
+          size === 'fullscreen'
+            ? 'max-h-[95vh] max-w-[95vw]'
+            : size === 'xl'
+              ? 'max-h-[85vh]'
+              : 'max-h-[80vh]',
+          size === 'lg'
+            ? 'max-w-3xl'
+            : size === 'xl'
+              ? 'max-w-5xl'
+              : size === 'md'
+                ? 'max-w-md'
+                : '',
         ]"
         @keydown="onKeydown"
       >

@@ -104,7 +104,7 @@ watch([headerInput, payloadInput, secretInput], () => void encodeToken(), { imme
 </script>
 
 <template>
-  <WModal :open="open" title="JWT" size="lg" @close="emit('close')">
+  <WModal :open="open" title="JWT" size="xl" @close="emit('close')">
     <div class="flex flex-col gap-3">
       <WTabs
         v-model="activeTab"
@@ -114,28 +114,41 @@ watch([headerInput, payloadInput, secretInput], () => void encodeToken(), { imme
         ]"
       />
 
-      <div v-if="activeTab === 'decode'" class="flex flex-col gap-3">
-        <div>
-          <p class="mb-1 font-inter text-xs font-medium text-faint">Token</p>
-          <div class="h-24">
-            <WCodeEditor v-model="tokenInput" language="text" placeholder="eyJhbGciOi..." />
+      <div v-if="activeTab === 'decode'" class="grid grid-cols-2 gap-4">
+        <div class="flex h-[28rem] flex-col gap-1">
+          <p class="font-inter text-xs font-medium text-faint">Token</p>
+          <div class="min-h-0 flex-1">
+            <WCodeEditor
+              v-model="tokenInput"
+              language="text"
+              placeholder="eyJhbGciOi..."
+              line-wrap
+            />
           </div>
         </div>
-        <p v-if="decodeError" class="font-inter text-xs text-status-5xx">{{ decodeError }}</p>
-        <template v-else-if="decodedHeader">
-          <div>
-            <p class="mb-1 font-inter text-xs font-medium text-faint">Header</p>
-            <div class="h-32">
-              <WCodeEditor :model-value="decodedHeader" language="json" read-only />
+        <div class="flex h-[28rem] flex-col gap-3">
+          <p v-if="decodeError" class="font-inter text-xs text-status-5xx">{{ decodeError }}</p>
+          <template v-else-if="decodedHeader">
+            <div class="flex flex-col gap-1">
+              <p class="font-inter text-xs font-medium text-faint">Header</p>
+              <div class="h-28">
+                <WCodeEditor :model-value="decodedHeader" language="json" read-only line-wrap />
+              </div>
             </div>
-          </div>
-          <div>
-            <p class="mb-1 font-inter text-xs font-medium text-faint">Payload</p>
-            <div class="h-32">
-              <WCodeEditor :model-value="decodedPayload" language="json" read-only />
+            <div class="flex min-h-0 flex-1 flex-col gap-1">
+              <p class="font-inter text-xs font-medium text-faint">Payload</p>
+              <div class="min-h-0 flex-1">
+                <WCodeEditor
+                  :model-value="decodedPayload"
+                  language="json"
+                  read-only
+                  line-wrap
+                  highlight-timestamps
+                />
+              </div>
             </div>
-          </div>
-        </template>
+          </template>
+        </div>
       </div>
 
       <div v-else class="flex flex-col gap-3">
@@ -148,7 +161,7 @@ watch([headerInput, payloadInput, secretInput], () => void encodeToken(), { imme
         <div>
           <p class="mb-1 font-inter text-xs font-medium text-faint">Payload</p>
           <div class="h-24">
-            <WCodeEditor v-model="payloadInput" language="json" />
+            <WCodeEditor v-model="payloadInput" language="json" highlight-timestamps />
           </div>
         </div>
         <div>
