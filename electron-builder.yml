@@ -71,6 +71,10 @@ appImage:
 deb:
   artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: false
+# electron-updater lê isto em runtime (EP-11-T03) para saber onde checar por uma
+# versão nova — GitHub Releases do próprio repositório. Nunca invocado em CI fora do
+# workflow de release (EP-11-T04): o job `build` do CI roda sem `--publish`.
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  owner: wesleyara
+  repo: Wttp

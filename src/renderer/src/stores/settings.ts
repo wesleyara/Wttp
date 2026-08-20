@@ -12,6 +12,8 @@ import { computed, ref, watch } from "vue";
 export const useSettingsStore = defineStore("settings", () => {
   const theme = ref<AppSettings["theme"]>("system");
   const workspacesRootDir = ref<string | undefined>(undefined);
+  /** `undefined` (settings ainda não carregadas, ou salvas antes deste campo existir) se comporta como `true` — mesma regra de `AppSettings.autoUpdateEnabled` (EP-11-T03). */
+  const autoUpdateEnabled = ref<boolean>(true);
   const systemPrefersLight = ref(
     typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: light)").matches : false,
   );
@@ -36,6 +38,7 @@ export const useSettingsStore = defineStore("settings", () => {
     const settings = await window.wttp.settings.get();
     theme.value = settings.theme;
     workspacesRootDir.value = settings.workspacesRootDir;
+    autoUpdateEnabled.value = settings.autoUpdateEnabled !== false;
     applyToDocument();
   }
 
@@ -49,10 +52,16 @@ export const useSettingsStore = defineStore("settings", () => {
     void window.wttp.settings.set({ workspacesRootDir: next });
   }
 
+  function setAutoUpdateEnabled(next: boolean): void {
+    autoUpdateEnabled.value = next;
+    void window.wttp.settings.set({ autoUpdateEnabled: next });
+  }
+
   async function resetToDefaults(): Promise<void> {
     const settings = await window.wttp.settings.reset();
     theme.value = settings.theme;
     workspacesRootDir.value = settings.workspacesRootDir;
+    autoUpdateEnabled.value = settings.autoUpdateEnabled !== false;
     applyToDocument();
   }
 
@@ -67,9 +76,11 @@ export const useSettingsStore = defineStore("settings", () => {
     resolvedTheme,
     workspacesRootDir,
     workspacesContainerDir,
+    autoUpdateEnabled,
     load,
     setTheme,
     setWorkspacesRootDir,
+    setAutoUpdateEnabled,
     resetToDefaults,
   };
 });

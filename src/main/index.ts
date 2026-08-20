@@ -5,9 +5,10 @@ import { join } from "path";
 import icon from "../../resources/icon.png?asset";
 import { registerIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
+import { initAutoUpdater } from "./update/updater";
 import { loadWindowState, watchWindowState } from "./window/windowState";
 
-async function createWindow(): Promise<void> {
+async function createWindow(): Promise<BrowserWindow> {
   const state = await loadWindowState();
 
   const mainWindow = new BrowserWindow({
@@ -70,6 +71,8 @@ async function createWindow(): Promise<void> {
   } else {
     mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  return mainWindow;
 }
 
 app.whenReady().then(() => {
@@ -82,7 +85,7 @@ app.whenReady().then(() => {
 
   registerIpcHandlers();
 
-  void createWindow();
+  void createWindow().then(initAutoUpdater);
 
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();

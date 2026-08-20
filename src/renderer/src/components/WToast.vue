@@ -41,7 +41,22 @@ const VARIANT_CLASS: Record<ToastVariant, string> = {
           class="pointer-events-auto flex items-start gap-2 rounded-md border border-subtle bg-surface-2 p-2.5 shadow-lg"
         >
           <WIcon :name="VARIANT_ICON[item.variant]" size="4" :class="VARIANT_CLASS[item.variant]" />
-          <p class="flex-1 font-inter text-sm text-1">{{ item.message }}</p>
+          <div class="flex-1">
+            <p class="font-inter text-sm text-1">{{ item.message }}</p>
+            <button
+              v-if="item.action"
+              type="button"
+              class="mt-1 font-inter text-xs font-medium text-accent hover:underline"
+              @click="
+                () => {
+                  item.action?.onClick();
+                  toast.dismiss(item.id);
+                }
+              "
+            >
+              {{ item.action.label }}
+            </button>
+          </div>
           <button
             type="button"
             aria-label="Dismiss"

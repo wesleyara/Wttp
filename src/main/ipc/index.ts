@@ -9,6 +9,7 @@ import { registerScriptHandlers } from "./scripts";
 import { registerSecretHandlers } from "./secrets";
 import { registerSettingsHandlers } from "./settings";
 import { registerUiHandlers } from "./ui";
+import { registerUpdateHandlers } from "./update";
 import { registerVariableHandlers } from "./variables";
 import { registerWorkspaceHandlers } from "./workspace";
 
@@ -27,4 +28,5 @@ export function registerIpcHandlers(): void {
   registerImportHandlers();
   registerScriptHandlers();
   registerHistoryHandlers();
+  registerUpdateHandlers();
 }

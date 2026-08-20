@@ -66,7 +66,32 @@ export interface AppSettings {
    * ela não há onde decidir o destino sem perguntar ao usuário toda vez.
    */
   workspacesRootDir?: string;
+  /**
+   * Liga/desliga a checagem automática de update (EP-11-T03) — no início e periódica.
+   * `undefined` (settings antigas, de antes deste campo existir) se comporta como
+   * `true`; só um `false` explícito desliga. Nunca afeta uma checagem manual
+   * (`update:check` disparado pela UI) nem instalações em `.deb`, que nunca checam de
+   * qualquer forma (ver `UpdateStatus`).
+   */
+  autoUpdateEnabled?: boolean;
 }
+
+/**
+ * Estado do auto-update (EP-11-T03), entregue ao renderer por `window.wttp.update.onStatus`
+ * — evento main → renderer, mesmo motivo de `MenuAction` estar fora do `IpcContract`
+ * de invoke/result: não tem payload de invocação. `"unsupported"` é o caso de uma
+ * instalação `.deb` no Linux — `electron-updater` não tenta rodar `dpkg`/`apt` como
+ * root em nome do usuário; a atualização fica com o gerenciador de pacotes do SO.
+ */
+export type UpdateStatus =
+  | { state: "idle" }
+  | { state: "checking" }
+  | { state: "available"; version: string }
+  | { state: "not-available" }
+  | { state: "downloading"; percent: number }
+  | { state: "downloaded"; version: string }
+  | { state: "error" }
+  | { state: "unsupported"; reason: "linux-package" };
 
 /**
  * Ação disparada por um atalho do menu nativo (EP-02-T06), entregue ao renderer por
@@ -380,6 +405,17 @@ export interface IpcContract {
   "settings:get": { payload: void; result: AppSettings };
   "settings:set": { payload: Partial<AppSettings>; result: AppSettings };
   "settings:reset": { payload: void; result: AppSettings };
+  /**
+   * Estado atual, sob demanda — o renderer chama isso ao montar a UI de update, antes
+   * de (ou junto com) se inscrever em `update:status` (event ↓). Sem isso, um status
+   * enviado no boot do app (ex. `unsupported` num `.deb`) chega antes de qualquer
+   * listener existir e se perde — só o próximo evento, se houver, corrigiria a UI.
+   */
+  "update:getStatus": { payload: void; result: UpdateStatus };
+  /** Dispara uma checagem manual — sempre roda, mesmo com `autoUpdateEnabled: false` (esse campo só afeta a checagem automática) ou sem update nenhum encontrado. Resultado chega por `update:status` (event ↓), não pelo retorno deste invoke. */
+  "update:check": { payload: void; result: void };
+  /** Reinicia o app e aplica o update já baixado (`autoUpdater.quitAndInstall`) — só faz sentido depois de um `update:status` com `state: "downloaded"`. */
+  "update:install": { payload: void; result: void };
   /**
    * Nunca rejeita por erro de rede — `HttpResponseResult.ok: false` é o resultado
    * normal para DNS, TLS, timeout ou cancelamento (EP-03-T01).

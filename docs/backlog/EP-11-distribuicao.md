@@ -120,7 +120,7 @@ repositório, documentada em `docs/release.md` e aqui.
 
 ### EP-11-T03 — Auto-update
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-11-T02
+**Status:** Concluída (update ponta a ponta com release real não verificado) · **Tamanho:** M · **Depende de:** EP-11-T02
 
 **Objetivo.** O usuário recebe correções sem procurar por elas.
 
@@ -133,9 +133,65 @@ repositório, documentada em `docs/release.md` e aqui.
 
 **Critérios de aceite.**
 
-- [ ] Update de uma versão para a seguinte funciona ponta a ponta, testado com release real
-- [ ] Update nunca é aplicado sem consentimento
-- [ ] Falha de rede na verificação é silenciosa, sem alarmar o usuário
+- [ ] Update de uma versão para a seguinte funciona ponta a ponta, testado com release real — **não verificável agora** (ver notas)
+- [x] Update nunca é aplicado sem consentimento
+- [x] Falha de rede na verificação é silenciosa, sem alarmar o usuário
+
+**Notas.** `electron-builder.yml`'s `publish` trocou o placeholder `example.com` por
+`provider: github`/`owner: wesleyara`/`repo: Wttp` de verdade (`dev-app-update.yml`
+espelha o mesmo, para quem testar localmente com `forceDevUpdateConfig`).
+`src/main/update/updater.ts` (novo, ao lado de `ipc/` como `scripts/`/`importers/` —
+não é um handler fino, tem o ciclo de vida do `autoUpdater`) chama
+`autoUpdater.checkForUpdates()` 10s depois do boot e depois a cada 4h
+(`CHECK_INTERVAL_MS`), sempre respeitando `AppSettings.autoUpdateEnabled` (novo campo,
+default `true`) — mas uma checagem manual ("Check for updates" nas Preferences → aba
+Updates, nova) roda sempre, mesmo com a automática desligada. `autoDownload`/
+`autoInstallOnAppQuit` ficam no default `true` do electron-updater: o download roda
+sozinho em background assim que uma versão é encontrada (não é a parte que exige
+consentimento — só instalar é), e se o usuário nunca clicar em nada o binário troca
+sozinho no próximo restart natural do app, nunca no meio de uma sessão. Quando o
+download termina, um toast com botão "Update now" aparece (`ToastItem` ganhou um
+`action` opcional — `WToast.vue`/`stores/toast.ts` — sem auto-dismiss enquanto uma
+decisão como essa está pendente); dispensar o toast (o X) é o "depois" da task, sem
+ação nenhuma, porque o restart natural já cobre esse caso.
+
+Canal novo: `update:check`/`update:install` (invoke) + `update:status` (event ↓,
+mesmo padrão de `menu:action`/`workspace:changed`) — e um quarto,
+**`update:getStatus`** (invoke), que não estava no plano original. Achado ao testar de
+verdade contra o binário empacotado: `initAutoUpdater` manda o status inicial
+(`unsupported` num `.deb`, por exemplo) antes de o renderer montar e se inscrever no
+evento — sem uma forma de *puxar* o estado atual sob demanda, esse primeiro status se
+perdia e a UI ficava presa em "Not checked yet." para sempre. `useUpdateStore.listen()`
+se inscreve e só depois busca o estado atual, nessa ordem, para nenhum dos dois
+perder o outro.
+
+Sobre o Linux `.deb`: `main/update/updater.ts` lê `resources/package-type`
+(`electron-builder` só grava esse arquivo para `deb`/`rpm`/`pacman`) e, se presente,
+nunca chama `autoUpdater.checkForUpdates` — nem no boot nem na checagem manual —, só
+manda `{state: "unsupported", reason: "linux-package"}`; a aba Updates das Preferences
+mostra "Installed from a .deb package — updates come from your package manager", com o
+seletor de auto-update e o botão "Check for updates" escondidos (não faz sentido
+oferecer o que não vai fazer nada). Verificado contra os dois binários reais
+extraídos de um `yarn build:linux` (`dpkg-deb -x` para o `.deb`,
+`--appimage-extract` para o AppImage) com um smoke test Playwright ad hoc, descartado
+depois — mesmo padrão de EP-11-T01: no `.deb`, a aba mostra o aviso e nunca chama
+`checkForUpdates`; no AppImage (que precisa de `APPIMAGE` no ambiente — o próprio
+runtime do AppImage seta isso sozinho, achado batendo cabeça com o teste), clicar em
+"Check for updates" bate no GitHub de verdade e — como o repositório não tem nenhuma
+release publicada ainda — volta um 404 em `releases.atom` que vira
+`{state: "error"}`, mostrado como "Couldn't check for updates. Will try again
+automatically." Zero alerta, zero crash: exatamente o critério de aceite "falha de
+rede é silenciosa".
+
+**Não verificado, e não verificável até EP-11-T04 existir de fato:** "update de uma
+versão para a seguinte funciona ponta a ponta, testado com release real" — não há
+nenhuma release publicada neste repositório ainda (é o que EP-11-T04 cria), então não
+existe update nenhum para baixar e aplicar. O caminho de erro (sem release) foi
+verificado à exaustão acima; o caminho de sucesso (`update-available` →
+`update-downloaded` → `quitAndInstall`) só é testável depois de uma tag `v0.1.0`
+publicada de verdade — decisão do dono do repositório, fora do que um agente deveria
+fazer sozinho (ver `docs/backlog/EP-11-distribuicao.md`, decisão registrada na
+conversa que abriu esta task).
 
 ---
 
