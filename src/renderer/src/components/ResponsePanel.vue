@@ -388,6 +388,7 @@ async function saveBody(): Promise<void> {
           <WCodeEditor
             v-if="isTextual(contentType)"
             :model-value="displayText"
+            data-testid="response-body-viewer"
             :language="editorLanguage"
             read-only
             line-wrap

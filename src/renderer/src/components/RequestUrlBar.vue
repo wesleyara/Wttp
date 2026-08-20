@@ -97,6 +97,7 @@ function onPasteUrl(event: ClipboardEvent): void {
     <div class="flex-1">
       <WCodeEditor
         v-model="url"
+        data-testid="request-url-editor"
         single-line
         highlight-path-params
         :empty-path-params="emptyPathParams"

@@ -373,6 +373,7 @@ useAutoContentType(body, headers);
       <div v-else-if="bodyType === 'json'" class="min-h-48">
         <WCodeEditor
           v-model="jsonContent"
+          data-testid="body-json-editor"
           language="json"
           placeholder='{"key": "value"}'
           :unresolved-variables="bodyUnresolved"
@@ -490,6 +491,7 @@ useAutoContentType(body, headers);
       <div v-if="scriptsSubTab === 'preRequest'" class="h-48">
         <WCodeEditor
           v-model="preRequestScript"
+          data-testid="script-prerequest-editor"
           language="javascript"
           script-phase="preRequest"
           placeholder='wttp.setVar("ts", Date.now());'
@@ -498,6 +500,7 @@ useAutoContentType(body, headers);
       <div v-else class="h-48">
         <WCodeEditor
           v-model="testsScript"
+          data-testid="script-tests-editor"
           language="javascript"
           script-phase="tests"
           placeholder='test("status 200", () =&gt; expect(res.status).toBe(200));'

@@ -74,7 +74,7 @@ ligar o limiar de cobertura, que não existia:
 
 ### EP-10-T02 — Testes end-to-end
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-10-T01
+**Status:** Concluída (verificação de SO limitada ao Linux) · **Tamanho:** M · **Depende de:** EP-10-T01
 
 **Objetivo.** Os fluxos que o usuário realmente percorre não quebram.
 
@@ -84,11 +84,73 @@ ligar o limiar de cobertura, que não existia:
 - Fluxos: criar workspace → criar request → enviar → salvar → fechar → reabrir e conferir; trocar environment e reenviar; importar collection do Postman; rodar request com script de teste.
 - Poucos e estáveis — E2E não substitui teste unitário.
 
+`@playwright/test` como dependência de desenvolvimento — só o pacote `playwright`/
+`@playwright/test` em si; nenhum binário de browser separado foi baixado, porque o
+driver `_electron` guia o Chromium já empacotado dentro do próprio app do Wttp via CDP,
+não um Chromium do Playwright. `playwright.config.ts` (raiz) aponta `testDir` para
+`e2e/`, roda `workers: 1` (cada teste já é um processo Electron inteiro — paralelizar
+só multiplicaria CPU/memória sem ganho para quatro fluxos) e liga
+`screenshot: "only-on-failure"` + `trace: "retain-on-failure"` (critério "falha produz
+screenshot e trace"). `e2e/fixtures.ts` estende `test` do Playwright com um
+`userDataDir`/`workspacesRoot` únicos por teste (`node:fs.mkdtempSync`, limpos no
+teardown) e uma `electronApp`/`window` já apontando para `out/main/index.js` — o build
+de produção (`yarn build`), não o servidor de dev, pela mesma razão do critério de
+estabilidade: sem HMR, sem depender de porta livre, o mesmo artefato que
+`yarn build:linux` empacota. `--headless=new`/`--disable-gpu` (Chromium nativo do
+Electron, não Xvfb) entram só nesses `args` de teste — `src/main/index.ts` de produção
+não muda. Este sandbox de dev tem `ELECTRON_RUN_AS_NODE=1` no ambiente (herdado do
+próprio Claude Code, que também é um app Electron); sem removê-lo do `env` passado a
+`electron.launch()` (`LAUNCH_ENV`, `e2e/fixtures.ts`), o binário do Electron roda como
+Node puro e todo `--flag` de Chromium vira "bad option" — problema do sandbox, não do
+app, então o fix mora só no launch de teste.
+
+Sem `data-testid` nenhum no app antes desta task — os quatro fluxos precisam de alguns
+poucos seletores estáveis que nem `role`/texto visível cobrem sozinhos (o editor de URL
+e o corpo de resposta são `WCodeEditor`/CodeMirror, sem `<input>` nativo para
+`getByPlaceholder`). Seis atributos `data-testid` adicionados, todos passados como prop
+solta num `<WCodeEditor>` (cai no elemento raiz por fallthrough automático do Vue, sem
+mexer no componente em si): `request-url-editor` (`RequestUrlBar.vue`),
+`import-content-editor` (`ImportModal.vue`), `body-json-editor`/
+`script-prerequest-editor`/`script-tests-editor` (`RequestConfigTabs.vue`) e
+`response-body-viewer` (`ResponsePanel.vue`). O resto dos fluxos usa `role`/texto real
+(`getByRole("treeitem")`, `getByTitle("Manage environments")`, etc.) — sem inventar
+seletor onde a UI já é suficientemente identificável.
+
+Dois detalhes descobertos só ao rodar de verdade, sem relação com a task em si mas que
+os testes precisaram contornar: `openTab` (`stores/requestTabs.ts`) tem uma corrida real
+entre clique (preview) e duplo clique (pinned) na mesma linha da árvore — os dois
+disparam sobre o mesmo `await window.wttp.node.read(...)` ainda pendente e nenhum vê a
+aba que o outro está prestes a criar, abrindo duas abas para a mesma request; os testes
+evitam duplo clique nas linhas da árvore (clique único basta para os quatro fluxos) —
+mencionado aqui como achado, não corrigido, fora do escopo desta task. E `WCodeEditor` só emite `update:modelValue` 300ms depois da última tecla por
+padrão (`debounceMs`) — os helpers de teste (`fillCodeMirror`, `e2e/helpers.ts`) esperam
+esse prazo antes de qualquer ação seguinte, senão uma leitura imediata da store (ex.
+Send logo após digitar um script) pega o valor antigo.
+
+Import do Postman reaproveita o padrão de fixture real dos importadores
+(`docs/conventions.md`) — `e2e/fixtures/e2e-collection.postman_collection.json`, uma
+collection v2.1 mínima (1 request) escrita a mão para este fluxo, não a fixture de
+2500 linhas dos testes de importer (`auth0-management-api.postman_collection.json`),
+que exigiria digitar isso tudo num `WCodeEditor` via teclado sintético — lento e frágil
+sem necessidade, já que o pipeline de import em si já tem cobertura própria em
+`main/importers`.
+
+`vitest.config.ts` ganhou `test.exclude: [...configDefaults.exclude, "e2e/**"]` — sem
+isso o padrão de include do Vitest (`**/*.spec.ts`) tentaria carregar os specs do
+Playwright e quebraria em `import "@playwright/test"`. `package.json` ganhou
+`"test:e2e": "playwright test"`.
+
 **Critérios de aceite.**
 
-- [ ] Os quatro fluxos passam nos três SOs
-- [ ] Sem flakiness em 10 execuções seguidas
-- [ ] Falha produz screenshot e trace
+- [x] Os quatro fluxos passam — verificado rodando `playwright test` neste sandbox
+  Linux; **macOS e Windows não verificados aqui** (sem essas plataformas disponíveis),
+  fica para a matriz de CI de EP-10-T03, mesmo padrão de "verificação pendente" já usado
+  em CLAUDE.md para os épicos com verificação visual adiada
+- [x] Sem flakiness em 10 execuções seguidas — `playwright test` rodado 10x seguidas
+  neste sandbox: 10/10 passou (4/4 fluxos em cada uma), ~11s por execução
+- [x] Falha produz screenshot e trace — verificado quebrando de propósito uma asserção
+  em `import-postman.spec.ts`, rodando, confirmando `test-failed-1.png` e `trace.zip`
+  em `test-results/`, e revertendo a quebra
 
 ---
 

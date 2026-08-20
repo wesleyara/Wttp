@@ -8,3 +8,8 @@ coverage
 
 # Secrets fallback store — never versioned. See CLAUDE.md.
 .wttp/
+
+# Playwright E2E (EP-10-T02) — trace/screenshot artifacts and the HTML report.
+/test-results/
+/playwright-report/
+/blob-report/
