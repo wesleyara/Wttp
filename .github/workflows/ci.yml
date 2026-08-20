@@ -78,8 +78,16 @@ jobs:
 
       # Validates the installer builds successfully on each OS. Not
       # published anywhere — electron-builder's `publish` config is never
-      # invoked here.
+      # invoked here. Signing/notarization secrets (EP-11-T02, docs/release.md) are
+      # optional here on purpose: unset on a fork or before the repo owner adds them,
+      # electron-builder just skips signing rather than failing the build.
       - run: yarn ${{ matrix.script }}
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
   e2e:
     name: E2E

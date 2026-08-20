@@ -69,7 +69,7 @@ janela e envia uma requisição" fora do Linux.
 
 ### EP-11-T02 — Assinatura e notarização
 
-**Status:** Pendente · **Tamanho:** M · **Depende de:** EP-11-T01
+**Status:** Concluída (assinatura real não verificada — sem certificado) · **Tamanho:** M · **Depende de:** EP-11-T01
 
 **Objetivo.** O app instala sem alarme de segurança do SO.
 
@@ -82,9 +82,39 @@ janela e envia uma requisição" fora do Linux.
 
 **Critérios de aceite.**
 
-- [ ] Build assinado não dispara SmartScreen nem Gatekeeper
-- [ ] Build local sem certificado gera instalador utilizável
-- [ ] Nenhum segredo no repositório
+- [ ] Build assinado não dispara SmartScreen nem Gatekeeper — **não verificável neste ambiente** (ver notas)
+- [x] Build local sem certificado gera instalador utilizável
+- [x] Nenhum segredo no repositório
+
+**Notas.** O job `build` do CI (`.github/workflows/ci.yml`) ganhou as cinco variáveis
+de ambiente que o `electron-builder` já sabe ler sozinho (`CSC_LINK`/
+`CSC_KEY_PASSWORD`/`APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID`), todas
+`${{ secrets.* }}` — vazias até o dono do repositório configurá-las em Settings →
+Secrets, sem quebrar o build (confirmado: `yarn build:mac --dir` local sem nenhuma
+delas segue pulando a assinatura, "reason=supported only on macOS/no identity", sem
+erro). `mac.notarize: false` foi removido de `electron-builder.yml` — estava
+desligando a notarização incondicionalmente; sem valor, o electron-builder notariza
+sozinho só quando as três variáveis da Apple estão presentes. `docs/release.md` cobre
+o processo, os dois secrets do Windows e os cinco do macOS, e o custo real dos
+certificados (Authenticode OV ~US$70–250/ano, EV ~US$300–500/ano; Apple Developer
+Program US$99/ano — sem custo adicional para notarização em si).
+
+Sobre `entitlements.mac.plist`: mantido só com as três entitlements que o hardened
+runtime do Electron exige para o V8 (JIT), **sem** adicionar App Sandbox completo
+(`app-sandbox`/`network.client`/`files.user-selected.read-write`) como o enunciado da
+task sugeria — decisão explícita, não omissão. Fora da Mac App Store o App Sandbox é
+opcional, e o Wttp persiste `workspacesRootDir` (uma pasta arbitrária escolhida pelo
+usuário) entre reinícios; sob sandbox isso exige *security-scoped bookmarks*, uma
+mudança de arquitetura real que não dá para fazer corretamente às cegas sem um Mac para
+testar se o acesso sobrevive a um restart. Registrado em `docs/release.md` como
+trabalho futuro caso o Wttp precise da App Store.
+
+**Não verificado, e não verificável neste sandbox:** o critério central da task — "build
+assinado não dispara SmartScreen nem Gatekeeper" — exige um certificado de código real
+(custo listado acima) e, para o Gatekeeper, rodar num Mac de verdade; nenhum dos dois
+existe aqui. O que foi possível confirmar é a metade defensiva: o build funciona sem
+assinar e nenhum segredo está no repositório. Fica como pendência explícita do dono do
+repositório, documentada em `docs/release.md` e aqui.
 
 ---
 
