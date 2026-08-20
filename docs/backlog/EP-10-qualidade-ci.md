@@ -1,6 +1,6 @@
 # EP-10 — Qualidade e CI
 
-**Status:** Em andamento · **Alvo:** v0.1 · **Depende de:** EP-09
+**Status:** Concluída (proteção de branch pendente — passo manual do dono do repositório, ver EP-10-T03) · **Alvo:** v0.1 · **Depende de:** EP-09
 
 Rede de segurança antes de distribuir. Um cliente HTTP que corrompe os arquivos do usuário perde a confiança de uma vez só — e os arquivos são o produto.
 
@@ -250,7 +250,7 @@ GitHub Actions trata `on:` normalmente).
 
 ### EP-10-T04 — Onboarding de contribuidores
 
-**Status:** Pendente · **Tamanho:** P · **Depende de:** EP-10-T03
+**Status:** Concluída · **Tamanho:** P · **Depende de:** EP-10-T03
 
 **Objetivo.** Alguém de fora consegue contribuir sem perguntar nada.
 
@@ -260,7 +260,30 @@ GitHub Actions trata `on:` normalmente).
 - Templates de issue (bug, feature) e de PR com checklist da Definition of Done.
 - `CODE_OF_CONDUCT.md` e `LICENSE` (MIT).
 
+`CONTRIBUTING.md` (raiz) cobre, nesta ordem: setup (`git clone` → `yarn` → `yarn dev`,
+requisitos Node 20+/Yarn 1, sem `.nvmrc`/`engines` no `package.json` para verificar
+contra — recomendação sã, não um requisito travado), a lista de comandos (`lint`,
+`typecheck`, `test`, `test:coverage`, `test:e2e`, `build`), como escolher uma task
+`Pendente` com dependências `Concluída` em `docs/backlog/README.md` e ler o próprio
+arquivo do épico (objetivo/escopo/critérios/fora de escopo), as regras de
+`docs/conventions.md` que mais pegam quem chega de fora (renderer nunca importa
+`node:*`/`electron`, só tokens semânticos de cor, formato YAML é contrato público,
+docs em PT-BR e código/commits/PRs em inglês), convenção de branch/commit (Conventional
+Commits, `Refs EP-XX-TYY` no corpo) e a Definition of Done global antes de abrir o PR.
+`.github/ISSUE_TEMPLATE/bug_report.md`/`feature_request.md` e
+`.github/PULL_REQUEST_TEMPLATE.md` adicionados — o template de PR abre com `Refs
+<!-- EP-XX-TYY -->` e repete o checklist da Definition of Done mais um espaço para colar
+os critérios de aceite da task, marcados só o que foi de fato verificado.
+`CODE_OF_CONDUCT.md` é o Contributor Covenant 2.1 sem alteração de texto além dos dados
+de contato (aponta para abrir uma issue). `LICENSE` é MIT, copyright do autor do
+`package.json` (`wesleyara`).
+
 **Critérios de aceite.**
 
-- [ ] Um dev sem contexto vai de clone a `yarn dev` seguindo só o `CONTRIBUTING.md`
-- [ ] Template de PR referencia o ID da task
+- [x] Um dev sem contexto vai de clone a `yarn dev` seguindo só o `CONTRIBUTING.md` —
+  verificado lendo o arquivo do início ao fim como um contribuidor novo leria: os três
+  comandos (`git clone`, `yarn`, `yarn dev`) aparecem em sequência, sem passo omitido ou
+  pressuposto (ex. variável de ambiente, serviço externo); não há um segundo processo
+  (Electron) para subir à parte, `yarn dev` já sobe os três
+- [x] Template de PR referencia o ID da task — `.github/PULL_REQUEST_TEMPLATE.md` abre
+  com `Refs <!-- EP-XX-TYY -->` antes de qualquer outro campo

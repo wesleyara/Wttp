@@ -217,8 +217,28 @@ verificado com um run real do GitHub Actions (sem `gh` CLI neste sandbox) — s�
 proxy local (`lint`+`typecheck`+`test`+`build` sequencial, ~20s neste sandbox Linux),
 registrado no épico com a mesma ressalva.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → dentro de EP-10,
-falta só T04 (onboarding).
+**EP-10-T04** (Onboarding de contribuidores), a última task do épico, também está
+pronto: `CONTRIBUTING.md` na raiz leva um contribuidor novo de `git clone` a `yarn dev`
+sem depender de nada fora do próprio arquivo, lista os comandos (`lint`/`typecheck`/
+`test`/`test:coverage`/`test:e2e`/`build`), explica como escolher uma task `Pendente`
+com dependências `Concluída` em `docs/backlog/README.md` e ler o épico inteiro
+(objetivo/escopo/critérios/**fora de escopo**) antes de codar, resume as regras de
+`docs/conventions.md` que mais pegam quem chega de fora (renderer nunca importa
+`node:*`/`electron`, só tokens semânticos de cor, YAML é contrato público, docs em
+PT-BR e código/commits/PRs em inglês) e fecha com a Definition of Done. Templates novos
+em `.github/`: `ISSUE_TEMPLATE/bug_report.md`, `ISSUE_TEMPLATE/feature_request.md` e
+`PULL_REQUEST_TEMPLATE.md` — este último abre com `Refs <!-- EP-XX-TYY -->` antes de
+qualquer outro campo, e repete o checklist da Definition of Done com espaço para colar
+os critérios de aceite da task. `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1) e
+`LICENSE` (MIT, copyright `wesleyara` — o autor em `package.json`) na raiz.
+
+Com isso **EP-10 está concluído**, com uma única pendência explícita e fora do alcance
+de qualquer agente neste ambiente: a proteção de branch do GitHub (EP-10-T03) precisa
+ser aplicada manualmente pelo dono do repositório, passos documentados em
+[EP-10](docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci).
+
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → próximo épico do
+MVP é **EP-11** (Empacotamento e distribuição), ainda `Pendente`.
 
 ---
 
