@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
+import WContextMenu, { type ContextMenuItem } from "./WContextMenu.vue";
 import WIcon from "./WIcon.vue";
 import WMethodBadge from "./WMethodBadge.vue";
 
@@ -11,6 +12,23 @@ const DRAG_START_THRESHOLD_PX = 4;
 
 let dragCandidate: { id: string; startX: number } | null = null;
 const draggingId = ref<string | null>(null);
+
+const tabContextMenu = ref<{ id: string; x: number; y: number } | null>(null);
+
+function onContextMenu(id: string, event: MouseEvent): void {
+  event.preventDefault();
+  tabContextMenu.value = { id, x: event.clientX, y: event.clientY };
+}
+
+const tabContextMenuItems = computed<ContextMenuItem[]>(() => {
+  const target = tabContextMenu.value;
+  if (!target) return [];
+  return [
+    { label: "Close", icon: "x", action: () => tabs.requestClose(target.id) },
+    { label: "Close others", icon: "x", action: () => tabs.closeOthers(target.id) },
+    { label: "Close all", icon: "x", action: () => tabs.closeAll() },
+  ];
+});
 
 function onPointerDown(id: string, event: PointerEvent): void {
   if (event.button !== 0) return;
@@ -63,7 +81,7 @@ function onDoubleClick(id: string): void {
       data-request-tab
       role="tab"
       :aria-selected="tab.id === tabs.activeId"
-      class="flex shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-subtle px-3 font-inter text-xs"
+      class="flex w-44 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-subtle px-3 font-inter text-xs"
       :class="[
         tab.id === tabs.activeId ? 'bg-surface-3 text-1' : 'text-muted hover:bg-surface-3/50',
         draggingId === tab.id
@@ -73,6 +91,7 @@ function onDoubleClick(id: string): void {
       @click="tabs.activate(tab.id)"
       @dblclick="onDoubleClick(tab.id)"
       @pointerdown="onPointerDown(tab.id, $event)"
+      @contextmenu="onContextMenu(tab.id, $event)"
     >
       <span v-if="tab.dirty" class="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
       <WMethodBadge
@@ -81,7 +100,7 @@ function onDoubleClick(id: string): void {
         class="w-8 shrink-0 text-[10px]"
       />
       <WIcon v-else name="folder" size="3.5" class="shrink-0 text-faint" />
-      <span class="max-w-40 truncate" :class="{ italic: !tab.pinned }">{{ tab.title }}</span>
+      <span class="min-w-0 flex-1 truncate" :class="{ italic: !tab.pinned }">{{ tab.title }}</span>
       <button
         type="button"
         aria-label="Close tab"
@@ -92,4 +111,11 @@ function onDoubleClick(id: string): void {
       </button>
     </div>
   </div>
+  <WContextMenu
+    :open="tabContextMenu !== null"
+    :x="tabContextMenu?.x ?? 0"
+    :y="tabContextMenu?.y ?? 0"
+    :items="tabContextMenuItems"
+    @close="tabContextMenu = null"
+  />
 </template>

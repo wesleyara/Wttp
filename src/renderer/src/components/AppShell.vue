@@ -5,6 +5,7 @@ import CommandPalette from "@renderer/components/CommandPalette.vue";
 import EnvironmentEditorModal from "@renderer/components/EnvironmentEditorModal.vue";
 import FolderConfigTabs from "@renderer/components/FolderConfigTabs.vue";
 import ImportModal from "@renderer/components/ImportModal.vue";
+import MoveCopyModal from "@renderer/components/MoveCopyModal.vue";
 import PreferencesModal from "@renderer/components/PreferencesModal.vue";
 import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
@@ -111,6 +112,8 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
   items.push(
     { label: "Rename", icon: "pencil", action: () => tree.startRename(node.path) },
     { label: "Duplicate", icon: "copy", action: () => void tree.duplicate(node.path) },
+    { label: "Move to…", icon: "folder-input", action: () => tree.openMoveCopy(node, "move") },
+    { label: "Copy to…", icon: "copy-plus", action: () => tree.openMoveCopy(node, "copy") },
     {
       label: "Reveal in file explorer",
       icon: "folder-open",
@@ -203,16 +206,19 @@ onUnmounted(() => {
                 :nodes="workspace.tree.children"
                 :expanded-paths="tree.expandedPaths"
                 :selected-path="tree.selectedPath"
+                :selected-paths="tree.selectedPaths"
                 :filter-text="tree.filterText"
                 :editing-path="tree.editingPath"
                 @update:expanded-paths="tree.setExpandedPaths"
                 @update:selected-path="tree.selectedPath = $event"
+                @update:selected-paths="tree.selectedPaths = $event"
                 @activate="onActivate"
                 @contextmenu="tree.openContextMenu"
                 @rename="tree.confirmRename"
                 @cancel-rename="tree.cancelRename"
                 @shortcut="tree.onShortcut"
                 @move="tree.moveInto"
+                @move-many="tree.moveManyInto"
               />
             </div>
           </aside>
@@ -279,6 +285,8 @@ onUnmounted(() => {
     <PreferencesModal :open="preferencesOpen" @close="preferencesOpen = false" />
 
     <ImportModal :open="importModalOpen" @close="onCloseImportModal" />
+
+    <MoveCopyModal />
 
     <WToast />
 

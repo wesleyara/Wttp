@@ -28,6 +28,27 @@ function parentDirOf(path: string): string {
   return index === -1 ? "" : path.slice(0, index);
 }
 
+/** Pasta na raiz do workspace (sem `/` no path) — rótulo "Collection" na UI (mesma convenção de `useRequestTabsStore.isCollectionPath`). */
+function isCollectionPath(path: string): boolean {
+  return path !== "" && !path.includes("/");
+}
+
+/**
+ * Destino válido para mover/copiar `node` para `targetPath` (EP-09.1-T04): nem ele
+ * mesmo, nem um dos seus próprios descendentes (só relevante para pastas), e uma
+ * collection nunca entra em outra pasta — só requests e subpastas podem mudar de lugar.
+ */
+export function isValidMoveCopyDestination(node: WorkspaceNode, targetPath: string): boolean {
+  if (node.path === targetPath) return false;
+  if (node.kind === "folder" && isDescendantOrSelf(node.path, targetPath)) return false;
+  if (node.kind === "folder" && isCollectionPath(node.path)) return false;
+  return true;
+}
+
+function isDescendantOrSelf(ancestorPath: string, path: string): boolean {
+  return path === ancestorPath || path.startsWith(`${ancestorPath}/`);
+}
+
 export interface ContextMenuTarget {
   node: WorkspaceNode;
   x: number;
@@ -51,10 +72,14 @@ export const useTreeStore = defineStore("tree", () => {
   const toast = useToastStore();
 
   const selectedPath = ref<string | null>(null);
+  /** Seleção múltipla via Ctrl/Cmd+click (EP-09.1-T03) — `selectedPath` continua sendo o item "ativo" dentro dela, para compatibilidade com quem só lê seleção única. Vazio fora de uma seleção múltipla. */
+  const selectedPaths = ref<Set<string>>(new Set());
   const filterText = ref("");
   const editingPath = ref<string | null>(null);
   const contextMenuTarget = ref<ContextMenuTarget | null>(null);
   const deleteTarget = ref<DeleteTarget | null>(null);
+  /** "Mover para..."/"Copiar para..." pendente (EP-09.1-T04) — `null` fora do seletor de destino. */
+  const moveCopyTarget = ref<{ paths: string[]; mode: "move" | "copy" } | null>(null);
 
   const expandedPaths = computed<Set<string>>(() => new Set(workspace.uiState.expandedPaths));
 
@@ -155,6 +180,11 @@ export const useTreeStore = defineStore("tree", () => {
     selectedPath.value = node.path;
   }
 
+  /** Nó da árvore atual num `path` — usado pelo seletor de destino para validar cada item de `moveCopyTarget.paths`. */
+  function nodeAt(path: string): WorkspaceNode | null {
+    return workspace.tree ? findNode(workspace.tree.children, path) : null;
+  }
+
   function openContextMenu(node: WorkspaceNode, event: MouseEvent): void {
     selectedPath.value = node.path;
     contextMenuTarget.value = { node, x: event.clientX, y: event.clientY };
@@ -199,6 +229,74 @@ export const useTreeStore = defineStore("tree", () => {
     requestTabs.renamePath(from, node.path, node.name);
   }
 
+  /**
+   * Como `moveInto`, para uma seleção múltipla (EP-09.1-T03) — move um de cada vez,
+   * sempre para o fim de `targetDir`; um índice grande de propósito, clampeado pelo
+   * main (`storage/tree.ts`) ao tamanho real da pasta destino a cada chamada, então
+   * cada item entra depois do anterior.
+   */
+  async function moveManyInto(paths: string[], targetDir: string): Promise<void> {
+    if (!workspace.root) return;
+    for (const path of paths) {
+      const node = await window.wttp.node.moveInto({
+        root: workspace.root,
+        from: path,
+        targetDir,
+        index: Number.MAX_SAFE_INTEGER,
+      });
+      requestTabs.renamePath(path, node.path, node.name);
+    }
+    selectedPaths.value = new Set();
+    await workspace.refreshTree();
+  }
+
+  /** Abre o seletor de destino (EP-09.1-T04) — aplica a toda a seleção múltipla se `node` fizer parte dela, senão só a `node`. */
+  function openMoveCopy(node: WorkspaceNode, mode: "move" | "copy"): void {
+    const paths =
+      selectedPaths.value.has(node.path) && selectedPaths.value.size > 1
+        ? [...selectedPaths.value]
+        : [node.path];
+    moveCopyTarget.value = { paths, mode };
+  }
+
+  function closeMoveCopy(): void {
+    moveCopyTarget.value = null;
+  }
+
+  /** Confirma "Mover para..."/"Copiar para..." com o destino escolhido no seletor. */
+  async function confirmMoveCopyTo(targetPath: string): Promise<void> {
+    if (!workspace.root || !moveCopyTarget.value) return;
+    const { paths, mode } = moveCopyTarget.value;
+    moveCopyTarget.value = null;
+
+    if (mode === "move") {
+      if (paths.length > 1) {
+        await moveManyInto(paths, targetPath);
+      } else {
+        const node = await window.wttp.node.moveInto({
+          root: workspace.root,
+          from: paths[0],
+          targetDir: targetPath,
+          index: Number.MAX_SAFE_INTEGER,
+        });
+        requestTabs.renamePath(paths[0], node.path, node.name);
+        await workspace.refreshTree();
+      }
+    } else {
+      for (const path of paths) {
+        await window.wttp.node.copyInto({
+          root: workspace.root,
+          from: path,
+          targetDir: targetPath,
+        });
+      }
+      await workspace.refreshTree();
+    }
+
+    selectedPaths.value = new Set();
+    toast.push(mode === "move" ? "Moved" : "Copied", "success");
+  }
+
   async function reveal(path: string): Promise<void> {
     if (!workspace.root) return;
     await window.wttp.node.reveal({ root: workspace.root, path });
@@ -216,20 +314,24 @@ export const useTreeStore = defineStore("tree", () => {
     () => workspace.root,
     () => {
       selectedPath.value = null;
+      selectedPaths.value = new Set();
       filterText.value = "";
       editingPath.value = null;
       contextMenuTarget.value = null;
       deleteTarget.value = null;
+      moveCopyTarget.value = null;
     },
   );
 
   return {
     selectedPath,
+    selectedPaths,
     filterText,
     editingPath,
     expandedPaths,
     contextMenuTarget,
     deleteTarget,
+    moveCopyTarget,
     setExpandedPaths,
     toggleExpanded,
     createRequest,
@@ -245,6 +347,11 @@ export const useTreeStore = defineStore("tree", () => {
     cancelDelete,
     confirmDelete,
     moveInto,
+    moveManyInto,
+    nodeAt,
+    openMoveCopy,
+    closeMoveCopy,
+    confirmMoveCopyTo,
     reveal,
     onShortcut,
   };

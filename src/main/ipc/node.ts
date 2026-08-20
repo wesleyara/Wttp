@@ -3,6 +3,7 @@ import { shell } from "electron";
 import { deleteHistoryFile, renameHistoryFile } from "../storage/history";
 import { resolveWorkspacePath } from "../storage/paths";
 import {
+  copyNodeInto,
   createNode,
   deleteNode,
   duplicateNode,
@@ -40,6 +41,9 @@ export function registerNodeHandlers(): void {
   registerHandler("node:duplicate", payload => duplicateNode(payload.root, payload.path));
   registerHandler("node:moveInto", payload =>
     moveNodeInto(payload.root, payload.from, payload.targetDir, payload.index),
+  );
+  registerHandler("node:copyInto", payload =>
+    copyNodeInto(payload.root, payload.from, payload.targetDir),
   );
 
   registerHandler("node:reveal", payload => {

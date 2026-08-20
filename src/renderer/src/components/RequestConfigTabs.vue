@@ -370,7 +370,7 @@ useAutoContentType(body, headers);
         description="This request has no body."
       />
 
-      <div v-else-if="bodyType === 'json'" class="h-48">
+      <div v-else-if="bodyType === 'json'" class="min-h-48">
         <WCodeEditor
           v-model="jsonContent"
           language="json"
@@ -378,16 +378,20 @@ useAutoContentType(body, headers);
           :unresolved-variables="bodyUnresolved"
           :variable-tooltips="bodyTooltips"
           :variable-names="variableNames"
+          auto-grow
+          max-height="24rem"
         />
       </div>
 
-      <div v-else-if="bodyType === 'raw'" class="h-48">
+      <div v-else-if="bodyType === 'raw'" class="min-h-48">
         <WCodeEditor
           v-model="rawContent"
           language="text"
           :unresolved-variables="bodyUnresolved"
           :variable-tooltips="bodyTooltips"
           :variable-names="variableNames"
+          auto-grow
+          max-height="24rem"
         />
       </div>
 
@@ -501,7 +505,7 @@ useAutoContentType(body, headers);
       </div>
     </div>
 
-    <div v-else-if="activeTab === 'docs'" class="h-40 pt-2">
+    <div v-else-if="activeTab === 'docs'" class="min-h-40 pt-2">
       <WCodeEditor
         v-model="docs"
         language="text"
@@ -509,6 +513,8 @@ useAutoContentType(body, headers);
         :unresolved-variables="docsUnresolved"
         :variable-tooltips="docsTooltips"
         :variable-names="variableNames"
+        auto-grow
+        max-height="24rem"
       />
     </div>
   </div>
