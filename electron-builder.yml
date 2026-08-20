@@ -52,7 +52,10 @@ mac:
   extendInfo:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: false
+  # No `notarize: false` here on purpose — electron-builder auto-notarizes only when
+  # APPLE_ID/APPLE_APP_SPECIFIC_PASSWORD/APPLE_TEAM_ID are present in the environment
+  # (docs/release.md), and silently skips it otherwise. Forcing it off would also
+  # disable it in CI once the secrets are configured.
 dmg:
   artifactName: ${name}-${version}-${arch}.${ext}
 linux:

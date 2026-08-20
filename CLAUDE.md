@@ -292,6 +292,7 @@ yarn build:linux     # instalador (também :win, :mac)
 | [docs/file-format.md](docs/file-format.md)       | especificação do YAML em disco                   |
 | [docs/design-system.md](docs/design-system.md)   | paleta, tokens, tipografia, componentes base     |
 | [docs/conventions.md](docs/conventions.md)       | código, estado, lint, testes, git                |
+| [docs/release.md](docs/release.md)               | assinatura, notarização e processo de release    |
 | [docs/backlog/README.md](docs/backlog/README.md) | épicos e tasks                                   |
 
 ## Skills
