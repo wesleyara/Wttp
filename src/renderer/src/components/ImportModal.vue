@@ -65,6 +65,7 @@ const title = computed(() => {
 
         <WCodeEditor
           :model-value="store.content"
+          data-testid="import-content-editor"
           language="text"
           class="h-56"
           @update:model-value="store.setContent"

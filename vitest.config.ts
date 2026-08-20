@@ -1,6 +1,6 @@
 import vue from "@vitejs/plugin-vue";
 import { resolve } from "path";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 // Sem isso, `vitest` (rodado fora do `electron-vite`) não resolve `@renderer`/`@shared`
 // — os mesmos aliases já existem em `electron.vite.config.ts` para o app de verdade;
@@ -21,6 +21,11 @@ export default defineConfig({
     },
   },
   test: {
+    // EP-10-T02: `e2e/**` são specs do Playwright (`@playwright/test`), rodados por
+    // `yarn test:e2e`/`playwright test`, nunca pelo Vitest — sem isso, o padrão de
+    // include do Vitest (`**/*.spec.ts`) tentaria carregá-los e quebraria em `import
+    // "@playwright/test"`, que não existe no runtime do Vitest.
+    exclude: [...configDefaults.exclude, "e2e/**"],
     // EP-10-T01: cobertura obrigatória só nas três camadas puras e testáveis sem
     // Electron (docs/conventions.md §Testes). O resto do main (ipc/, config/,
     // scripts/, secrets/) e o renderer inteiro ficam fora — não é escopo desta task.

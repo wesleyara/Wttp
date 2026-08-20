@@ -169,8 +169,34 @@ sem rede externa (nenhum `import "electron"` nem hostname real fora de
 testes, bem abaixo do limite de 30s do critério de aceite. Ligar isso a um pipeline de
 CI de verdade é EP-10-T03, ainda não feito.
 
+**EP-10-T02** (Testes end-to-end) também está pronto: Playwright com o driver de
+Electron (`_electron`), guiando o Chromium já empacotado dentro do próprio `out/main/
+index.js` (build de produção, `playwright.config.ts` na raiz) — não um Chromium baixado
+à parte, então `playwright install` nunca foi necessário. `e2e/fixtures.ts` isola cada
+teste num `userDataDir`/workspace próprios (`node:fs.mkdtempSync`) e remove
+`ELECTRON_RUN_AS_NODE` do `env` do processo lançado — só um problema deste sandbox de
+dev (herdado do próprio Claude Code, que também é Electron), sem relação com o app;
+`--headless=new`/`--disable-gpu` entram só nesse `args` de teste, nunca em `src/main/
+index.ts`. Os quatro fluxos do escopo (criar → enviar → salvar → fechar → reabrir;
+trocar environment e reenviar; importar Postman; request com script de teste) vivem em
+`e2e/*.spec.ts`, com seis `data-testid` novos nos `WCodeEditor` que não têm `role`/
+`placeholder` suficiente para um seletor estável (URL bar, corpo JSON, os dois editores
+de script, corpo da resposta, conteúdo colado no import) — o resto usa `role`/texto real
+da UI. Dois achados ao rodar de verdade, sem relação com a task em si: `openTab`
+(`stores/requestTabs.ts`) tem uma corrida real entre clique e duplo clique na mesma
+linha da árvore, capaz de abrir duas abas para a mesma request — os testes evitam duplo
+clique nas linhas e o achado fica registrado aqui, não corrigido; e `WCodeEditor` só
+emite `update:modelValue` 300ms depois da última tecla (`debounceMs`), então os helpers
+de teste esperam esse prazo antes de agir em cima do valor digitado.
+`vitest.config.ts` ganhou `exclude: [...configDefaults.exclude, "e2e/**"]` para o
+Vitest nunca tentar carregar os specs do Playwright. Os quatro fluxos passaram 10/10
+execuções seguidas neste sandbox Linux (~11s cada) e a checagem de screenshot+trace em
+falha foi confirmada quebrando uma asserção de propósito; **macOS e Windows não foram
+verificados** (sandbox só tem Linux) — fica para a matriz de CI de EP-10-T03, mesma
+pendência de verificação já registrada nos épicos com verificação visual adiada acima.
+
 Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → dentro de EP-10,
-faltam T02 (E2E), T03 (pipeline de CI) e T04 (onboarding).
+faltam T03 (pipeline de CI) e T04 (onboarding).
 
 ---
 
