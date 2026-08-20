@@ -22,7 +22,7 @@ Para executar uma task, use a skill `wttp-task`.
 | [EP-08.1](EP-08.1-sessao-historico-docs.md) | Sessão, histórico, documentação e preferências (não planejado) | Em andamento                            |
 | [EP-09](EP-09-scripts.md)                   | Scripts e testes                                               | Concluída (verificação visual pendente) |
 | [EP-09.1](EP-09.1-produtividade-e-jwt.md)   | Produtividade de tabs/sidebar e ferramenta JWT (não planejado) | Concluída (verificação visual pendente) |
-| [EP-10](EP-10-qualidade-ci.md)              | Qualidade e CI                                                 | Pendente                                |
+| [EP-10](EP-10-qualidade-ci.md)              | Qualidade e CI                                                 | Em andamento                            |
 | [EP-11](EP-11-distribuicao.md)              | Empacotamento e distribuição                                   | Pendente                                |
 
 ## Pós-MVP

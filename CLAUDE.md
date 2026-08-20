@@ -147,8 +147,30 @@ coberto por teste em `tree.spec.ts` (request solto, colisão de nome, pasta com 
 guarda contra copiar para dentro de si mesma). Mesma pendência de verificação visual
 das notas acima.
 
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → próximo épico do
-MVP é **EP-10** (Qualidade e CI), ainda `Pendente`.
+**EP-10-T01** (Suíte de testes do núcleo, dentro de EP-10 — Qualidade e CI) está pronto;
+as outras três tasks do épico (E2E, pipeline de CI, onboarding) seguem `Pendente`. A
+cobertura de `main/http`, `main/storage` e `main/importers` já era substancial antes
+desta task — engine HTTP contra um `http.createServer` local cobrindo todos os tipos de
+body/redirects/timeout/cancelamento/erro de rede/timing, round-trip byte a byte dos
+quatro tipos de arquivo, escrita atômica testada (falha no meio preserva o original,
+edição externa concorrente é detectada) e fixture real + snapshot para Postman/
+Insomnia/OpenAPI. O que faltava: cURL era o único importador sem fixture real (agora
+`src/main/importers/__fixtures__/github-get-repo.curl.txt`, copiado da documentação da
+GitHub, com teste de snapshot em `curl.integration.spec.ts`), `activeWorkspace.ts`
+estava em 0% de cobertura (`src/main/storage/activeWorkspace.spec.ts` novo), e o laço de
+encadeamento de migradores em `migrations/registry.ts` nunca era exercitado (caso novo
+em `registry.spec.ts`). `@vitest/coverage-v8` entrou como dependência de
+desenvolvimento e `vitest.config.ts` ganhou `test.coverage` (`provider: "v8"`, limitado
+a essas três pastas) com limiares de 85% linhas/statements e 80% funções/branches —
+`yarn test:coverage` falha o processo se cair abaixo, confirmado empiricamente; a
+cobertura real após o gap-filling ficou em ~92-96%. A suíte inteira roda sem Electron e
+sem rede externa (nenhum `import "electron"` nem hostname real fora de
+`127.0.0.1`/`localhost` nos specs dessas três pastas) e completa em ~3.6s para 486
+testes, bem abaixo do limite de 30s do critério de aceite. Ligar isso a um pipeline de
+CI de verdade é EP-10-T03, ainda não feito.
+
+Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → dentro de EP-10,
+faltam T02 (E2E), T03 (pipeline de CI) e T04 (onboarding).
 
 ---
 

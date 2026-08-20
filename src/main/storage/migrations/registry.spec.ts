@@ -38,4 +38,20 @@ describe("migrateToCurrent", () => {
       expect((error as DomainError).message).toContain("versão 99");
     }
   });
+
+  it("versão menor sem migrador registrado no caminho recusa em vez de adivinhar", () => {
+    // MIGRATIONS está vazio hoje (só existe a versão 1) — uma versão abaixo da atual
+    // não tem, por definição, um migrador cadastrado para o salto. Simula esse caso
+    // com uma "versão 0" hipotética para exercitar o laço de encadeamento em vez de só
+    // o guard inicial (`fromVersion > CURRENT_SCHEMA_VERSION`).
+    expect(() => migrateToCurrent({}, 0)).toThrow(DomainError);
+    try {
+      migrateToCurrent({}, 0);
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toBeInstanceOf(DomainError);
+      expect((error as DomainError).code).toBe("SCHEMA_VERSION_UNSUPPORTED");
+      expect((error as DomainError).message).toContain("nenhum migrador registrado");
+    }
+  });
 });
