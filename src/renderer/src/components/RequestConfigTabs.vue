@@ -194,6 +194,26 @@ const pathParamRows = useKeyValueRows(pathParams);
 const queryRows = useKeyValueRows(query);
 const headerRows = useKeyValueRows(headers);
 
+// Espelha `AUTO_GENERATED_HEADERS` de `src/main/http/engine.ts` — só para exibição
+// (igual ao Postman: "N hidden auto-generated headers"). A engine é a única fonte da
+// verdade de que eles são de fato enviados; um header configurado com o mesmo nome
+// (mesma regra ali: case-insensitive) some da lista, porque o dele é que vai na rede.
+const AUTO_GENERATED_HEADERS: readonly { name: string; value: string }[] = [
+  { name: "User-Agent", value: "Wttp" },
+  { name: "Accept", value: "*/*" },
+];
+
+const showAutoHeaders = ref(false);
+
+const visibleAutoHeaders = computed(() =>
+  AUTO_GENERATED_HEADERS.filter(
+    auto =>
+      !headerRows.value.some(
+        row => row.enabled && row.name.toLowerCase() === auto.name.toLowerCase(),
+      ),
+  ),
+);
+
 // --- Body: seletor de tipo, preservando o conteúdo dos outros ao trocar -----------
 
 const BODY_TYPE_OPTIONS = [
@@ -345,6 +365,33 @@ useAutoContentType(body, headers);
         :variable-tooltips="headersTooltips"
         :variable-names="variableNames"
       />
+      <div v-if="visibleAutoHeaders.length > 0" class="border-t border-subtle">
+        <button
+          type="button"
+          class="flex h-8 w-full items-center gap-1.5 px-2 font-inter text-xs font-medium text-faint hover:text-1"
+          @click="showAutoHeaders = !showAutoHeaders"
+        >
+          <WIcon :name="showAutoHeaders ? 'chevron-down' : 'chevron-right'" />
+          {{ showAutoHeaders ? "Hide" : "Show" }} {{ visibleAutoHeaders.length }} auto-generated
+          header{{ visibleAutoHeaders.length === 1 ? "" : "s" }}
+        </button>
+        <div v-if="showAutoHeaders">
+          <div
+            v-for="row in visibleAutoHeaders"
+            :key="row.name"
+            class="flex h-8 items-center gap-2 border-b border-subtle px-2 last:border-b-0"
+          >
+            <span class="size-3.5 shrink-0" />
+            <span class="w-1/4 shrink-0 truncate font-mono text-[13px] font-medium text-faint">{{
+              row.name
+            }}</span>
+            <span class="w-1/4 shrink-0 truncate font-mono text-[13px] font-medium text-faint">{{
+              row.value
+            }}</span>
+            <span class="flex-1" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-else-if="activeTab === 'body'" class="flex flex-col gap-2 pt-2">

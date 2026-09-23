@@ -29,6 +29,17 @@ export function parseQueryFromUrl(url: string): KeyValueEntry[] {
   }));
 }
 
+/**
+ * Reconcilia a tabela a partir da URL: linhas habilitadas vêm da query string (fonte da
+ * verdade), linhas desabilitadas nunca aparecem lá — por isso são preservadas à parte,
+ * nunca descartadas só porque a URL mudou (troca de aba incluída).
+ */
+export function reconcileQueryParams(url: string, existing: KeyValueEntry[]): KeyValueEntry[] {
+  const parsed = parseQueryFromUrl(url);
+  const disabled = existing.filter(entry => !entry.enabled);
+  return [...parsed, ...disabled];
+}
+
 /** Canonicaliza para comparação — `description` some do YAML quando vazio (docs/file-format.md), mas `parseQueryFromUrl` sempre inclui `""`; sem isso a mesma query lida do disco e reparseada da URL comparam como diferentes. */
 export function normalizeEntries(entries: KeyValueEntry[]): KeyValueEntry[] {
   return entries.map(entry => ({

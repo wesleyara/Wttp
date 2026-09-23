@@ -256,6 +256,36 @@ describe("sendHttpRequest — body types", () => {
   });
 });
 
+describe("sendHttpRequest — default headers", () => {
+  it("sends a User-Agent and Accept by default, unlike Node's raw http.request", async () => {
+    const result = await sendHttpRequest(baseSpec({ url: `${baseUrl}/echo` }));
+    const echoed = await echoJson(result);
+    expect(echoed.headers["user-agent"]).toBeTruthy();
+    expect(echoed.headers["accept"]).toBe("*/*");
+  });
+
+  it("never sends Accept-Encoding — the engine doesn't decompress responses", async () => {
+    const result = await sendHttpRequest(baseSpec({ url: `${baseUrl}/echo` }));
+    const echoed = await echoJson(result);
+    expect(echoed.headers["accept-encoding"]).toBeUndefined();
+  });
+
+  it("lets a manually configured User-Agent/Accept win over the default", async () => {
+    const result = await sendHttpRequest(
+      baseSpec({
+        url: `${baseUrl}/echo`,
+        headers: [
+          { name: "User-Agent", value: "custom-agent/1.0", enabled: true },
+          { name: "Accept", value: "application/json", enabled: true },
+        ],
+      }),
+    );
+    const echoed = await echoJson(result);
+    expect(echoed.headers["user-agent"]).toBe("custom-agent/1.0");
+    expect(echoed.headers["accept"]).toBe("application/json");
+  });
+});
+
 describe("sendHttpRequest — query and headers", () => {
   it("appends only enabled query entries, url-encoded", async () => {
     const result = await sendHttpRequest(
@@ -271,6 +301,22 @@ describe("sendHttpRequest — query and headers", () => {
     const receivedUrl = new URL(echoed.url, baseUrl);
     expect(receivedUrl.searchParams.get("q")).toBe("a b&c");
     expect(receivedUrl.searchParams.has("off")).toBe(false);
+  });
+
+  it("does not duplicate a query param already present in the url string", async () => {
+    const result = await sendHttpRequest(
+      baseSpec({
+        url: `${baseUrl}/echo?page=1&page_size=100`,
+        query: [
+          { name: "page", value: "1", enabled: true },
+          { name: "page_size", value: "100", enabled: true },
+        ],
+      }),
+    );
+    const echoed = await echoJson(result);
+    const receivedUrl = new URL(echoed.url, baseUrl);
+    expect(receivedUrl.searchParams.getAll("page")).toEqual(["1"]);
+    expect(receivedUrl.searchParams.getAll("page_size")).toEqual(["100"]);
   });
 });
 

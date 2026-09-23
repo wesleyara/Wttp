@@ -2,7 +2,11 @@ import type { KeyValueEntry } from "@shared";
 import type { Ref } from "vue";
 
 import { parsePathParamNames, reconcilePathParams } from "@renderer/lib/url-path-params-sync";
-import { normalizeEntries, parseQueryFromUrl, rewriteUrlQuery } from "@renderer/lib/url-query-sync";
+import {
+  normalizeEntries,
+  reconcileQueryParams,
+  rewriteUrlQuery,
+} from "@renderer/lib/url-query-sync";
 import { watch } from "vue";
 
 /**
@@ -25,7 +29,7 @@ export function useUrlQuerySync(
     next => {
       if (syncingFromQuery) return;
       syncingFromUrl = true;
-      const parsed = parseQueryFromUrl(next);
+      const parsed = reconcileQueryParams(next, query.value);
       if (
         JSON.stringify(normalizeEntries(parsed)) !== JSON.stringify(normalizeEntries(query.value))
       )
