@@ -342,10 +342,22 @@ const singleLineTheme = EditorView.theme({
   ".cm-line": { padding: 0 },
 });
 
+/**
+ * Como `singleLineTheme`, mas cresce em altura em vez de recortar quando o texto (uma
+ * única linha lógica, `singleLineGuard` continua valendo) é mais largo que a coluna —
+ * combinação `single-line` + `line-wrap` usada por `WKeyValueTable` (EP-08.1-T05) para o
+ * valor/descrição de uma linha ficarem legíveis inteiros sem exigir hover/scroll.
+ */
+const singleLineWrapTheme = EditorView.theme({
+  "&": { minHeight: "2rem" },
+  ".cm-content": { padding: "7px 0" },
+  ".cm-line": { padding: 0 },
+});
+
 /** `Enter` nunca quebra linha; qualquer mudança que resultasse em mais de uma linha (colar texto multilinha, por exemplo) é descartada. */
 const singleLineGuard = EditorState.transactionFilter.of(tr => (tr.newDoc.lines > 1 ? [] : tr));
 
-function singleLineExtensions(): Extension[] {
+function singleLineExtensions(wrap: boolean): Extension[] {
   return [
     minimalSetup,
     keymap.of(completionKeymap),
@@ -364,7 +376,7 @@ function singleLineExtensions(): Extension[] {
       ]),
     ),
     singleLineGuard,
-    singleLineTheme,
+    wrap ? [EditorView.lineWrapping, singleLineWrapTheme] : singleLineTheme,
   ];
 }
 
@@ -402,7 +414,7 @@ onMounted(() => {
   const state = EditorState.create({
     doc: props.modelValue,
     extensions: [
-      props.singleLine ? singleLineExtensions() : basicSetup,
+      props.singleLine ? singleLineExtensions(props.lineWrap) : basicSetup,
       languageCompartment.of(languageExtension(props.language)),
       readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
       placeholderCompartment.of(props.placeholder ? placeholderExtension(props.placeholder) : []),
