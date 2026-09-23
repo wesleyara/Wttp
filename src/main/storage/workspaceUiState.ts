@@ -1,5 +1,5 @@
 /**
- * Estado de UI por workspace — docs/file-format.md §1: `.wttp/ui-state.json`,
+ * Estado de UI por workspace — arch-docs/file-format.md §1: `.wttp/ui-state.json`,
  * gitignored. Guarda o que é específico de *como* o usuário está navegando este
  * workspace nesta máquina (pastas expandidas na árvore, EP-05-T02; abas de request
  * abertas, EP-05-T05) — não confundir com `config/` (`ui-state.json` global do app,

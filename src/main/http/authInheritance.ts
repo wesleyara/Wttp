@@ -1,5 +1,5 @@
 /**
- * Herança de `auth` (EP-07-T01) — docs/file-format.md §4.
+ * Herança de `auth` (EP-07-T01) — arch-docs/file-format.md §4.
  *
  * Módulo puro, sem `node:*`/`electron`: recebe a cadeia já montada por quem chama (a
  * request e a sequência de pastas até a raiz da collection, pasta mais próxima

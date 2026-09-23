@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useToastStore } from "@renderer/stores/toast";
 import { computed, reactive } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WCodeEditor from "./WCodeEditor.vue";
 import WIcon from "./WIcon.vue";
@@ -13,6 +14,8 @@ export interface KeyValueRow {
   /** Só relevante com `withSecret` (EP-06-T03) — valor mascarado, nunca copiado ao duplicar. */
   secret?: boolean;
 }
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -93,7 +96,11 @@ function removeRow(index: number): void {
   const removed = props.modelValue[index];
   const next = props.modelValue.filter((_, i) => i !== index);
   emit("update:modelValue", next);
-  toast.push(removed.name ? `"${removed.name}" removed` : "Row removed", "info", 2000);
+  toast.push(
+    removed.name ? t("kv.removedNamed", { name: removed.name }) : t("kv.removedRow"),
+    "info",
+    2000,
+  );
 }
 
 /**
@@ -129,10 +136,10 @@ function onPasteName(event: ClipboardEvent): void {
       class="flex h-7 items-center gap-2 border-b border-subtle px-2 font-inter text-xs font-medium text-faint"
     >
       <span class="w-5 shrink-0" />
-      <span class="w-40 shrink-0">Name</span>
-      <span class="min-w-0 flex-[2]">Value</span>
-      <span class="min-w-0 flex-1">Description</span>
-      <span v-if="withSecret" class="w-14 shrink-0">Secret</span>
+      <span class="w-40 shrink-0">{{ t("kv.name") }}</span>
+      <span class="min-w-0 flex-[2]">{{ t("kv.value") }}</span>
+      <span class="min-w-0 flex-1">{{ t("kv.description") }}</span>
+      <span v-if="withSecret" class="w-14 shrink-0">{{ t("kv.secret") }}</span>
       <span class="w-6 shrink-0" />
     </div>
     <div
@@ -145,7 +152,7 @@ function onPasteName(event: ClipboardEvent): void {
         type="checkbox"
         :checked="row.enabled"
         class="mt-[7px] size-3.5 shrink-0 accent-accent"
-        :aria-label="`Enable row ${index + 1}`"
+        :aria-label="t('kv.enableRow', { index: index + 1 })"
         @change="updateRow(index, { enabled: ($event.target as HTMLInputElement).checked })"
       />
       <span v-else class="mt-[7px] size-3.5 shrink-0" />
@@ -159,7 +166,7 @@ function onPasteName(event: ClipboardEvent): void {
         v-else
         :value="row.name"
         :title="row.name"
-        placeholder="Name"
+        :placeholder="t('kv.name')"
         class="mt-1 h-6 w-40 shrink-0 bg-transparent font-mono text-[13px] font-medium text-1 outline-none placeholder:text-faint"
         @input="updateRow(index, { name: ($event.target as HTMLInputElement).value })"
         @paste="onPasteName"
@@ -169,7 +176,7 @@ function onPasteName(event: ClipboardEvent): void {
           v-if="isMasked(index, row)"
           type="password"
           :value="row.value"
-          placeholder="Value"
+          :placeholder="t('kv.value')"
           class="mt-1 h-6 min-w-0 flex-1 bg-transparent font-mono text-[13px] font-medium text-1 outline-none placeholder:text-faint"
           @input="updateRow(index, { value: ($event.target as HTMLInputElement).value })"
         />
@@ -183,7 +190,7 @@ function onPasteName(event: ClipboardEvent): void {
           line-wrap
           bare
           :debounce-ms="0"
-          placeholder="Value"
+          :placeholder="t('kv.value')"
           :unresolved-variables="unresolvedVariables"
           :variable-tooltips="variableTooltips"
           :variable-names="variableNames"
@@ -193,7 +200,7 @@ function onPasteName(event: ClipboardEvent): void {
         <button
           v-if="withSecret && row.secret"
           type="button"
-          :aria-label="revealed.has(index) ? 'Hide value' : 'Reveal value'"
+          :aria-label="revealed.has(index) ? t('kv.hideValue') : t('kv.revealValue')"
           class="mt-[3px] flex size-5 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           @click="toggleReveal(index)"
         >
@@ -206,7 +213,7 @@ function onPasteName(event: ClipboardEvent): void {
         line-wrap
         bare
         :debounce-ms="0"
-        placeholder="Description"
+        :placeholder="t('kv.description')"
         class="min-w-0 flex-1 font-inter text-sm text-1"
         @update:model-value="value => updateRow(index, { description: value })"
       />
@@ -215,14 +222,14 @@ function onPasteName(event: ClipboardEvent): void {
           type="checkbox"
           :checked="Boolean(row.secret)"
           class="mt-[7px] size-3.5 shrink-0 accent-accent"
-          :aria-label="`Mark row ${index + 1} as secret`"
+          :aria-label="t('kv.markSecret', { index: index + 1 })"
           @change="updateRow(index, { secret: ($event.target as HTMLInputElement).checked })"
         />
       </span>
       <button
         v-if="allowRemove && index < modelValue.length"
         type="button"
-        aria-label="Remove row"
+        :aria-label="t('kv.removeRow')"
         class="mt-[3px] flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         @click="removeRow(index)"
       >

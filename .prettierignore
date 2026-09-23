@@ -4,3 +4,4 @@ yarn.lock
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+resources/docs-site

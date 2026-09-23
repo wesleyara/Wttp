@@ -8,6 +8,7 @@ import { fuzzySearch } from "@renderer/lib/fuzzyMatch";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, nextTick, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
   open: boolean;
@@ -17,6 +18,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+const { t } = useI18n();
 const workspace = useWorkspaceStore();
 const tabs = useRequestTabsStore();
 
@@ -90,12 +92,12 @@ function onKeydown(event: KeyboardEvent): void {
 </script>
 
 <template>
-  <WModal :open="open" title="Quick Open" @close="emit('close')">
+  <WModal :open="open" :title="t('command.title')" @close="emit('close')">
     <div class="flex flex-col gap-2" @keydown="onKeydown">
-      <WInput v-model="query" placeholder="Search requests by name, path or URL…" />
+      <WInput v-model="query" :placeholder="t('command.placeholder')" />
 
       <p v-if="query.trim() && results.length === 0" class="p-2 font-inter text-sm text-muted">
-        No matches.
+        {{ t("command.noMatches") }}
       </p>
 
       <ul v-else class="flex flex-col">

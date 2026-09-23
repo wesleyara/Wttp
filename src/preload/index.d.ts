@@ -2,6 +2,7 @@ import type { ElectronAPI } from "@electron-toolkit/preload";
 import type {
   AppendHistoryPayload,
   AppInfo,
+  AppOpenDocsPayload,
   AppOpenExternalPayload,
   AppSettings,
   CopyNodeIntoPayload,
@@ -67,6 +68,7 @@ interface WttpApi {
   app: {
     ping: () => Promise<AppInfo>;
     openExternal: (payload: AppOpenExternalPayload) => Promise<void>;
+    openDocs: (payload: AppOpenDocsPayload) => Promise<void>;
   };
   ui: {
     getState: () => Promise<UiState>;
@@ -133,6 +135,7 @@ interface WttpApi {
   };
   menu: {
     onAction: (callback: (action: MenuAction) => void) => () => void;
+    getDefaultAccelerators: () => Promise<Record<MenuAction, string>>;
   };
   import: {
     detect: (payload: DetectImportPayload) => Promise<ImportFormat | null>;

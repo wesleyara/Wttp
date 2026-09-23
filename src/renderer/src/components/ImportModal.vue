@@ -11,6 +11,7 @@ import WSelect from "@renderer/components/WSelect.vue";
 import { useImportStore } from "@renderer/stores/import";
 import { useSettingsStore } from "@renderer/stores/settings";
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 defineProps<{
   open: boolean;
@@ -20,6 +21,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+const { t } = useI18n();
 const store = useImportStore();
 const settings = useSettingsStore();
 
@@ -45,9 +47,9 @@ async function onCopyReport(): Promise<void> {
 }
 
 const title = computed(() => {
-  if (store.step === "preview") return "Import — preview";
-  if (store.step === "report") return "Import — report";
-  return "Import";
+  if (store.step === "preview") return t("importModal.titlePreview");
+  if (store.step === "report") return t("importModal.titleReport");
+  return t("importModal.title");
 });
 </script>
 
@@ -56,11 +58,13 @@ const title = computed(() => {
     <div class="flex min-h-[320px] flex-col gap-4">
       <template v-if="store.step === 'source'">
         <div class="flex items-center gap-2">
-          <WButton variant="secondary" @click="store.loadFromFile">Choose file…</WButton>
+          <WButton variant="secondary" @click="store.loadFromFile">
+            {{ t("importModal.chooseFile") }}
+          </WButton>
           <span v-if="store.sourcePath" class="truncate font-mono text-[11px] text-faint">
             {{ store.sourcePath }}
           </span>
-          <span v-else class="font-inter text-xs text-faint">or paste content below</span>
+          <span v-else class="font-inter text-xs text-faint">{{ t("importModal.orPaste") }}</span>
         </div>
 
         <WCodeEditor
@@ -72,30 +76,33 @@ const title = computed(() => {
         />
 
         <div v-if="store.content.trim()" class="flex items-center gap-2">
-          <span class="font-inter text-xs text-muted">Format</span>
+          <span class="font-inter text-xs text-muted">{{ t("importModal.format") }}</span>
           <WSelect
             :model-value="store.format ?? ''"
             :options="store.formatOptions"
             @update:model-value="value => store.setFormat(value as ImportFormat)"
           />
           <span v-if="!store.format" class="font-inter text-xs text-status-5xx">
-            Format not recognized — pick one manually.
+            {{ t("importModal.formatNotRecognized") }}
           </span>
         </div>
       </template>
 
       <template v-else-if="store.step === 'preview'">
         <div v-if="store.mode === 'newWorkspace'" class="flex flex-col gap-2">
-          <WInput v-model="store.workspaceName" placeholder="Workspace name" />
+          <WInput
+            v-model="store.workspaceName"
+            :placeholder="t('importModal.workspaceNamePlaceholder')"
+          />
           <p v-if="!settings.workspacesRootDir" class="font-inter text-xs text-status-5xx">
-            Set a workspaces root folder in Preferences before importing.
+            {{ t("importModal.setRootFolder") }}
           </p>
           <span v-else class="truncate font-mono text-[11px] text-faint">
             {{ destinationPath }}
           </span>
         </div>
         <p v-else class="font-inter text-xs text-muted">
-          Imports as a new collection at the root of the current workspace.
+          {{ t("importModal.intoWorkspace") }}
         </p>
 
         <div
@@ -109,9 +116,9 @@ const title = computed(() => {
           v-if="store.preview && store.preview.environments.length > 0"
           class="font-inter text-xs text-muted"
         >
-          Environments:
+          {{ t("importModal.environments") }}
           <span v-for="(env, index) in store.preview.environments" :key="env.name">
-            {{ env.name }} ({{ env.variableCount }} vars){{
+            {{ env.name }} ({{ t("importModal.variableCount", { count: env.variableCount }) }}){{
               index < store.preview.environments.length - 1 ? ", " : ""
             }}
           </span>
@@ -123,7 +130,7 @@ const title = computed(() => {
         >
           <p class="flex items-center gap-1.5 font-inter text-xs font-medium text-status-5xx">
             <WIcon name="triangle-alert" size="3.5" />
-            {{ store.preview.notConverted.length }} item(s) need manual attention after import
+            {{ t("importModal.needAttentionAfter", { count: store.preview.notConverted.length }) }}
           </p>
           <ul class="max-h-32 overflow-y-auto font-inter text-xs text-muted">
             <li v-for="(item, index) in store.preview.notConverted" :key="index" class="py-0.5">
@@ -137,15 +144,15 @@ const title = computed(() => {
         <div class="grid grid-cols-3 gap-2 font-inter text-sm text-1">
           <div class="rounded-md border border-subtle p-2 text-center">
             <p class="text-lg font-semibold">{{ store.report.createdFolders }}</p>
-            <p class="text-xs text-faint">Folders</p>
+            <p class="text-xs text-faint">{{ t("importModal.folders") }}</p>
           </div>
           <div class="rounded-md border border-subtle p-2 text-center">
             <p class="text-lg font-semibold">{{ store.report.createdRequests }}</p>
-            <p class="text-xs text-faint">Requests</p>
+            <p class="text-xs text-faint">{{ t("importModal.requests") }}</p>
           </div>
           <div class="rounded-md border border-subtle p-2 text-center">
             <p class="text-lg font-semibold">{{ store.report.createdEnvironments }}</p>
-            <p class="text-xs text-faint">Environments</p>
+            <p class="text-xs text-faint">{{ t("importModal.environmentsLabel") }}</p>
           </div>
         </div>
 
@@ -153,12 +160,12 @@ const title = computed(() => {
           v-if="store.report.notConverted.length === 0"
           class="font-inter text-sm text-status-2xx"
         >
-          Everything converted — nothing needs manual attention.
+          {{ t("importModal.allConverted") }}
         </div>
         <div v-else class="flex flex-col gap-1">
           <p class="flex items-center gap-1.5 font-inter text-xs font-medium text-status-5xx">
             <WIcon name="triangle-alert" size="3.5" />
-            {{ store.report.notConverted.length }} item(s) need manual attention
+            {{ t("importModal.needAttention", { count: store.report.notConverted.length }) }}
           </p>
           <ul
             class="max-h-56 overflow-y-auto rounded-md border border-subtle p-2 font-inter text-xs text-muted"
@@ -170,8 +177,12 @@ const title = computed(() => {
         </div>
 
         <div class="flex gap-2">
-          <WButton variant="ghost" size="sm" @click="onCopyReport">Copy report</WButton>
-          <WButton variant="ghost" size="sm" @click="store.saveReportToFile">Save report…</WButton>
+          <WButton variant="ghost" size="sm" @click="onCopyReport">
+            {{ t("importModal.copyReport") }}
+          </WButton>
+          <WButton variant="ghost" size="sm" @click="store.saveReportToFile">
+            {{ t("importModal.saveReport") }}
+          </WButton>
         </div>
       </template>
 
@@ -180,17 +191,19 @@ const title = computed(() => {
 
     <template #footer>
       <template v-if="store.step === 'source'">
-        <WButton variant="ghost" @click="emit('close')">Cancel</WButton>
+        <WButton variant="ghost" @click="emit('close')">{{ t("common.cancel") }}</WButton>
         <WButton
           variant="primary"
           :disabled="!store.canPreview || store.loading"
           @click="store.loadPreview"
         >
-          Next
+          {{ t("importModal.next") }}
         </WButton>
       </template>
       <template v-else-if="store.step === 'preview'">
-        <WButton variant="ghost" @click="store.step = 'source'">Back</WButton>
+        <WButton variant="ghost" @click="store.step = 'source'">
+          {{ t("importModal.back") }}
+        </WButton>
         <WButton
           variant="primary"
           :disabled="
@@ -200,11 +213,11 @@ const title = computed(() => {
           "
           @click="onConfirm"
         >
-          Import
+          {{ t("importModal.import") }}
         </WButton>
       </template>
       <template v-else-if="store.step === 'report'">
-        <WButton variant="primary" @click="onDone">Done</WButton>
+        <WButton variant="primary" @click="onDone">{{ t("importModal.done") }}</WButton>
       </template>
     </template>
   </WModal>

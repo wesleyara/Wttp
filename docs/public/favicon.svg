@@ -1,0 +1,31 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1d2834"/>
+      <stop offset="1" stop-color="#2c3e50"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="180" y1="360" x2="844" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#40bef0"/>
+      <stop offset="1" stop-color="#18aae5"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+
+  <!-- W formed by two request/response chevrons -->
+  <path
+    d="M 180 360
+       L 342 664
+       L 512 450
+       L 682 664
+       L 844 360"
+    fill="none"
+    stroke="url(#mark)"
+    stroke-width="72"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- baseline, evokes the transport/wire the requests travel on -->
+  <line x1="180" y1="748" x2="844" y2="748" stroke="#5480a3" stroke-width="28" stroke-linecap="round"/>
+</svg>

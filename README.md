@@ -9,16 +9,16 @@ Local-first · Git-friendly · Free forever
 </div>
 
 <p align="center">
-  <img src="docs/screenshots/dark.png" alt="Wttp — dark theme" width="49%">
-  <img src="docs/screenshots/light.png" alt="Wttp — light theme" width="49%">
+  <img src="arch-docs/screenshots/dark.png" alt="Wttp — dark theme" width="49%">
+  <img src="arch-docs/screenshots/light.png" alt="Wttp — light theme" width="49%">
 </p>
 
 ---
 
 > **Status.** The core app — HTTP engine, workspaces, environments, auth, scripts,
 > importers — is feature-complete and covered by an automated test suite (see the
-> [backlog](docs/backlog/README.md)). Packaging and release automation are landing now
-> ([EP-11](docs/backlog/EP-11-distribuicao.md)); until the first tagged release exists,
+> [backlog](arch-docs/backlog/README.md)). Packaging and release automation are landing now
+> ([EP-11](arch-docs/backlog/EP-11-distribuicao.md)); until the first tagged release exists,
 > run it from source with `yarn dev` (see [Development](#development) below).
 
 ## What is Wttp?
@@ -48,7 +48,7 @@ Want to see it work without setting anything up? Open
 [`examples/postman-echo-demo`](examples/postman-echo-demo) — a ready-made workspace
 exercising collections, environments, auth (inherited Basic + a Login → Bearer token
 flow) and scripts against a public API, no account needed. Walkthrough in
-[docs/getting-started.md](docs/getting-started.md).
+[arch-docs/getting-started.md](arch-docs/getting-started.md).
 
 ## How it compares
 
@@ -76,17 +76,17 @@ yarn build    # build all processes
 ```
 
 Building installers: `yarn build:win`, `yarn build:mac`, `yarn build:linux` (never
-publishes anywhere). See [docs/getting-started.md](docs/getting-started.md) for using
-the app once it's running, and [docs/release.md](docs/release.md) for how tagged
+publishes anywhere). See [arch-docs/getting-started.md](arch-docs/getting-started.md) for using
+the app once it's running, and [arch-docs/release.md](arch-docs/release.md) for how tagged
 releases get signed, packaged and published.
 
 ## Contributing
 
-Contributions are welcome. Start with [docs/backlog/README.md](docs/backlog/README.md)
+Contributions are welcome. Start with [arch-docs/backlog/README.md](arch-docs/backlog/README.md)
 to find something to work on, and read [CONTRIBUTING.md](CONTRIBUTING.md) and
-[docs/conventions.md](docs/conventions.md) before opening a pull request.
+[arch-docs/conventions.md](arch-docs/conventions.md) before opening a pull request.
 
-Documentation under `docs/` is written in Portuguese; code, UI strings and commit
+Engineering documentation under `arch-docs/` is written in Portuguese; code, UI strings and commit
 messages are in English.
 
 ## License

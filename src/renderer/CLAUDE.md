@@ -1,6 +1,6 @@
 # `src/renderer`
 
-Vue 3 + Pinia. Só UI e estado — zero I/O. Referência completa: [docs/conventions.md](../../docs/conventions.md) e [docs/design-system.md](../../docs/design-system.md).
+Vue 3 + Pinia. Só UI e estado — zero I/O. Referência completa: [arch-docs/conventions.md](../../arch-docs/conventions.md) e [arch-docs/design-system.md](../../arch-docs/design-system.md).
 
 ---
 

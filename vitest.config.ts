@@ -27,7 +27,7 @@ export default defineConfig({
     // "@playwright/test"`, que não existe no runtime do Vitest.
     exclude: [...configDefaults.exclude, "e2e/**"],
     // EP-10-T01: cobertura obrigatória só nas três camadas puras e testáveis sem
-    // Electron (docs/conventions.md §Testes). O resto do main (ipc/, config/,
+    // Electron (arch-docs/conventions.md §Testes). O resto do main (ipc/, config/,
     // scripts/, secrets/) e o renderer inteiro ficam fora — não é escopo desta task.
     coverage: {
       provider: "v8",

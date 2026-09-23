@@ -5,6 +5,7 @@ import { isTextual } from "@renderer/lib/content-type";
 import { formatBytes, formatDuration } from "@renderer/lib/format";
 import { describeRequestError } from "@renderer/lib/response-error";
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
@@ -19,6 +20,8 @@ import WStatusBadge from "./WStatusBadge.vue";
  * EP-08.1-T03) e, ao clicar numa, mostra a resposta daquela execução aqui mesmo, sem
  * tocar `lastResult`/`scriptRun` da execução atual — "voltar" só limpa a seleção local.
  */
+const { t } = useI18n();
+
 const props = defineProps<{
   entries: HistoryEntry[];
 }>();
@@ -55,8 +58,8 @@ const selectedContentType = computed(() => {
   <div class="flex min-h-0 flex-1 flex-col">
     <WEmptyState
       v-if="entries.length === 0"
-      title="No history yet"
-      description="Send this request to start building its history."
+      :title="t('history.empty.title')"
+      :description="t('history.empty.description')"
     >
       <template #icon>
         <WIcon name="history" size="5" />
@@ -65,7 +68,9 @@ const selectedContentType = computed(() => {
 
     <template v-else-if="!selected">
       <div class="flex h-8 shrink-0 items-center justify-end border-b border-subtle px-2">
-        <WButton size="sm" variant="ghost" @click="emit('clear')">Clear history</WButton>
+        <WButton size="sm" variant="ghost" @click="emit('clear')">
+          {{ t("history.clear") }}
+        </WButton>
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto">
         <button
@@ -98,7 +103,7 @@ const selectedContentType = computed(() => {
       <div class="flex h-8 shrink-0 items-center gap-2 border-b border-subtle px-2">
         <WButton size="sm" variant="ghost" @click="backToList">
           <WIcon name="arrow-left" size="3.5" />
-          Back
+          {{ t("history.back") }}
         </WButton>
         <span class="font-inter text-xs text-faint">
           {{ new Date(selected.at).toLocaleString() }}
@@ -131,7 +136,7 @@ const selectedContentType = computed(() => {
           v-if="selected.response.bodyTruncated"
           class="mx-2 mt-2 shrink-0 rounded-md bg-status-3xx/10 px-2 py-1 font-inter text-xs text-status-3xx"
         >
-          This entry's body was truncated before being saved to history.
+          {{ t("history.bodyTruncated") }}
         </p>
 
         <div class="min-h-0 flex-1">
@@ -144,8 +149,8 @@ const selectedContentType = computed(() => {
           />
           <WEmptyState
             v-else
-            title="Binary content"
-            description="This response isn't text — not shown in history."
+            :title="t('history.binary.title')"
+            :description="t('history.binary.description')"
           >
             <template #icon>
               <WIcon name="file-box" size="5" />

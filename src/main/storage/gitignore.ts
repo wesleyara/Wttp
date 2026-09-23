@@ -1,4 +1,4 @@
-/** `.gitignore` do workspace — docs/file-format.md §1: criado ao inicializar, contendo `.wttp/`. */
+/** `.gitignore` do workspace — arch-docs/file-format.md §1: criado ao inicializar, contendo `.wttp/`. */
 
 import { promises as fs } from "node:fs";
 import { join } from "node:path";

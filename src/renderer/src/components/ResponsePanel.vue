@@ -11,6 +11,7 @@ import { useRequestStore } from "@renderer/stores/request";
 import { useUiStore } from "@renderer/stores/ui";
 import { storeToRefs } from "pinia";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import HistoryPanel from "./HistoryPanel.vue";
 import ResponseStatusBar from "./ResponseStatusBar.vue";
@@ -34,6 +35,7 @@ import WTabs from "./WTabs.vue";
 // resposta de 20MB (EP-03-T07). Save sempre grava os bytes completos, truncados ou não.
 const MAX_DISPLAY_BYTES = 2_000_000;
 
+const { t } = useI18n();
 const store = useRequestStore();
 const { sending, lastResult, scriptRun, path } = storeToRefs(store);
 
@@ -130,21 +132,37 @@ const cookies = computed(() => {
     .map(h => parseSetCookieHeader(h.value));
 });
 
-const mainTab = ref<"body" | "headers" | "cookies" | "history" | "tests">("body");
+const mainTab = ref<"error" | "body" | "headers" | "cookies" | "history" | "tests">(
+  failureResult.value ? "error" : "body",
+);
 const mainTabs = computed(() => {
   const tabs: { value: string; label: string; count?: number; warning?: boolean }[] = [];
+  // O erro é conteúdo de uma aba, não um bloco fixo acima delas — antes ele ficava
+  // visível em qualquer aba (inclusive History, dividindo a tela com a lista) e sobrevivia
+  // a "Limpar histórico" (card 41).
+  if (failureResult.value) {
+    tabs.push({ value: "error", label: t("response.tabs.error"), warning: true });
+  }
   if (successResult.value) {
-    tabs.push({ value: "body", label: "Body" });
-    tabs.push({ value: "headers", label: "Headers", count: successResult.value.headers.length });
-    tabs.push({ value: "cookies", label: "Cookies", count: cookies.value.length });
+    tabs.push({ value: "body", label: t("response.tabs.body") });
+    tabs.push({
+      value: "headers",
+      label: t("response.tabs.headers"),
+      count: successResult.value.headers.length,
+    });
+    tabs.push({ value: "cookies", label: t("response.tabs.cookies"), count: cookies.value.length });
   }
   // Sempre presente — o ponto da aba History é justamente valer mesmo sem `lastResult`
   // desta sessão (app reaberto, EP-08.1-T01/T04).
-  tabs.push({ value: "history", label: "History", count: historyEntries.value.length });
+  tabs.push({
+    value: "history",
+    label: t("response.tabs.history"),
+    count: historyEntries.value.length,
+  });
   if (hasScriptResults.value) {
     tabs.push({
       value: "tests",
-      label: "Tests",
+      label: t("response.tabs.tests"),
       count: scriptAssertions.value.length,
       warning: failedAssertionCount.value > 0,
     });
@@ -160,14 +178,20 @@ watch(mainTabs, tabs => {
   }
 });
 
+// Uma falha nova (ou a do histórico ao reabrir o app) abre direto na aba Erro — pelo mesmo
+// motivo do watcher de `successResult` abaixo: sem isso ela ficaria atrás da aba History.
+watch(failureResult, result => {
+  if (result) mainTab.value = "error";
+});
+
 const bodyViewMode = ref<"pretty" | "raw" | "preview">("pretty");
 const bodyViewOptions = computed(() => {
   const options = [
-    { value: "pretty", label: "Pretty" },
-    { value: "raw", label: "Raw" },
+    { value: "pretty", label: t("response.view.pretty") },
+    { value: "raw", label: t("response.view.raw") },
   ];
   if (isImage(contentType.value) || isHtml(contentType.value) || isPdf(contentType.value)) {
-    options.push({ value: "preview", label: "Preview" });
+    options.push({ value: "preview", label: t("response.view.preview") });
   }
   return options;
 });
@@ -248,12 +272,12 @@ const timingTitle = computed(() => {
   const timing = successResult.value?.timing;
   if (!timing) return "";
   return [
-    `DNS: ${formatDuration(timing.dns)}`,
-    `Connect: ${formatDuration(timing.connect)}`,
-    `TLS: ${formatDuration(timing.tls)}`,
-    `TTFB: ${formatDuration(timing.ttfb)}`,
-    `Download: ${formatDuration(timing.download)}`,
-    `Total: ${formatDuration(timing.total)}`,
+    t("response.timing.dns", { value: formatDuration(timing.dns) }),
+    t("response.timing.connect", { value: formatDuration(timing.connect) }),
+    t("response.timing.tls", { value: formatDuration(timing.tls) }),
+    t("response.timing.ttfb", { value: formatDuration(timing.ttfb) }),
+    t("response.timing.download", { value: formatDuration(timing.download) }),
+    t("response.timing.total", { value: formatDuration(timing.total) }),
   ].join("\n");
 });
 
@@ -273,22 +297,26 @@ async function saveBody(): Promise<void> {
       class="mx-2 mt-2 flex shrink-0 flex-col gap-1 rounded-md bg-status-5xx/10 px-3 py-2 font-inter text-sm text-status-5xx"
     >
       <p class="font-medium">
-        Pre-request script failed ({{ scriptPreRequestError.source }}) — request not sent
+        {{ t("response.preRequestFailed", { source: scriptPreRequestError.source }) }}
       </p>
       <p class="font-mono text-xs">{{ scriptPreRequestError.error.message }}</p>
     </div>
 
     <WEmptyState
       v-if="!sending && !lastResult && historyEntries.length === 0"
-      title="No response yet"
-      description="Send a request to see the response here."
+      :title="t('response.empty.title')"
+      :description="t('response.empty.description')"
     >
       <template #icon>
         <WIcon name="inbox" size="5" />
       </template>
     </WEmptyState>
 
-    <WEmptyState v-else-if="sending" title="Sending request…" description="Waiting for a response.">
+    <WEmptyState
+      v-else-if="sending"
+      :title="t('response.sending.title')"
+      :description="t('response.sending.description')"
+    >
       <template #icon>
         <WIcon name="loader-circle" size="5" class="animate-spin" />
       </template>
@@ -325,8 +353,8 @@ async function saveBody(): Promise<void> {
       </WTabs>
 
       <div
-        v-if="failureResult"
-        class="flex shrink-0 flex-col items-center justify-center gap-2 p-6 text-center"
+        v-if="mainTab === 'error' && failureResult"
+        class="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-y-auto p-6 text-center"
       >
         <WStatusBadge :code="null" />
         <p class="font-barlow text-base font-semibold text-1">{{ failureResult.error.code }}</p>
@@ -341,12 +369,12 @@ async function saveBody(): Promise<void> {
           class="flex items-center gap-1 font-inter text-[11px] text-faint"
         >
           <WIcon name="history" size="3" />
-          No response sent this session yet — showing the last one from history.
+          {{ t("response.historyFallback") }}
         </p>
       </div>
 
       <div
-        v-if="mainTab === 'body' && successResult"
+        v-else-if="mainTab === 'body' && successResult"
         class="flex min-h-0 flex-1 flex-col gap-2 pt-2"
       >
         <div class="w-32">
@@ -363,8 +391,12 @@ async function saveBody(): Promise<void> {
           v-if="decodedBody.truncated && bodyViewMode !== 'preview'"
           class="rounded-md bg-status-3xx/10 px-2 py-1 font-inter text-xs text-status-3xx"
         >
-          Showing the first {{ formatBytes(MAX_DISPLAY_BYTES) }} of
-          {{ formatBytes(successResult.size.bodyReceived) }} — use Save to get the full response.
+          {{
+            t("response.truncated", {
+              shown: formatBytes(MAX_DISPLAY_BYTES),
+              total: formatBytes(successResult.size.bodyReceived),
+            })
+          }}
         </p>
 
         <div v-if="bodyViewMode === 'preview'" class="min-h-0 flex-1 overflow-auto bg-surface-1">
@@ -372,14 +404,14 @@ async function saveBody(): Promise<void> {
             v-if="isImage(contentType)"
             :src="previewUrl"
             class="mx-auto max-w-full"
-            alt="Response preview"
+            :alt="t('response.previewAlt')"
           />
           <iframe
             v-else-if="isHtml(contentType)"
             :srcdoc="decodedBody.text"
             sandbox=""
             class="size-full border-0 bg-white"
-            title="Response HTML preview"
+            :title="t('response.htmlPreviewTitle')"
           />
           <embed
             v-else-if="isPdf(contentType)"
@@ -400,8 +432,8 @@ async function saveBody(): Promise<void> {
           />
           <WEmptyState
             v-else
-            title="Binary content"
-            description="This response isn't text — use Save to write it to a file."
+            :title="t('response.binary.title')"
+            :description="t('response.binary.description')"
           >
             <template #icon>
               <WIcon name="file-box" size="5" />
@@ -443,8 +475,8 @@ async function saveBody(): Promise<void> {
       >
         <WEmptyState
           v-if="cookies.length === 0"
-          title="No cookies"
-          description="This response set no cookies."
+          :title="t('response.noCookies.title')"
+          :description="t('response.noCookies.description')"
         >
           <template #icon>
             <WIcon name="cookie" size="5" />

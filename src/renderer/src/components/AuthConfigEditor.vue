@@ -15,6 +15,7 @@ import { useEffectiveAuth } from "@renderer/composables/useEffectiveAuth";
 import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WCodeEditor from "./WCodeEditor.vue";
 import WIcon from "./WIcon.vue";
@@ -25,7 +26,7 @@ const props = withDefaults(
     modelValue: AuthConfig;
     /** Path do nó dono desta auth (request ou pasta) — cadeia de herança sobe a partir dele. */
     path: string;
-    /** Rótulo do próprio nó no modo `inherit` ("This request" vs. "This folder"). */
+    /** Rótulo do próprio nó no modo `inherit` ("This request" vs. "This folder") — ausente usa "Esta request". */
     selfLabel?: string;
     /**
      * Headers da request, só no nível de request — um `Authorization` manual
@@ -35,10 +36,12 @@ const props = withDefaults(
     headers?: KeyValueEntry[];
   }>(),
   {
-    selfLabel: "This request",
+    selfLabel: undefined,
     headers: () => [],
   },
 );
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   "update:modelValue": [value: AuthConfig];
@@ -47,13 +50,13 @@ const emit = defineEmits<{
 const variablesStore = useVariablesStore();
 const variableNames = computed(() => variablesStore.variableNamesFor(props.path));
 
-const TYPE_OPTIONS = [
-  { value: "inherit", label: "Inherit" },
-  { value: "none", label: "None" },
-  { value: "bearer", label: "Bearer Token" },
-  { value: "basic", label: "Basic Auth" },
-  { value: "apikey", label: "API Key" },
-] as const;
+const TYPE_OPTIONS = computed(() => [
+  { value: "none", label: t("auth.types.none") },
+  { value: "inherit", label: t("auth.types.inherit") },
+  { value: "bearer", label: t("auth.types.bearer") },
+  { value: "basic", label: t("auth.types.basic") },
+  { value: "apikey", label: t("auth.types.apikey") },
+]);
 
 function defaultAuthFor(type: AuthConfig["type"]): AuthConfig {
   switch (type) {
@@ -95,10 +98,10 @@ function patchApikey(patch: Partial<{ key: string; value: string; in: "header" |
   emit("update:modelValue", { type: "apikey", apikey: { ...props.modelValue.apikey, ...patch } });
 }
 
-const APIKEY_IN_OPTIONS = [
-  { value: "header", label: "Header" },
-  { value: "query", label: "Query Param" },
-] as const;
+const APIKEY_IN_OPTIONS = computed(() => [
+  { value: "header", label: t("auth.apikeyIn.header") },
+  { value: "query", label: t("auth.apikeyIn.query") },
+]);
 
 // --- Destaque/tooltip de `{{var}}` por campo (EP-06-T05/EP-06.1) ---
 const bearerToken = computed(() =>
@@ -136,21 +139,26 @@ const { unresolved: apikeyUnresolved, tooltips: apikeyTooltips } = useVariablePr
 // --- Herança efetiva (EP-07-T01/T04) — sempre calculada, usada no badge e no modo inherit ---
 const modelValueRef = computed(() => props.modelValue);
 const pathRef = computed(() => props.path);
-const selfLabelRef = computed(() => props.selfLabel);
+const selfLabelRef = computed(() => props.selfLabel ?? t("auth.thisRequest"));
 const { effective, source, inherited } = useEffectiveAuth(modelValueRef, pathRef, selfLabelRef);
+
+/** O store devolve "No auth configured" em inglês fixo — traduzido aqui, na borda da UI. */
+const sourceLabel = computed(() =>
+  source.value.kind === "none" ? t("auth.noAuthConfigured") : source.value.label,
+);
 
 const effectiveTypeLabel = computed(() => {
   switch (effective.value.type) {
     case "none":
-      return "No auth";
+      return t("auth.noAuth");
     case "bearer":
-      return "Bearer Token";
+      return t("auth.types.bearer");
     case "basic":
-      return "Basic Auth";
+      return t("auth.types.basic");
     case "apikey":
-      return "API Key";
+      return t("auth.types.apikey");
     default:
-      return "None";
+      return t("auth.types.none");
   }
 });
 
@@ -168,14 +176,14 @@ const showManualOverrideWarning = computed(
   <div class="flex flex-col gap-3 pt-2">
     <div class="flex items-center gap-2">
       <div class="w-40">
-        <WSelect v-model="authType" :options="[...TYPE_OPTIONS]" />
+        <WSelect v-model="authType" :options="TYPE_OPTIONS" />
       </div>
       <span
         class="flex items-center gap-1 rounded-full border border-subtle bg-surface-2 px-2 py-0.5 font-inter text-xs text-muted"
       >
         <WIcon v-if="inherited" name="corner-down-right" size="3" class="text-faint" />
         {{ effectiveTypeLabel }}
-        <span v-if="inherited">· inherited from {{ source.label }}</span>
+        <span v-if="inherited">{{ t("auth.inheritedFrom", { source: sourceLabel }) }}</span>
       </span>
     </div>
 
@@ -184,29 +192,31 @@ const showManualOverrideWarning = computed(
       class="flex items-center gap-1.5 rounded-md border border-status-4xx/40 bg-surface-3 px-2 py-1.5 font-inter text-xs text-status-4xx"
     >
       <WIcon name="alert-triangle" size="3.5" />
-      A manually-set <span class="font-mono">Authorization</span> header overrides this — remove it
-      from Headers to use {{ effectiveTypeLabel }} instead.
+      {{ t("auth.manualOverride", { type: effectiveTypeLabel }) }}
     </p>
 
     <div v-if="authType === 'inherit'" class="flex flex-col gap-2">
       <p class="px-1 font-inter text-sm text-muted">
-        Inherits from <span class="font-medium text-1">{{ source.label }}</span> —
-        <span class="font-medium text-1">{{ effectiveTypeLabel }}</span> will be applied.
+        {{ t("auth.inheritsFrom", { source: sourceLabel, type: effectiveTypeLabel }) }}
       </p>
 
       <div
         v-if="effective.type === 'bearer'"
         class="flex items-center gap-2 rounded-md border border-subtle bg-surface-2 px-2 py-1.5 font-mono text-[13px] text-muted"
       >
-        <span class="font-inter text-xs text-faint">Token</span>
+        <span class="font-inter text-xs text-faint">{{ t("auth.token") }}</span>
         <span class="truncate">{{ effective.bearer.token }}</span>
       </div>
       <div
         v-else-if="effective.type === 'basic'"
         class="flex flex-col gap-1 rounded-md border border-subtle bg-surface-2 px-2 py-1.5 font-mono text-[13px] text-muted"
       >
-        <span class="font-inter text-xs text-faint">Username: {{ effective.basic.username }}</span>
-        <span class="font-inter text-xs text-faint">Password: {{ effective.basic.password }}</span>
+        <span class="font-inter text-xs text-faint">{{
+          t("auth.usernameLine", { value: effective.basic.username })
+        }}</span>
+        <span class="font-inter text-xs text-faint">{{
+          t("auth.passwordLine", { value: effective.basic.password })
+        }}</span>
       </div>
       <div
         v-else-if="effective.type === 'apikey'"
@@ -220,11 +230,11 @@ const showManualOverrideWarning = computed(
     </div>
 
     <div v-else-if="authType === 'none'" class="px-1 font-inter text-sm text-muted">
-      No auth is sent with this request.
+      {{ t("auth.noAuthSent") }}
     </div>
 
     <div v-else-if="authType === 'bearer'" class="flex flex-col gap-1">
-      <label class="px-1 font-inter text-xs font-medium text-faint">Token</label>
+      <label class="px-1 font-inter text-xs font-medium text-faint">{{ t("auth.token") }}</label>
       <div
         class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
       >
@@ -245,7 +255,9 @@ const showManualOverrideWarning = computed(
 
     <div v-else-if="authType === 'basic'" class="flex flex-col gap-3">
       <div class="flex flex-col gap-1">
-        <label class="px-1 font-inter text-xs font-medium text-faint">Username</label>
+        <label class="px-1 font-inter text-xs font-medium text-faint">{{
+          t("auth.username")
+        }}</label>
         <div class="h-8">
           <WCodeEditor
             :model-value="basicUsername"
@@ -262,7 +274,9 @@ const showManualOverrideWarning = computed(
         </div>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="px-1 font-inter text-xs font-medium text-faint">Password</label>
+        <label class="px-1 font-inter text-xs font-medium text-faint">{{
+          t("auth.password")
+        }}</label>
         <div
           class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
         >
@@ -285,7 +299,7 @@ const showManualOverrideWarning = computed(
     <div v-else-if="authType === 'apikey'" class="flex flex-col gap-3">
       <div class="flex gap-3">
         <div class="flex flex-1 flex-col gap-1">
-          <label class="px-1 font-inter text-xs font-medium text-faint">Key</label>
+          <label class="px-1 font-inter text-xs font-medium text-faint">{{ t("auth.key") }}</label>
           <div
             class="flex h-8 items-center rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
           >
@@ -298,18 +312,20 @@ const showManualOverrideWarning = computed(
           </div>
         </div>
         <div class="w-36">
-          <label class="px-1 font-inter text-xs font-medium text-faint">Add to</label>
+          <label class="px-1 font-inter text-xs font-medium text-faint">{{
+            t("auth.addTo")
+          }}</label>
           <WSelect
             :model-value="
               props.modelValue.type === 'apikey' ? props.modelValue.apikey.in : 'header'
             "
-            :options="[...APIKEY_IN_OPTIONS]"
+            :options="APIKEY_IN_OPTIONS"
             @update:model-value="value => patchApikey({ in: value as 'header' | 'query' })"
           />
         </div>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="px-1 font-inter text-xs font-medium text-faint">Value</label>
+        <label class="px-1 font-inter text-xs font-medium text-faint">{{ t("auth.value") }}</label>
         <div
           class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
         >

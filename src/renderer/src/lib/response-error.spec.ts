@@ -1,6 +1,11 @@
+import { i18n } from "@renderer/i18n";
+import { responseEn } from "@renderer/i18n/areas/response.en";
 import { describe, expect, it } from "vitest";
 
 import { describeRequestError } from "./response-error";
+
+// Até as chaves de área entrarem em `en.ts`, o spec registra as próprias.
+i18n.global.mergeLocaleMessage("en", responseEn);
 
 describe("describeRequestError", () => {
   it("gives a specific, actionable message for known codes", () => {

@@ -4,6 +4,7 @@ import { type SaveVariableInput, useEnvironmentStore } from "@renderer/stores/en
 import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { KeyValueRow } from "./WKeyValueTable.vue";
 
@@ -18,6 +19,7 @@ import WKeyValueTable from "./WKeyValueTable.vue";
  * lógica de edição/save de sempre; só a casca mudou.
  */
 
+const { t } = useI18n();
 const environment = useEnvironmentStore();
 const workspace = useWorkspaceStore();
 const variablesStore = useVariablesStore();
@@ -46,7 +48,7 @@ const selectedEnvironment = computed(() =>
 
 function loadDraft(): void {
   if (selected.value === WORKSPACE_SELECTION) {
-    draftName.value = "Workspace";
+    draftName.value = t("environments.workspaceName");
     draftVariables.value = (workspace.tree?.data?.variables ?? []).map(v => ({
       ...v,
       description: v.description ?? "",
@@ -125,7 +127,7 @@ async function save(): Promise<void> {
 }
 
 async function createEnvironment(): Promise<void> {
-  const created = await environment.create("New environment");
+  const created = await environment.create(t("environments.newEnvironmentName"));
   if (created) selected.value = created.path;
 }
 
@@ -165,7 +167,7 @@ async function duplicateEnvironment(): Promise<void> {
         "
         @click="selected = WORKSPACE_SELECTION"
       >
-        Workspace variables
+        {{ t("environments.workspaceVariables") }}
       </button>
 
       <div class="mt-2 flex-1 overflow-y-auto">
@@ -191,7 +193,7 @@ async function duplicateEnvironment(): Promise<void> {
       </div>
 
       <WButton size="sm" variant="ghost" class="justify-start" @click="createEnvironment">
-        + New environment
+        {{ t("environments.newEnvironment") }}
       </WButton>
     </div>
 
@@ -201,10 +203,10 @@ async function duplicateEnvironment(): Promise<void> {
           v-if="selected !== WORKSPACE_SELECTION"
           v-model="draftName"
           class="flex-1"
-          placeholder="Environment name"
+          :placeholder="t('environments.environmentNamePlaceholder')"
         />
         <h2 v-else class="flex-1 font-barlow text-base font-semibold text-1">
-          Workspace variables
+          {{ t("environments.workspaceVariables") }}
         </h2>
         <WButton
           v-if="selected !== WORKSPACE_SELECTION"
@@ -212,7 +214,7 @@ async function duplicateEnvironment(): Promise<void> {
           variant="secondary"
           @click="duplicateEnvironment"
         >
-          Duplicate
+          {{ t("environments.duplicate") }}
         </WButton>
         <WButton
           v-if="selected !== WORKSPACE_SELECTION"
@@ -220,25 +222,30 @@ async function duplicateEnvironment(): Promise<void> {
           variant="danger"
           @click="removeEnvironment"
         >
-          Delete
+          {{ t("common.delete") }}
         </WButton>
-        <WButton size="sm" variant="primary" @click="save">Save</WButton>
+        <WButton size="sm" variant="primary" @click="save">{{ t("common.save") }}</WButton>
       </div>
 
       <p
         v-if="duplicateWarning === selected"
         class="rounded-md border border-subtle bg-surface-3 px-2 py-1.5 font-inter text-xs text-muted"
       >
-        This environment has secret values — they won't be copied to the duplicate. Click
-        "Duplicate" again to confirm.
+        {{ t("environments.secretsWarning") }}
       </p>
 
       <p
         v-if="duplicateNames.size > 0"
         class="rounded-md border border-status-5xx/40 bg-surface-3 px-2 py-1.5 font-inter text-xs text-status-5xx"
       >
-        Duplicate variable name{{ duplicateNames.size > 1 ? "s" : "" }}:
-        {{ [...duplicateNames].join(", ") }}
+        {{
+          t(
+            duplicateNames.size > 1
+              ? "environments.duplicateNamesOther"
+              : "environments.duplicateNamesOne",
+            { names: [...duplicateNames].join(", ") },
+          )
+        }}
       </p>
 
       <div class="min-h-0 flex-1 overflow-y-auto rounded-md border border-subtle">

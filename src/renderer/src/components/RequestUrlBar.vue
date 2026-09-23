@@ -8,12 +8,14 @@ import { useRequestStore } from "@renderer/stores/request";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { storeToRefs } from "pinia";
 import { computed, ref, useTemplateRef } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WIcon from "./WIcon.vue";
 import WMethodPicker from "./WMethodPicker.vue";
 
+const { t } = useI18n();
 const store = useRequestStore();
 const { method, url, pathParams, query, sending, path } = storeToRefs(store);
 const variablesStore = useVariablesStore();
@@ -111,7 +113,7 @@ function onPasteUrl(event: ClipboardEvent): void {
       />
     </div>
     <WButton :variant="sending ? 'danger' : 'primary'" class="w-24 shrink-0" @click="onSend">
-      {{ sending ? "Cancel" : "Send" }}
+      {{ sending ? t("request.cancel") : t("request.send") }}
     </WButton>
   </div>
 </template>

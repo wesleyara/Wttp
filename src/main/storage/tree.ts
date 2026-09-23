@@ -1,9 +1,9 @@
 /**
  * Camada de filesystem do workspace (EP-04-T04) — lê e grava a árvore inteira descrita
- * em docs/file-format.md §1: `wttp.yaml` na raiz, `environments/*.yaml`, e pastas que
+ * em arch-docs/file-format.md §1: `wttp.yaml` na raiz, `environments/*.yaml`, e pastas que
  * viram `FolderNode`/`RequestNode` recursivamente. Cada arquivo é validado ao ser lido
  * (`validate.ts`); um nó inválido não derruba a árvore — vira `data: null` com
- * `issues`, e o resto do workspace continua utilizável (docs/file-format.md §7).
+ * `issues`, e o resto do workspace continua utilizável (arch-docs/file-format.md §7).
  *
  * Nomes de arquivo são sempre derivados de `name` via `slug.ts` — `path` num
  * `WorkspaceNode` é a verdade sobre onde o arquivo está no disco, não o `name`.
@@ -264,7 +264,7 @@ export async function deleteEnvironment(root: string, path: string): Promise<voi
 
 /**
  * Duplica um environment — nome único (`"Dev" → "Dev copy" → "Dev copy 2"`), arquivo
- * novo com `path` próprio. Nunca copia valor de variável secreta (docs/backlog
+ * novo com `path` próprio. Nunca copia valor de variável secreta (arch-docs/backlog
  * EP-06-T03): a linha é duplicada com `value: ""`, o segredo original permanece só no
  * environment de origem.
  */
@@ -355,7 +355,7 @@ export async function readNode(root: string, relPath: string): Promise<Workspace
 
 /**
  * Recusa a escrita se o arquivo mudou no disco desde a última vez que este processo o
- * leu (`readNode`) ou escreveu — docs/backlog EP-04-T05: "nada é perdido
+ * leu (`readNode`) ou escreveu — arch-docs/backlog EP-04-T05: "nada é perdido
  * silenciosamente". Sem leitura prévia conhecida (nó recém-criado no app), não há o
  * que comparar e a escrita segue normalmente.
  */
@@ -406,7 +406,7 @@ async function writeSeq(root: string, node: WorkspaceNode, newSeq: number): Prom
 
 /**
  * Move (ou reordena no lugar, quando `from === to`) um nó. Renumera `seq` só dos
- * irmãos cuja posição de fato muda — docs/backlog EP-04-T04: "reordena as linhas
+ * irmãos cuja posição de fato muda — arch-docs/backlog EP-04-T04: "reordena as linhas
  * afetadas e só elas". Mover entre pastas também fecha o buraco deixado na origem.
  */
 export async function moveNode(root: string, from: string, to: string, seq: number): Promise<void> {

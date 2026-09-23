@@ -13,6 +13,7 @@ files:
   - "!{CONTRIBUTING.md,CODE_OF_CONDUCT.md,CLAUDE.md}"
   - "!.claude{,/**}"
   - "!docs{,/**}"
+  - "!arch-docs{,/**}"
   - "!e2e{,/**}"
 fileAssociations:
   - ext: wttp.yaml
@@ -54,11 +55,15 @@ mac:
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   # No `notarize: false` here on purpose — electron-builder auto-notarizes only when
   # APPLE_ID/APPLE_APP_SPECIFIC_PASSWORD/APPLE_TEAM_ID are present in the environment
-  # (docs/release.md), and silently skips it otherwise. Forcing it off would also
+  # (arch-docs/release.md), and silently skips it otherwise. Forcing it off would also
   # disable it in CI once the secrets are configured.
 dmg:
   artifactName: ${name}-${version}-${arch}.${ext}
 linux:
+  # Pasta de PNGs `NxN.png` em tamanhos padrão do tema hicolor. Com um único
+  # `build/icon.png` de 1024px o `.deb` instalava só `hicolor/1024x1024`, tamanho que o
+  # GTK/GNOME ignora (fora do index.theme) — o Wttp ficava sem ícone no menu e no dock.
+  icon: build/icons
   target:
     - AppImage
     - deb

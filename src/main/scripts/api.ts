@@ -1,5 +1,5 @@
 /**
- * API de scripting exposta ao código do usuário (EP-09-T02) — docs/scripting.md.
+ * API de scripting exposta ao código do usuário (EP-09-T02) — arch-docs/scripting.md.
  *
  * Monta o objeto de globals que `sandbox.ts` contextifica e traduz o resultado da
  * execução para `ScriptRunResult`. Roda dentro do utility process (chamado por

@@ -3,7 +3,7 @@
  *
  * Este é o **único** lugar do repositório onde uma cor crua pode aparecer. Componentes
  * usam tokens semânticos (`bg-surface-2`, `text-muted`), definidos sobre estas escalas
- * no EP-02. Fonte da verdade: docs/design-system.md.
+ * no EP-02. Fonte da verdade: arch-docs/design-system.md.
  */
 
 /**
@@ -23,7 +23,7 @@ export default {
     extend: {
       colors: {
         // Classes de topo (`text-1`, `border-subtle`, `ring-focus`) — não aninhadas —
-        // porque é o nome de classe exato que docs/design-system.md §2 define.
+        // porque é o nome de classe exato que arch-docs/design-system.md §2 define.
         surface: {
           1: token("surface-1"),
           2: token("surface-2"),

@@ -1,5 +1,5 @@
 /**
- * Resolvedor de `{{variável}}` (EP-06-T01) — docs/file-format.md §8.
+ * Resolvedor de `{{variável}}` (EP-06-T01) — arch-docs/file-format.md §8.
  *
  * Módulo puro, sem `node:*`/`electron`: só manipula strings e os tipos de
  * `@shared`. Precedência de definição: `runtime > environment > collection/pasta >

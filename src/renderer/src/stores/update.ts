@@ -1,5 +1,6 @@
 import type { UpdateStatus } from "@shared";
 
+import { i18n } from "@renderer/i18n";
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
@@ -26,10 +27,15 @@ export const useUpdateStore = defineStore("update", () => {
     const unsubscribe = window.wttp.update.onStatus(next => {
       status.value = next;
       if (next.state === "downloaded") {
-        useToastStore().push(`Wttp ${next.version} is ready to install.`, "info", 0, {
-          label: "Update now",
-          onClick: () => void window.wttp.update.install(),
-        });
+        useToastStore().push(
+          i18n.global.t("update.readyToInstall", { version: next.version }),
+          "info",
+          0,
+          {
+            label: i18n.global.t("update.updateNow"),
+            onClick: () => void window.wttp.update.install(),
+          },
+        );
       }
     });
     void window.wttp.update.getStatus().then(current => (status.value = current));

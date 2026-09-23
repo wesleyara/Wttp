@@ -1,5 +1,6 @@
 import type { EnvironmentListItem, KeyValueEntry, WttpError } from "@shared";
 
+import { i18n } from "@renderer/i18n";
 import { defineStore } from "pinia";
 import { computed, ref, toRaw, watch } from "vue";
 
@@ -49,7 +50,7 @@ export const useEnvironmentStore = defineStore("environment", () => {
     }
   }
 
-  /** `defaultEnvironment` do `wttp.yaml` (docs/file-format.md §2) respeitado ao abrir — só quando nenhum environment já foi escolhido para este workspace. */
+  /** `defaultEnvironment` do `wttp.yaml` (arch-docs/file-format.md §2) respeitado ao abrir — só quando nenhum environment já foi escolhido para este workspace. */
   function applyDefaultEnvironment(): void {
     if (workspace.uiState.activeEnvironment !== null) return;
     const defaultName = workspace.tree?.data?.defaultEnvironment;
@@ -90,7 +91,7 @@ export const useEnvironmentStore = defineStore("environment", () => {
       });
       await refresh();
       error.value = null;
-      toast.push(`"${saved.data.name}" saved`, "success");
+      toast.push(i18n.global.t("toast.saved", { name: saved.data.name }), "success");
       return saved;
     } catch (e) {
       error.value = e as WttpError;
@@ -106,13 +107,13 @@ export const useEnvironmentStore = defineStore("environment", () => {
       if (activePath.value === path) setActive(null);
       await refresh();
       error.value = null;
-      toast.push(`"${name}" deleted`, "warning");
+      toast.push(i18n.global.t("toast.deleted", { name }), "warning");
     } catch (e) {
       error.value = e as WttpError;
     }
   }
 
-  /** Duplica sem copiar valor de variável secreta (docs/backlog EP-06-T03) — a store só chama o IPC, o aviso ao usuário é responsabilidade do componente, que já sabe se o original tem segredos. */
+  /** Duplica sem copiar valor de variável secreta (arch-docs/backlog EP-06-T03) — a store só chama o IPC, o aviso ao usuário é responsabilidade do componente, que já sabe se o original tem segredos. */
   async function duplicate(path: string): Promise<EnvironmentListItem | null> {
     if (!workspace.root) return null;
     try {
@@ -135,7 +136,7 @@ export const useEnvironmentStore = defineStore("environment", () => {
         variables: unwrap(variables),
       });
       error.value = null;
-      toast.push("Workspace variables saved", "success");
+      toast.push(i18n.global.t("toast.workspaceVariablesSaved"), "success");
     } catch (e) {
       error.value = e as WttpError;
     }

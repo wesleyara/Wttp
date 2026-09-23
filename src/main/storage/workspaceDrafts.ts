@@ -1,5 +1,5 @@
 /**
- * Rascunhos de abas sujas por workspace — docs/file-format.md §1: `.wttp/drafts.json`,
+ * Rascunhos de abas sujas por workspace — arch-docs/file-format.md §1: `.wttp/drafts.json`,
  * gitignored. Espelha `workspaceUiState.ts`: mesmo `writeFileAtomic`, mesmo `try/catch`
  * que devolve vazio quando o arquivo não existe ou está corrompido. Existe para
  * `useRequestTabsStore` sobreviver ao fechamento do app com uma aba suja (EP-08.1-T01) —
