@@ -2,7 +2,7 @@
 import type { WorkspaceNode } from "@shared";
 
 import CommandPalette from "@renderer/components/CommandPalette.vue";
-import EnvironmentEditorModal from "@renderer/components/EnvironmentEditorModal.vue";
+import EnvironmentsPanel from "@renderer/components/EnvironmentsPanel.vue";
 import FolderConfigTabs from "@renderer/components/FolderConfigTabs.vue";
 import ImportModal from "@renderer/components/ImportModal.vue";
 import MoveCopyModal from "@renderer/components/MoveCopyModal.vue";
@@ -73,7 +73,6 @@ function onTabNext(): void {
 }
 
 const paletteOpen = ref(false);
-const environmentEditorOpen = ref(false);
 const preferencesOpen = ref(false);
 
 /** Menu "+" da toolbar da árvore (EP-07.1) — substitui os dois botões separados de criar. */
@@ -229,35 +228,44 @@ onUnmounted(() => {
           </aside>
         </template>
         <template #second>
+          <WEmptyState
+            v-if="requestTabs.tabs.length === 0"
+            title="Nothing open"
+            description="Select or create a request, folder or collection."
+          >
+            <template #icon>
+              <WIcon name="send" size="5" />
+            </template>
+          </WEmptyState>
+          <!-- Aba de environments (EP-08.1-T05) não tem "resposta" — ocupa a coluna
+          inteira, sem o painel de resposta ao lado/embaixo, mesmo vazio. -->
+          <main
+            v-else-if="requestTabs.active?.kind === 'environment'"
+            class="flex h-full flex-col bg-surface-1"
+          >
+            <RequestTabsBar />
+            <EnvironmentsPanel class="min-h-0 flex-1" />
+          </main>
           <WSplitPane
+            v-else
             :key="ui.responsePanelPosition"
             :direction="ui.responsePanelPosition === 'side' ? 'horizontal' : 'vertical'"
             sized-pane="second"
             :model-value="ui.responsePanelSize"
             :min="240"
+            :other-pane-min="240"
             @update:model-value="ui.setResponsePanelSize"
           >
             <template #first>
               <main class="flex h-full flex-col bg-surface-1">
-                <WEmptyState
-                  v-if="requestTabs.tabs.length === 0"
-                  title="Nothing open"
-                  description="Select or create a request, folder or collection."
-                >
-                  <template #icon>
-                    <WIcon name="send" size="5" />
+                <RequestTabsBar />
+                <div class="min-h-0 flex-1 overflow-y-auto p-3">
+                  <template v-if="requestTabs.active?.kind === 'request'">
+                    <RequestUrlBar />
+                    <RequestConfigTabs class="mt-3" />
                   </template>
-                </WEmptyState>
-                <template v-else>
-                  <RequestTabsBar />
-                  <div class="min-h-0 flex-1 overflow-y-auto p-3">
-                    <template v-if="requestTabs.active?.kind === 'request'">
-                      <RequestUrlBar />
-                      <RequestConfigTabs class="mt-3" />
-                    </template>
-                    <FolderConfigTabs v-else-if="requestTabs.active?.kind === 'folder'" />
-                  </div>
-                </template>
+                  <FolderConfigTabs v-else-if="requestTabs.active?.kind === 'folder'" />
+                </div>
               </main>
             </template>
             <template #second>
@@ -279,13 +287,11 @@ onUnmounted(() => {
       </WSplitPane>
     </div>
     <StatusBar
-      @open-environment-editor="environmentEditorOpen = true"
+      @open-environment-editor="requestTabs.openEnvironmentTab()"
       @open-preferences="preferencesOpen = true"
     />
 
     <CommandPalette :open="paletteOpen" @close="paletteOpen = false" />
-
-    <EnvironmentEditorModal :open="environmentEditorOpen" @close="environmentEditorOpen = false" />
 
     <PreferencesModal :open="preferencesOpen" @close="preferencesOpen = false" />
 

@@ -42,45 +42,50 @@ function onKeydown(event: KeyboardEvent): void {
     class="flex h-8 items-stretch gap-1 border-b border-subtle"
     @keydown="onKeydown"
   >
-    <button
-      v-for="tab in tabs"
-      :key="tab.value"
-      role="tab"
-      type="button"
-      :aria-selected="tab.value === modelValue"
-      :tabindex="tab.value === modelValue ? 0 : -1"
-      class="relative flex items-center rounded-t-md px-3 font-inter text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-2"
-      :class="
-        tab.value === modelValue
-          ? 'bg-surface-3 text-1'
-          : 'text-muted hover:bg-surface-3/50 hover:text-1'
-      "
-      @click="select(tab.value)"
-    >
-      {{ tab.label }}
-      <WIcon
-        v-if="tab.warning"
-        name="alert-triangle"
-        size="3"
-        class="ml-1 text-status-4xx"
-        aria-label="Unresolved variable"
-      />
-      <span
-        v-if="tab.count"
-        class="ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-surface-1 px-1 font-mono text-[10px] text-muted"
+    <div class="flex flex-1 items-stretch gap-1 overflow-x-auto overflow-y-hidden">
+      <button
+        v-for="tab in tabs"
+        :key="tab.value"
+        role="tab"
+        type="button"
+        :aria-selected="tab.value === modelValue"
+        :tabindex="tab.value === modelValue ? 0 : -1"
+        class="relative flex items-center rounded-t-md px-3 font-inter text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-2"
+        :class="
+          tab.value === modelValue
+            ? 'bg-surface-3 text-1'
+            : 'text-muted hover:bg-surface-3/50 hover:text-1'
+        "
+        @click="select(tab.value)"
       >
-        {{ tab.count }}
-      </span>
-      <span
-        v-if="tab.badge"
-        class="ml-1.5 rounded-full bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-muted"
-      >
-        {{ tab.badge }}
-      </span>
-      <span
-        v-if="tab.value === modelValue"
-        class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent"
-      />
-    </button>
+        {{ tab.label }}
+        <WIcon
+          v-if="tab.warning"
+          name="alert-triangle"
+          size="3"
+          class="ml-1 text-status-4xx"
+          aria-label="Unresolved variable"
+        />
+        <span
+          v-if="tab.count"
+          class="ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-surface-1 px-1 font-mono text-[10px] text-muted"
+        >
+          {{ tab.count }}
+        </span>
+        <span
+          v-if="tab.badge"
+          class="ml-1.5 rounded-full bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-muted"
+        >
+          {{ tab.badge }}
+        </span>
+        <span
+          v-if="tab.value === modelValue"
+          class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent"
+        />
+      </button>
+    </div>
+    <div v-if="$slots.actions" class="flex shrink-0 items-center gap-1 pl-2">
+      <slot name="actions" />
+    </div>
   </div>
 </template>
