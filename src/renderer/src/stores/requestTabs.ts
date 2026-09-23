@@ -121,7 +121,26 @@ export interface FolderTabState {
   originalData: FolderFile;
 }
 
-export type OpenTab = RequestTabState | FolderTabState;
+/**
+ * Aba de gerenciamento de environments — singleton, sem `path` real (não é um nó da
+ * árvore) e sem conceito de suja/rascunho: `EnvironmentsPanel` grava direto via
+ * `useEnvironmentStore` a cada campo editado, como o modal fazia antes dela virar aba.
+ * Não sobrevive a um restart do app (fora de `persistSession`/`restoreSession`) — reabre
+ * com um clique em "Manage", como o modal também nascia sempre fechado.
+ */
+export interface EnvironmentTabState {
+  kind: "environment";
+  id: string;
+  /** Igual a `id` — nunca corresponde a um `path` de nó real, só mantido para os helpers genéricos (`closeByPath`, `renamePath`) que indexam `OpenTab` por `path`. */
+  path: string;
+  title: string;
+  pinned: true;
+  dirty: false;
+}
+
+export const ENVIRONMENT_TAB_ID = "__environments__";
+
+export type OpenTab = RequestTabState | FolderTabState | EnvironmentTabState;
 
 export function isRequestTab(tab: OpenTab | null | undefined): tab is RequestTabState {
   return tab?.kind === "request";
@@ -129,6 +148,14 @@ export function isRequestTab(tab: OpenTab | null | undefined): tab is RequestTab
 
 export function isFolderTab(tab: OpenTab | null | undefined): tab is FolderTabState {
   return tab?.kind === "folder";
+}
+
+export function isEnvironmentTab(tab: OpenTab | null | undefined): tab is EnvironmentTabState {
+  return tab?.kind === "environment";
+}
+
+function isRequestOrFolderTab(tab: OpenTab): tab is RequestTabState | FolderTabState {
+  return tab.kind === "request" || tab.kind === "folder";
 }
 
 function buildTab(node: RequestNode, pinned: boolean): RequestTabState {
@@ -273,7 +300,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
 
   function persistSession(): void {
     workspace.patchUiState({
-      openTabs: tabs.value.map(tab => ({
+      // Aba de environments (`isEnvironmentTab`) não tem `path` de nó real — nunca entra
+      // na sessão persistida, mesmo tratamento que o modal antigo (sempre fechada ao
+      // reabrir o app).
+      openTabs: tabs.value.filter(isRequestOrFolderTab).map(tab => ({
         path: tab.path,
         pinned: tab.pinned,
         kind: tab.kind,
@@ -363,6 +393,24 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   const openPreview = (path: string): Promise<void> => openTab(path, false);
   const openPinned = (path: string): Promise<void> => openTab(path, true);
 
+  /** Abre (ou ativa, se já aberta) a aba de gerenciamento de environments — singleton, um clique em "Manage" no `StatusBar` nunca abre uma segunda. */
+  function openEnvironmentTab(): void {
+    const existing = tabs.value.find(isEnvironmentTab);
+    if (existing) {
+      activate(existing.id);
+      return;
+    }
+    tabs.value.push({
+      kind: "environment",
+      id: ENVIRONMENT_TAB_ID,
+      path: ENVIRONMENT_TAB_ID,
+      title: "Environments",
+      pinned: true,
+      dirty: false,
+    });
+    activate(ENVIRONMENT_TAB_ID);
+  }
+
   /** Abre (ou ativa, se já aberta) a aba de settings de uma pasta/collection (EP-07.1) — relê `folder.yaml` fresco, mesmo cuidado que `save()` já toma para request. */
   async function openFolderTab(path: string): Promise<void> {
     if (!workspace.root) return;
@@ -418,8 +466,9 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     tab.path = newPath;
     tab.id = newPath;
     tab.title = newName;
-    if (tab.kind === "request") tab.originalData = { ...tab.originalData, name: newName };
-    else tab.originalData = { ...tab.originalData, name: newName };
+    if (tab.kind === "request" || tab.kind === "folder") {
+      tab.originalData = { ...tab.originalData, name: newName };
+    }
     if (activeId.value === oldPath) activeId.value = newPath;
     persistSession();
   }
@@ -1021,6 +1070,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     openPreview,
     openPinned,
     openFolderTab,
+    openEnvironmentTab,
     requestClose,
     forceClose,
     closeByPath,
