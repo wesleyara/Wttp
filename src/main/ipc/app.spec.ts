@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isAllowedExternalUrl } from "./app";
+import { isAllowedExternalUrl } from "./externalUrls";
 
 describe("isAllowedExternalUrl", () => {
   it("permite as URLs exatas da allowlist", () => {
@@ -14,6 +14,12 @@ describe("isAllowedExternalUrl", () => {
     expect(isAllowedExternalUrl("https://github.com/wesleyara/Wttp/tree/main/docs/file.md")).toBe(
       true,
     );
+  });
+
+  it("permite o site publicado da documentação", () => {
+    expect(isAllowedExternalUrl("https://wesleyara.github.io/Wttp/")).toBe(true);
+    expect(isAllowedExternalUrl("https://wesleyara.github.io/Wttp/en/guide/requests")).toBe(true);
+    expect(isAllowedExternalUrl("https://wesleyara.github.io/other")).toBe(false);
   });
 
   it("recusa domínio diferente, mesmo parecido", () => {

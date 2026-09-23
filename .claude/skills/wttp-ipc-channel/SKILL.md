@@ -7,7 +7,7 @@ description: Adiciona ou altera um canal IPC entre o main e o renderer do Wttp. 
 
 O renderer **nunca** importa `node:*` nem `electron`. Toda capacidade nova é um canal novo. Um canal exige quatro edições — esquecer qualquer uma quebra o build ou o typecheck.
 
-Contexto: [docs/architecture.md §2](../../../docs/architecture.md).
+Contexto: [arch-docs/architecture.md §2](../../../arch-docs/architecture.md).
 
 ## 1. Tipo em `src/shared/ipc.ts`
 

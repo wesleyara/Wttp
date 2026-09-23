@@ -4,11 +4,13 @@ import type { WorkspaceNode } from "@shared";
 import { isValidMoveCopyDestination, useTreeStore } from "@renderer/stores/tree";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WButton from "./WButton.vue";
 import WIcon from "./WIcon.vue";
 import WModal from "./WModal.vue";
 
+const { t } = useI18n();
 const workspace = useWorkspaceStore();
 const tree = useTreeStore();
 
@@ -56,12 +58,14 @@ function confirm(): void {
 <template>
   <WModal
     :open="tree.moveCopyTarget !== null"
-    :title="tree.moveCopyTarget?.mode === 'copy' ? 'Copy to…' : 'Move to…'"
+    :title="
+      tree.moveCopyTarget?.mode === 'copy' ? t('moveCopy.copyTitle') : t('moveCopy.moveTitle')
+    "
     @close="tree.closeMoveCopy"
   >
     <div class="flex flex-col gap-1">
       <p v-if="rows.length === 0" class="p-2 font-inter text-xs text-faint">
-        No collections or folders yet.
+        {{ t("moveCopy.empty") }}
       </p>
       <button
         v-for="row in rows"
@@ -81,9 +85,9 @@ function confirm(): void {
     </div>
 
     <template #footer>
-      <WButton variant="ghost" @click="tree.closeMoveCopy">Cancel</WButton>
+      <WButton variant="ghost" @click="tree.closeMoveCopy">{{ t("common.cancel") }}</WButton>
       <WButton variant="primary" :disabled="selectedTarget === null" @click="confirm">
-        {{ tree.moveCopyTarget?.mode === "copy" ? "Copy" : "Move" }}
+        {{ tree.moveCopyTarget?.mode === "copy" ? t("moveCopy.copy") : t("moveCopy.move") }}
       </WButton>
     </template>
   </WModal>

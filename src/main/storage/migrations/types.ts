@@ -1,5 +1,5 @@
 /**
- * Forma de um migrador de schema — docs/file-format.md §6, regra 1. Cada migrador sobe
+ * Forma de um migrador de schema — arch-docs/file-format.md §6, regra 1. Cada migrador sobe
  * exatamente uma versão (`from` → `from + 1`); `migrateToCurrent` (`registry.ts`)
  * encadeia quantos forem necessários para alcançar `CURRENT_SCHEMA_VERSION`.
  *

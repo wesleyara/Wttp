@@ -1,7 +1,7 @@
 # `src/main`
 
 Processo Node do Wttp. Único lugar do repositório com acesso a disco, rede e SO.
-Referência completa: [docs/architecture.md](../../docs/architecture.md).
+Referência completa: [arch-docs/architecture.md](../../arch-docs/architecture.md).
 
 ---
 

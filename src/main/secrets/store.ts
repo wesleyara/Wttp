@@ -1,11 +1,11 @@
 /**
- * Segredos de environment (EP-04-T06) — docs/file-format.md §5: uma variável
+ * Segredos de environment (EP-04-T06) — arch-docs/file-format.md §5: uma variável
  * `secret: true` nunca tem valor no YAML; o valor real vive aqui, sob a chave
  * `wttp:<workspaceId>:<env>:<name>` que quem chama constrói e passa como `key` — a
  * store só sabe guardar/ler pares chave-valor de um workspace, não conhece o
  * vocabulário de environment/variável.
  *
- * Guardado em `<root>/.wttp/secrets.json` (docs/file-format.md §1) — gitignored.
+ * Guardado em `<root>/.wttp/secrets.json` (arch-docs/file-format.md §1) — gitignored.
  * Quando `encryption.isAvailable()` (backend do SO via `safeStorage` — Keychain,
  * DPAPI, libsecret/kwallet), cada valor é cifrado antes de tocar o disco e o arquivo
  * marca `encrypted: true`. Sem isso disponível (ex: Linux sem libsecret), grava em

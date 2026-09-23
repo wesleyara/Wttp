@@ -1,5 +1,5 @@
 /**
- * Tipos dos arquivos YAML de workspace (EP-04), espelhando docs/file-format.md.
+ * Tipos dos arquivos YAML de workspace (EP-04), espelhando arch-docs/file-format.md.
  * Reaproveita o vocabulário de `http.ts` (`KeyValueEntry`, `AuthConfig`, `RequestBody`,
  * `HttpMethod`) porque é o mesmo formato de request usado pela engine, só que ainda com
  * `{{variáveis}}` não resolvidas.
@@ -13,12 +13,12 @@ import type {
   RequestBody,
 } from "./http";
 
-/** Versão do schema em disco — docs/file-format.md §6, regra 1. */
+/** Versão do schema em disco — arch-docs/file-format.md §6, regra 1. */
 export type SchemaVersion = 1;
 
 /**
  * Chaves que esta versão do app não reconhece, capturadas na leitura e regravadas tal
- * qual — docs/file-format.md §6, regra 7. Nunca populado por código próprio do Wttp.
+ * qual — arch-docs/file-format.md §6, regra 7. Nunca populado por código próprio do Wttp.
  */
 export interface UnknownFields {
   unknown?: Record<string, unknown>;
@@ -94,7 +94,7 @@ export interface EnvironmentFile extends UnknownFields {
  * Um environment lido do disco, com o nome do arquivo em `environments/` (EP-06-T02) —
  * mesmo par `path`/`data` de `FolderNode`/`RequestNode`. `path` é fixado na criação e
  * não muda quando `data.name` é editado depois (evita ter que migrar as chaves de
- * segredo no keychain, que usam `path` como o segmento `<env>` — docs/file-format.md §5).
+ * segredo no keychain, que usam `path` como o segmento `<env>` — arch-docs/file-format.md §5).
  */
 export interface EnvironmentListItem {
   path: string;
@@ -104,7 +104,7 @@ export interface EnvironmentListItem {
 /**
  * Árvore de um workspace lida do disco (EP-04-T04) — o que `workspace:open` e
  * `workspace:create` devolvem ao renderer. Espelha o layout de diretórios de
- * docs/file-format.md §1, não a hierarquia de `import`/`export` do resto do app.
+ * arch-docs/file-format.md §1, não a hierarquia de `import`/`export` do resto do app.
  */
 
 /** Localização de um problema de schema num nó da árvore — ver `SchemaIssue` no main. */
@@ -120,7 +120,7 @@ export interface WorkspaceNodeIssue {
  * Uma pasta/collection. `path` é o diretório, relativo à raiz do workspace ("" para a
  * raiz). `data` é `null` quando não existe `folder.yaml` (pasta "nua", válida) **ou**
  * quando existe mas é inválido — nesse segundo caso `issues` vem preenchido e a pasta
- * continua navegável, com seus filhos, docs/file-format.md §7.
+ * continua navegável, com seus filhos, arch-docs/file-format.md §7.
  */
 export interface FolderNode {
   kind: "folder";
@@ -183,7 +183,7 @@ export interface TabState {
 }
 
 /**
- * Estado de UI por workspace (docs/file-format.md §1), gitignored em
+ * Estado de UI por workspace (arch-docs/file-format.md §1), gitignored em
  * `.wttp/ui-state.json` — não confundir com `UiState` de `shared/ipc.ts`, que é
  * global ao app (tamanhos de painel, sobrevive entre workspaces diferentes).
  */

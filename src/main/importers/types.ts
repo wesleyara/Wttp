@@ -61,7 +61,7 @@ export interface NormalizedImport {
   docs?: string;
   children: NormalizedNode[];
   environments: NormalizedEnvironment[];
-  /** Tudo que não teve equivalente — docs/backlog EP-08: nunca descartado em silêncio. */
+  /** Tudo que não teve equivalente — arch-docs/backlog EP-08: nunca descartado em silêncio. */
   notConverted: ImportReportItem[];
 }
 

@@ -17,3 +17,6 @@ coverage
 # VitePress dev-server cache — regenerated locally, was accidentally committed and
 # broke `yarn lint` (EP-10-T03).
 docs/.vitepress/cache/
+
+# Documentação empacotada no app (EP-08.1-T07) — gerada por `yarn docs:build:offline`.
+resources/docs-site/

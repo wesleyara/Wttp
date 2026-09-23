@@ -5,7 +5,7 @@ description: Cria ou edita componentes e páginas Vue do Wttp. Use ao mexer em q
 
 # Componente Vue no Wttp
 
-Contexto: [docs/design-system.md](../../../docs/design-system.md) · [docs/conventions.md](../../../docs/conventions.md)
+Contexto: [arch-docs/design-system.md](../../../arch-docs/design-system.md) · [arch-docs/conventions.md](../../../arch-docs/conventions.md)
 
 ## Estrutura
 

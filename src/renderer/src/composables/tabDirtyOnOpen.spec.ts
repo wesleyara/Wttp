@@ -27,7 +27,7 @@ function wireComponentWatchers(): void {
 
 const ROOT = "/workspace";
 
-// Formato exatamente como vem do disco (docs/file-format.md): campos default (aqui,
+// Formato exatamente como vem do disco (arch-docs/file-format.md): campos default (aqui,
 // `description` vazio) somem do YAML — só reaparecem como `""` quando o código em
 // memória os reconstrói. Query já embutida na URL, Content-Type já correto no header,
 // path param já com valor — nada aqui deveria mudar ao só abrir a aba.

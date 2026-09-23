@@ -1,5 +1,5 @@
 /**
- * Ordem de execução dos scripts pre-request e tests (EP-09-T03) — docs/architecture.md
+ * Ordem de execução dos scripts pre-request e tests (EP-09-T03) — arch-docs/architecture.md
  * §4/§5. Pura: só monta a lista, não chama IPC — quem chama `window.wttp.script.run`
  * é a store (`requestTabs.ts`), que já é o único ponto de I/O do domínio.
  */
@@ -29,7 +29,7 @@ export function buildScriptChain(
 }
 
 /**
- * Ordem de execução por fase (docs/backlog/EP-09-scripts.md, EP-09-T03): pre-request
+ * Ordem de execução por fase (arch-docs/backlog/EP-09-scripts.md, EP-09-T03): pre-request
  * roda de fora para dentro — collection/pasta mais distante primeiro, request por
  * último, logo antes do envio. tests roda o inverso — request primeiro, subindo até a
  * collection — porque é a request que sabe o que checar primeiro, a pasta só

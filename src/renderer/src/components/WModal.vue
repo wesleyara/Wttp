@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, useTemplateRef, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WIcon from "./WIcon.vue";
 
@@ -17,6 +18,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+const { t } = useI18n();
 const panelRef = useTemplateRef<HTMLElement>("panel");
 let previouslyFocused: HTMLElement | null = null;
 
@@ -84,7 +86,7 @@ onBeforeUnmount(() => previouslyFocused?.focus());
           <button
             v-if="size !== 'md'"
             type="button"
-            title="Close"
+            :title="t('base.close')"
             class="rounded text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             @click="close"
           >

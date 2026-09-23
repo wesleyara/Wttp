@@ -1,6 +1,7 @@
 import type {
   AppendHistoryPayload,
   AppInfo,
+  AppOpenDocsPayload,
   AppOpenExternalPayload,
   AppSettings,
   CopyNodeIntoPayload,
@@ -75,6 +76,7 @@ const wttp = {
     ping: (): Promise<AppInfo> => invoke("app:ping"),
     openExternal: (payload: AppOpenExternalPayload): Promise<void> =>
       invoke("app:openExternal", payload),
+    openDocs: (payload: AppOpenDocsPayload): Promise<void> => invoke("app:openDocs", payload),
   },
   ui: {
     getState: (): Promise<UiState> => invoke("ui:getState"),
@@ -185,6 +187,8 @@ const wttp = {
       ipcRenderer.on("menu:action", listener);
       return () => ipcRenderer.off("menu:action", listener);
     },
+    getDefaultAccelerators: (): Promise<Record<MenuAction, string>> =>
+      invoke("menu:getDefaultAccelerators"),
   },
   import: {
     detect: (payload: DetectImportPayload): Promise<ImportFormat | null> =>

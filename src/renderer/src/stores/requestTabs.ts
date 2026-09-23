@@ -18,6 +18,7 @@ import type {
   WttpError,
 } from "@shared";
 
+import { i18n } from "@renderer/i18n";
 import { suggestedFileName } from "@renderer/lib/content-type";
 import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/scriptChain";
 import { useEnvironmentStore } from "@renderer/stores/environment";
@@ -207,7 +208,7 @@ function buildFolderTab(node: FolderNode, isCollection: boolean): FolderTabState
   };
 }
 
-/** Uma pasta na raiz do workspace é uma "Collection" na UI — path relativo sem `/` (docs/file-format.md não distingue os dois, é só rótulo). */
+/** Uma pasta na raiz do workspace é uma "Collection" na UI — path relativo sem `/` (arch-docs/file-format.md não distingue os dois, é só rótulo). */
 function isCollectionPath(path: string): boolean {
   return !path.includes("/");
 }
@@ -492,7 +493,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     // O watcher de filesystem ignora a própria escrita (evita loop com o save),
     // então a árvore só reflete campos como `method` se pedirmos o refresh aqui.
     await workspace.refreshTree();
-    toast.push(`"${tab.title}" saved`, "success");
+    toast.push(i18n.global.t("toast.saved", { name: tab.title }), "success");
   }
 
   /** Grava `folder.yaml` com auth/docs/variables da aba, preservando campos desconhecidos já presentes — mesmo cuidado que `useTreeStore.saveFolderAuth` tomava antes de virar aba. */
@@ -516,7 +517,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     tab.dirty = false;
     flushDrafts();
     await workspace.refreshTree();
-    toast.push(`"${tab.title}" saved`, "success");
+    toast.push(i18n.global.t("toast.saved", { name: tab.title }), "success");
   }
 
   function saveActive(): Promise<void> {
@@ -541,7 +542,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     const id = closeConfirmId.value;
     const tab = tabs.value.find(t => t.id === id);
     forceClose(id);
-    if (tab) toast.push(`Changes to "${tab.title}" discarded`, "warning");
+    if (tab) toast.push(i18n.global.t("toast.discarded", { name: tab.title }), "warning");
     if (closeQueue.value[0] === id) closeQueue.value.shift();
     processCloseQueue();
   }
@@ -613,7 +614,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     collectionName: string | undefined;
   }
 
-  /** Pasta raiz da cadeia (a "collection" da request, docs/file-format.md) — `undefined` se a request está solta na raiz do workspace. */
+  /** Pasta raiz da cadeia (a "collection" da request, arch-docs/file-format.md) — `undefined` se a request está solta na raiz do workspace. */
   function rootCollectionFolder(requestPath: string): FolderNode | undefined {
     const chain = variables.folderChain(requestPath);
     return chain[chain.length - 1];
@@ -759,7 +760,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
           console: consoleEntries,
           error: {
             source: link.source,
-            error: result.error ?? { code: "UNKNOWN", message: "Pre-request script failed" },
+            error: result.error ?? {
+              code: "UNKNOWN",
+              message: i18n.global.t("storeErrors.preRequestFailed"),
+            },
           },
         };
       }
@@ -832,6 +836,9 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     const id = crypto.randomUUID();
     tab.requestId = id;
     tab.sending = true;
+    // Guardados para um cancelamento desfazer o envio por completo (abaixo).
+    const previousResult = tab.lastResult;
+    const previousScriptRun = tab.scriptRun;
     tab.scriptRun = null;
 
     const scope = buildScriptScope(tab.path);
@@ -858,14 +865,26 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
           preRequestError: preRequest.error,
         };
         toast.push(
-          `Pre-request script failed (${preRequest.error.source}): ${preRequest.error.error.message}`,
+          i18n.global.t("toast.preRequestFailed", {
+            source: preRequest.error.source,
+            message: preRequest.error.error.message,
+          }),
           "error",
         );
         return;
       }
 
       sentSpec = preRequest.spec;
-      tab.lastResult = await window.wttp.http.send(preRequest.spec);
+      const result = await window.wttp.http.send(preRequest.spec);
+      if (!result.ok && result.error.code === "CANCELLED") {
+        // Cancelar é como se o envio nunca tivesse existido: nem histórico, nem painel
+        // de erro, nem testes — a aba volta a mostrar o que tinha antes de "Send".
+        sentSpec = null;
+        tab.lastResult = previousResult;
+        tab.scriptRun = previousScriptRun;
+        return;
+      }
+      tab.lastResult = result;
 
       const tests = await runTestsChain(tab, tab.lastResult, scope);
       tab.scriptRun = {

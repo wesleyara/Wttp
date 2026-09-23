@@ -4,7 +4,7 @@
  * `.wttp/`). Segredo nunca entra: `appendHistory` mascara `secrets` (os valores reais
  * de variável `secret: true` usados nesta request) e sempre mascara o header
  * `Authorization` inteiro, reaplicando `applyAuth` para capturar também o que a engine
- * injeta depois que o renderer já mandou a request (docs/backlog EP-08.1-T03).
+ * injeta depois que o renderer já mandou a request (arch-docs/backlog EP-08.1-T03).
  */
 
 import type {

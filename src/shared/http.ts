@@ -1,9 +1,9 @@
 /**
  * Tipos do núcleo HTTP (EP-03) — vocabulário compartilhado entre o motor de
  * requisição no main, o IPC e a UI do renderer. Alinhado com o YAML de
- * docs/file-format.md, mesmo que a serialização em disco seja um módulo à parte.
+ * arch-docs/file-format.md, mesmo que a serialização em disco seja um módulo à parte.
  *
- * `form` aparece em docs/file-format.md como um dos tipos de `body`, mas é o mesmo
+ * `form` aparece em arch-docs/file-format.md como um dos tipos de `body`, mas é o mesmo
  * `application/x-www-form-urlencoded` que `urlencoded` — não existe como variante
  * própria aqui.
  */
@@ -48,7 +48,7 @@ export type AuthConfig =
   | { type: "basic"; basic: { username: string; password: string } }
   | { type: "apikey"; apikey: { key: string; value: string; in: "header" | "query" } };
 
-/** Sobrescreve, por request, o que está em `wttp.yaml` (docs/file-format.md §2). */
+/** Sobrescreve, por request, o que está em `wttp.yaml` (arch-docs/file-format.md §2). */
 export interface HttpRequestSettings {
   timeout?: number;
   followRedirects?: boolean;

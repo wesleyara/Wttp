@@ -1,5 +1,5 @@
 /**
- * Entry point do utility process (EP-09-T01) — docs/architecture.md §5.
+ * Entry point do utility process (EP-09-T01) — arch-docs/architecture.md §5.
  *
  * Compilado como um bundle separado (ver `electron.vite.config.ts`) e spawnado por
  * `runner.ts` via `utilityProcess.fork`. Só faz a ponte entre `process.parentPort` e

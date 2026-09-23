@@ -1,5 +1,5 @@
 /**
- * Autocomplete da API de scripting (EP-09-T04) — docs/scripting.md. `WCodeEditor`
+ * Autocomplete da API de scripting (EP-09-T04) — arch-docs/scripting.md. `WCodeEditor`
  * (`scriptPhase` prop) usa isto quando edita `scripts.preRequest`/`scripts.tests`.
  * Pura: só monta a fonte de completions do CodeMirror, sem tocar em `window.wttp`.
  */
@@ -123,7 +123,7 @@ const MEMBERS_BY_OBJECT: Record<string, ApiMember[]> = {
   res: RES_MEMBERS,
 };
 
-/** Só o que existe na fase — `req`/`console` no pre-request; `res`/`test`/`expect`/`console` nos tests (docs/scripting.md). */
+/** Só o que existe na fase — `req`/`console` no pre-request; `res`/`test`/`expect`/`console` nos tests (arch-docs/scripting.md). */
 function topLevelNamesFor(phase: ScriptPhase): string[] {
   return phase === "preRequest"
     ? ["wttp", "req", "console"]

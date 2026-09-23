@@ -10,7 +10,7 @@
  *
  * Scripts (`pm.*`) são convertidos linha a linha: um conjunto pequeno de chamadas com
  * equivalente direto (`pm.environment.set` → `wttp.setVar`, `pm.test` → `test`, os
- * matchers Chai mais comuns → os matchers de `expect`, ver docs/scripting.md) é
+ * matchers Chai mais comuns → os matchers de `expect`, ver arch-docs/scripting.md) é
  * reescrito; qualquer linha que ainda contenha `pm.` depois disso não tem conversão
  * seura o bastante — vira comentário na linha original, nunca é descartada, e entra no
  * relatório (`notConverted`), mesmo princípio de EP-08-T05 para flags de cURL não
@@ -317,7 +317,7 @@ function mapBody(
   }
 }
 
-// ---- Conversão de scripts pm.* → wttp/test/expect (docs/scripting.md) ----
+// ---- Conversão de scripts pm.* → wttp/test/expect (arch-docs/scripting.md) ----
 
 const LINE_TRANSFORMS: Array<[RegExp, string]> = [
   [/\bpm\.environment\.set\(/g, "wttp.setVar("],

@@ -30,9 +30,11 @@ import { useUiStore } from "@renderer/stores/ui";
 import { useUpdateStore } from "@renderer/stores/update";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
+import { useI18n } from "vue-i18n";
 
 // Esqueleto definitivo do app (EP-02-T04): sidebar de collections, área central de
 // abas de request e painel de resposta (EP-05-T05).
+const { t } = useI18n();
 const ui = useUiStore();
 const menu = useMenuStore();
 const workspace = useWorkspaceStore();
@@ -87,10 +89,19 @@ function openCreateMenu(): void {
 }
 
 const createMenuItems = computed<ContextMenuItem[]>(() => [
-  { label: "New collection", icon: "layers", action: () => void tree.createCollection() },
-  { label: "New folder", icon: "folder-plus", action: () => void tree.createFolder() },
-  { label: "New request", icon: "file-plus", action: () => void tree.createRequest() },
-  { label: "Import", icon: "import", separatorBefore: true, action: openImportIntoWorkspace },
+  {
+    label: t("createMenu.newCollection"),
+    icon: "layers",
+    action: () => void tree.createCollection(),
+  },
+  { label: t("createMenu.newFolder"), icon: "folder-plus", action: () => void tree.createFolder() },
+  { label: t("createMenu.newRequest"), icon: "file-plus", action: () => void tree.createRequest() },
+  {
+    label: t("createMenu.import"),
+    icon: "import",
+    separatorBefore: true,
+    action: openImportIntoWorkspace,
+  },
 ]);
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
@@ -101,27 +112,47 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
 
   if (node.kind === "folder") {
     items.push(
-      { label: "New request", icon: "file-plus", action: () => void tree.createRequest(node.path) },
-      { label: "New folder", icon: "folder-plus", action: () => void tree.createFolder(node.path) },
       {
-        label: "Settings",
+        label: t("contextMenu.newRequest"),
+        icon: "file-plus",
+        action: () => void tree.createRequest(node.path),
+      },
+      {
+        label: t("contextMenu.newFolder"),
+        icon: "folder-plus",
+        action: () => void tree.createFolder(node.path),
+      },
+      {
+        label: t("contextMenu.settings"),
         icon: "settings",
         action: () => void requestTabs.openFolderTab(node.path),
       },
     );
   }
   items.push(
-    { label: "Rename", icon: "pencil", action: () => tree.startRename(node.path) },
-    { label: "Duplicate", icon: "copy", action: () => void tree.duplicate(node.path) },
-    { label: "Move to…", icon: "folder-input", action: () => tree.openMoveCopy(node, "move") },
-    { label: "Copy to…", icon: "copy-plus", action: () => tree.openMoveCopy(node, "copy") },
+    { label: t("contextMenu.rename"), icon: "pencil", action: () => tree.startRename(node.path) },
     {
-      label: "Reveal in file explorer",
+      label: t("contextMenu.duplicate"),
+      icon: "copy",
+      action: () => void tree.duplicate(node.path),
+    },
+    {
+      label: t("contextMenu.moveTo"),
+      icon: "folder-input",
+      action: () => tree.openMoveCopy(node, "move"),
+    },
+    {
+      label: t("contextMenu.copyTo"),
+      icon: "copy-plus",
+      action: () => tree.openMoveCopy(node, "copy"),
+    },
+    {
+      label: t("contextMenu.reveal"),
       icon: "folder-open",
       action: () => void tree.reveal(node.path),
     },
     {
-      label: "Delete",
+      label: t("contextMenu.delete"),
       icon: "trash-2",
       danger: true,
       separatorBefore: true,
@@ -183,9 +214,18 @@ onUnmounted(() => {
         <template #first>
           <aside class="flex h-full flex-col bg-surface-2">
             <div class="flex shrink-0 items-center gap-1 border-b border-subtle p-2">
-              <WInput v-model="tree.filterText" placeholder="Filter…" class="flex-1" />
+              <WInput
+                v-model="tree.filterText"
+                :placeholder="t('shell.filterPlaceholder')"
+                class="flex-1"
+              />
               <span ref="createButton" class="inline-flex">
-                <WButton size="sm" variant="ghost" title="New…" @click="openCreateMenu">
+                <WButton
+                  size="sm"
+                  variant="ghost"
+                  :title="t('shell.newTooltip')"
+                  @click="openCreateMenu"
+                >
                   <WIcon name="plus" />
                 </WButton>
               </span>
@@ -193,15 +233,15 @@ onUnmounted(() => {
             <div class="min-h-0 flex-1">
               <WEmptyState
                 v-if="!workspace.tree || workspace.tree.children.length === 0"
-                title="No collections yet"
-                description="Create your first request."
+                :title="t('shell.emptyTree.title')"
+                :description="t('shell.emptyTree.description')"
               >
                 <template #icon>
                   <WIcon name="folder-open" size="5" />
                 </template>
                 <template #action>
                   <WButton variant="primary" size="sm" @click="tree.createRequest()">
-                    New request
+                    {{ t("shell.emptyTree.newRequest") }}
                   </WButton>
                 </template>
               </WEmptyState>
@@ -230,8 +270,8 @@ onUnmounted(() => {
         <template #second>
           <WEmptyState
             v-if="requestTabs.tabs.length === 0"
-            title="Nothing open"
-            description="Select or create a request, folder or collection."
+            :title="t('shell.emptyMain.title')"
+            :description="t('shell.emptyMain.description')"
           >
             <template #icon>
               <WIcon name="send" size="5" />
@@ -273,8 +313,8 @@ onUnmounted(() => {
                 <ResponsePanel v-if="requestTabs.active?.kind === 'request'" />
                 <WEmptyState
                   v-else
-                  title="No response yet"
-                  description="Send a request to see a response."
+                  :title="t('shell.emptyResponse.title')"
+                  :description="t('shell.emptyResponse.description')"
                 >
                   <template #icon>
                     <WIcon name="inbox" size="5" />
@@ -319,51 +359,72 @@ onUnmounted(() => {
 
     <WModal
       :open="requestTabs.closeConfirmTab !== null"
-      title="Unsaved changes"
+      :title="t('dialog.unsavedChanges.title')"
       @close="requestTabs.cancelClose"
     >
       <p v-if="requestTabs.closeConfirmTab" class="font-inter text-sm text-1">
-        "{{ requestTabs.closeConfirmTab.title }}" has unsaved changes. Save before closing?
+        {{ t("dialog.unsavedChanges.body", { title: requestTabs.closeConfirmTab.title }) }}
       </p>
       <template #footer>
-        <WButton variant="ghost" @click="requestTabs.cancelClose">Cancel</WButton>
-        <WButton variant="danger" @click="requestTabs.confirmCloseDiscard">Discard</WButton>
-        <WButton variant="primary" @click="requestTabs.confirmCloseSave">Save</WButton>
+        <WButton variant="ghost" @click="requestTabs.cancelClose">{{ t("common.cancel") }}</WButton>
+        <WButton variant="danger" @click="requestTabs.confirmCloseDiscard">
+          {{ t("dialog.unsavedChanges.discard") }}
+        </WButton>
+        <WButton variant="primary" @click="requestTabs.confirmCloseSave">
+          {{ t("common.save") }}
+        </WButton>
       </template>
     </WModal>
 
     <WModal
       :open="requestTabs.unresolvedSendId !== null"
-      title="Unresolved variable"
+      :title="t('dialog.unresolvedVariable.title')"
       @close="requestTabs.cancelSendUnresolved"
     >
       <p v-if="requestTabs.unresolvedSendTab" class="font-inter text-sm text-1">
-        "{{ requestTabs.unresolvedSendTab.title }}" has unresolved variable{{
-          requestTabs.unresolvedSendNames.length > 1 ? "s" : ""
-        }}:
-        <span class="font-mono text-status-4xx">{{
-          requestTabs.unresolvedSendNames.join(", ")
-        }}</span
-        >. Send anyway?
+        {{
+          t(
+            requestTabs.unresolvedSendNames.length > 1
+              ? "dialog.unresolvedVariable.bodyOther"
+              : "dialog.unresolvedVariable.bodyOne",
+            {
+              title: requestTabs.unresolvedSendTab.title,
+              names: requestTabs.unresolvedSendNames.join(", "),
+            },
+          )
+        }}
       </p>
       <template #footer>
-        <WButton variant="ghost" @click="requestTabs.cancelSendUnresolved">Cancel</WButton>
-        <WButton variant="primary" @click="requestTabs.confirmSendUnresolved">Send anyway</WButton>
+        <WButton variant="ghost" @click="requestTabs.cancelSendUnresolved">
+          {{ t("common.cancel") }}
+        </WButton>
+        <WButton variant="primary" @click="requestTabs.confirmSendUnresolved">
+          {{ t("dialog.unresolvedVariable.sendAnyway") }}
+        </WButton>
       </template>
     </WModal>
 
-    <WModal :open="tree.deleteTarget !== null" title="Delete" @close="tree.cancelDelete">
+    <WModal
+      :open="tree.deleteTarget !== null"
+      :title="t('dialog.deleteConfirm.title')"
+      @close="tree.cancelDelete"
+    >
       <p v-if="tree.deleteTarget" class="font-inter text-sm text-1">
-        Delete "{{ tree.deleteTarget.node.name }}"?
+        {{ t("dialog.deleteConfirm.body", { name: tree.deleteTarget.node.name }) }}
         <template v-if="tree.deleteTarget.descendantCount > 0">
-          This also removes {{ tree.deleteTarget.descendantCount }}
-          {{ tree.deleteTarget.descendantCount === 1 ? "item" : "items" }} inside it.
+          {{
+            tree.deleteTarget.descendantCount === 1
+              ? t("dialog.deleteConfirm.alsoRemovesOne")
+              : t("dialog.deleteConfirm.alsoRemovesOther", {
+                  count: tree.deleteTarget.descendantCount,
+                })
+          }}
         </template>
-        It moves to the system trash.
+        {{ t("dialog.deleteConfirm.trash") }}
       </p>
       <template #footer>
-        <WButton variant="ghost" @click="tree.cancelDelete">Cancel</WButton>
-        <WButton variant="danger" @click="tree.confirmDelete">Delete</WButton>
+        <WButton variant="ghost" @click="tree.cancelDelete">{{ t("common.cancel") }}</WButton>
+        <WButton variant="danger" @click="tree.confirmDelete">{{ t("common.delete") }}</WButton>
       </template>
     </WModal>
   </div>

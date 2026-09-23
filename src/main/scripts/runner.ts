@@ -1,5 +1,5 @@
 /**
- * Gerência do utility process de scripts (EP-09-T01) — docs/architecture.md §5.
+ * Gerência do utility process de scripts (EP-09-T01) — arch-docs/architecture.md §5.
  *
  * Único ponto do main que sabe que o runner existe. Mantém um `UtilityProcess`
  * reciclado entre execuções, mata e respawna em timeout ou crash, e nunca deixa uma

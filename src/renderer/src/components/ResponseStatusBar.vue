@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatBytes, formatDuration } from "@renderer/lib/format";
+import { useI18n } from "vue-i18n";
 
 import WButton from "./WButton.vue";
 import WIcon from "./WIcon.vue";
@@ -19,6 +20,8 @@ defineProps<{
   bodySize: number;
   isShowingHistoryFallback: boolean;
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   copy: [];
@@ -41,8 +44,8 @@ const emit = defineEmits<{
     <WButton
       size="sm"
       variant="ghost"
-      title="Copy body"
-      aria-label="Copy body"
+      :title="t('response.copyBody')"
+      :aria-label="t('response.copyBody')"
       @click="emit('copy')"
     >
       <WIcon name="copy" />
@@ -51,8 +54,8 @@ const emit = defineEmits<{
       v-if="!isShowingHistoryFallback"
       size="sm"
       variant="ghost"
-      title="Save response to file"
-      aria-label="Save response to file"
+      :title="t('response.saveToFile')"
+      :aria-label="t('response.saveToFile')"
       @click="emit('save')"
     >
       <WIcon name="save" />

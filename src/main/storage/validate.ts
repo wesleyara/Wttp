@@ -1,5 +1,5 @@
 /**
- * Validação de schema dos arquivos YAML de workspace — docs/file-format.md §7.
+ * Validação de schema dos arquivos YAML de workspace — arch-docs/file-format.md §7.
  * Roda antes de `parser.ts`: um arquivo sintaticamente quebrado ou com campo do tipo
  * errado nunca lança exceção aqui, só devolve `issues` com mensagem, caminho do campo
  * e linha. Quem chama (a camada de filesystem, EP-04-T04) decide o que fazer com um
@@ -36,7 +36,7 @@ const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"
 const BODY_TYPES = ["none", "json", "urlencoded", "raw", "multipart", "binary"] as const;
 const AUTH_TYPES = ["none", "inherit", "bearer", "basic", "apikey"] as const;
 
-/** Formata um `SchemaIssue` no layout de docs/file-format.md §7. */
+/** Formata um `SchemaIssue` no layout de arch-docs/file-format.md §7. */
 export function formatSchemaIssue(filePath: string, issue: SchemaIssue): string {
   const location = issue.line !== undefined ? `${filePath}:${issue.line}` : filePath;
   return `${location}\n  SCHEMA_INVALID — ${issue.message}`;

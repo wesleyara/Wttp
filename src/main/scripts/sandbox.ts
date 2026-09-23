@@ -1,10 +1,10 @@
 /**
- * Executor isolado de JavaScript de usuário (EP-09-T01) — docs/architecture.md §5.
+ * Executor isolado de JavaScript de usuário (EP-09-T01) — arch-docs/architecture.md §5.
  *
  * Roda dentro do utility process (`worker.ts`), nunca no main. `node:vm` sozinho não é
  * uma fronteira de segurança perfeita — um script hostil ainda pode tentar escapar do
  * contexto por truques de protótipo. O isolamento real vem daqui rodar num processo à
- * parte, sem privilégios, spawnado e morto pelo `runner.ts` (docs/architecture.md §5).
+ * parte, sem privilégios, spawnado e morto pelo `runner.ts` (arch-docs/architecture.md §5).
  * Este módulo não importa nada além de `node:vm`, o que o mantém testável com Vitest
  * puro, sem subir o Electron.
  */

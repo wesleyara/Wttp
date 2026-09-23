@@ -2,9 +2,11 @@
 import type { ToastVariant } from "@renderer/stores/toast";
 
 import { useToastStore } from "@renderer/stores/toast";
+import { useI18n } from "vue-i18n";
 
 import WIcon from "./WIcon.vue";
 
+const { t } = useI18n();
 const toast = useToastStore();
 
 const VARIANT_ICON: Record<ToastVariant, string> = {
@@ -59,7 +61,7 @@ const VARIANT_CLASS: Record<ToastVariant, string> = {
           </div>
           <button
             type="button"
-            aria-label="Dismiss"
+            :aria-label="t('base.dismiss')"
             class="flex size-5 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1"
             @click="toast.dismiss(item.id)"
           >

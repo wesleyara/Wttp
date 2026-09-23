@@ -1,7 +1,7 @@
 /**
  * Orquestra CRUD de environment (EP-06-T02) por cima de `tree.ts` (leitura/escrita do
  * YAML) e `secrets/store.ts` (valor real de uma variável `secret: true`) — as duas
- * metades da regra "segredo jamais em YAML" de docs/file-format.md §5. Módulo puro o
+ * metades da regra "segredo jamais em YAML" de arch-docs/file-format.md §5. Módulo puro o
  * bastante para Vitest: recebe `encryption` por parâmetro do mesmo jeito que
  * `secrets/store.ts`, nunca chama `electron.safeStorage` direto.
  */
@@ -15,7 +15,7 @@ import { CURRENT_SCHEMA_VERSION } from "./migrations/registry";
 import { createEnvironment, deleteEnvironment, getEnvironment, writeEnvironment } from "./tree";
 
 /**
- * `wttp:<workspaceId>:<env>:<name>` (docs/file-format.md §5) — `workspaceId` é a raiz
+ * `wttp:<workspaceId>:<env>:<name>` (arch-docs/file-format.md §5) — `workspaceId` é a raiz
  * do workspace, `env` é o `path` do arquivo (estável, não o `name` editável).
  */
 export function buildSecretKey(root: string, envPath: string, varName: string): string {

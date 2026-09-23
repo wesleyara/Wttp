@@ -2,7 +2,7 @@
  * Tipos da API de scripting (EP-09) — vocabulário compartilhado entre o runner isolado
  * no main (`src/main/scripts`), o IPC e a UI do renderer. A API exposta ao script do
  * usuário (`wttp.setVar/getVar`, `wttp.setCollectionVar/getCollectionVar`, `req`, `res`,
- * `test`, `expect`, `console.*`) está documentada em docs/scripting.md; estes tipos são
+ * `test`, `expect`, `console.*`) está documentada em arch-docs/scripting.md; estes tipos são
  * só a forma que atravessa o IPC.
  */
 
@@ -27,7 +27,7 @@ export interface ScriptAssertion {
 
 /**
  * Payload de `script:run`. `req` é obrigatório (e mutável) na fase `preRequest`; `res`
- * é obrigatório (e congelada) na fase `tests` — docs/architecture.md §4/§5.
+ * é obrigatório (e congelada) na fase `tests` — arch-docs/architecture.md §4/§5.
  *
  * `wttp.setVar`/`getVar` gravam no environment ativo; `wttp.setCollectionVar`/
  * `getCollectionVar` gravam na collection (pasta raiz) da request — nenhum dos dois é

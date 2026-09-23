@@ -9,6 +9,7 @@ import { useRequestStore } from "@renderer/stores/request";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { KeyValueRow } from "./WKeyValueTable.vue";
 
@@ -21,6 +22,7 @@ import WKeyValueTable from "./WKeyValueTable.vue";
 import WSelect from "./WSelect.vue";
 import WTabs from "./WTabs.vue";
 
+const { t } = useI18n();
 const store = useRequestStore();
 const { pathParams, query, headers, body, auth, docs, path } = storeToRefs(store);
 const variablesStore = useVariablesStore();
@@ -103,7 +105,7 @@ const hasScripts = computed(
 );
 
 // --- Auth (EP-07-T03/T04): badge/aviso na própria WTabs, sem precisar abrir a aba ---
-const selfLabel = computed(() => "This request");
+const selfLabel = computed(() => t("request.thisRequest"));
 const { effective: effectiveAuth, inherited: authInherited } = useEffectiveAuth(
   auth,
   path,
@@ -113,11 +115,11 @@ const { effective: effectiveAuth, inherited: authInherited } = useEffectiveAuth(
 const effectiveAuthLabel = computed(() => {
   switch (effectiveAuth.value.type) {
     case "bearer":
-      return "Bearer";
+      return t("auth.badge.bearer");
     case "basic":
-      return "Basic";
+      return t("auth.badge.basic");
     case "apikey":
-      return "API Key";
+      return t("auth.badge.apikey");
     default:
       return null;
   }
@@ -149,7 +151,9 @@ function escapeRegExp(text: string): string {
 function multipartRowTooltip(value: string): string | undefined {
   const names = unresolvedNamesIn(multipartUnresolved.value, value);
   if (names.length === 0) return undefined;
-  return names.map(name => multipartTooltips.value[name] ?? `${name} — not resolved`).join("\n");
+  return names
+    .map(name => multipartTooltips.value[name] ?? t("request.notResolved", { name }))
+    .join("\n");
 }
 
 function countActive(rows: { enabled: boolean; name: string }[]): number {
@@ -170,24 +174,24 @@ const bodyCount = computed(() => {
 const tabs = computed(() => [
   {
     value: "params",
-    label: "Params",
+    label: t("request.tabs.params"),
     count: countActive(query.value) + countActive(pathParams.value),
   },
-  { value: "headers", label: "Headers", count: countActive(headers.value) },
-  { value: "body", label: "Body", count: bodyCount.value },
+  { value: "headers", label: t("request.tabs.headers"), count: countActive(headers.value) },
+  { value: "body", label: t("request.tabs.body"), count: bodyCount.value },
   {
     value: "auth",
-    label: "Auth",
+    label: t("request.tabs.auth"),
     badge: authBadge.value,
     warning: authUnresolved.value.length > 0,
   },
   {
     value: "scripts",
-    label: "Scripts",
+    label: t("request.tabs.scripts"),
     badge: hasScripts.value ? "●" : undefined,
     warning: Boolean(store.scriptRun?.preRequestError),
   },
-  { value: "docs", label: "Docs" },
+  { value: "docs", label: t("request.tabs.docs") },
 ]);
 
 const pathParamRows = useKeyValueRows(pathParams);
@@ -216,14 +220,14 @@ const visibleAutoHeaders = computed(() =>
 
 // --- Body: seletor de tipo, preservando o conteúdo dos outros ao trocar -----------
 
-const BODY_TYPE_OPTIONS = [
-  { value: "none", label: "None" },
-  { value: "json", label: "JSON" },
-  { value: "urlencoded", label: "URL Encoded" },
-  { value: "raw", label: "Raw" },
-  { value: "multipart", label: "Multipart" },
-  { value: "binary", label: "Binary" },
-] as const;
+const BODY_TYPE_OPTIONS = computed(() => [
+  { value: "none", label: t("request.bodyTypes.none") },
+  { value: "json", label: t("request.bodyTypes.json") },
+  { value: "urlencoded", label: t("request.bodyTypes.urlencoded") },
+  { value: "raw", label: t("request.bodyTypes.raw") },
+  { value: "multipart", label: t("request.bodyTypes.multipart") },
+  { value: "binary", label: t("request.bodyTypes.binary") },
+]);
 
 function defaultBodyFor(type: RequestBody["type"]): RequestBody {
   switch (type) {
@@ -330,9 +334,7 @@ useAutoContentType(body, headers);
     <div v-if="activeTab === 'params'" class="flex flex-col gap-3 pt-2">
       <div v-if="pathParamRows.length > 0" class="flex flex-col gap-1">
         <p class="px-2 font-inter text-xs font-medium text-faint">
-          Path Variables — add or remove by editing
-          <span class="font-mono">:name</span>
-          in the URL above
+          {{ t("request.pathVariablesHint") }}
         </p>
         <WKeyValueTable
           v-model="pathParamRows"
@@ -347,7 +349,7 @@ useAutoContentType(body, headers);
       </div>
       <div class="flex flex-col gap-1">
         <p v-if="pathParamRows.length > 0" class="px-2 font-inter text-xs font-medium text-faint">
-          Query Params
+          {{ t("request.queryParams") }}
         </p>
         <WKeyValueTable
           v-model="queryRows"
@@ -372,8 +374,12 @@ useAutoContentType(body, headers);
           @click="showAutoHeaders = !showAutoHeaders"
         >
           <WIcon :name="showAutoHeaders ? 'chevron-down' : 'chevron-right'" />
-          {{ showAutoHeaders ? "Hide" : "Show" }} {{ visibleAutoHeaders.length }} auto-generated
-          header{{ visibleAutoHeaders.length === 1 ? "" : "s" }}
+          {{
+            t(
+              `request.autoHeaders${showAutoHeaders ? "Hide" : "Show"}${visibleAutoHeaders.length === 1 ? "One" : "Other"}`,
+              { count: visibleAutoHeaders.length },
+            )
+          }}
         </button>
         <div v-if="showAutoHeaders">
           <div
@@ -397,24 +403,24 @@ useAutoContentType(body, headers);
     <div v-else-if="activeTab === 'body'" class="flex flex-col gap-2 pt-2">
       <div class="flex items-center gap-2">
         <div class="w-40">
-          <WSelect v-model="bodyType" :options="[...BODY_TYPE_OPTIONS]" />
+          <WSelect v-model="bodyType" :options="BODY_TYPE_OPTIONS" />
         </div>
         <div v-if="bodyType === 'raw'" class="flex-1">
-          <WInput v-model="rawContentType" placeholder="Content-Type (ex: text/xml)" monospace />
-        </div>
-        <div v-if="bodyType === 'binary'" class="flex-1">
           <WInput
-            v-model="binaryPath"
-            placeholder="Path relative to the workspace root"
+            v-model="rawContentType"
+            :placeholder="t('request.contentTypePlaceholder')"
             monospace
           />
+        </div>
+        <div v-if="bodyType === 'binary'" class="flex-1">
+          <WInput v-model="binaryPath" :placeholder="t('request.filePathPlaceholder')" monospace />
         </div>
       </div>
 
       <WEmptyState
         v-if="bodyType === 'none'"
-        title="No body"
-        description="This request has no body."
+        :title="t('request.noBodyTitle')"
+        :description="t('request.noBodyDescription')"
       />
 
       <div v-else-if="bodyType === 'json'" class="min-h-48">
@@ -456,9 +462,9 @@ useAutoContentType(body, headers);
           class="flex h-7 items-center gap-2 border-b border-subtle px-2 font-inter text-xs font-medium text-faint"
         >
           <span class="w-5 shrink-0" />
-          <span class="w-1/4 shrink-0">Name</span>
-          <span class="w-20 shrink-0">Type</span>
-          <span class="flex-1">Value</span>
+          <span class="w-1/4 shrink-0">{{ t("request.multipartName") }}</span>
+          <span class="w-20 shrink-0">{{ t("request.multipartType") }}</span>
+          <span class="flex-1">{{ t("request.multipartValue") }}</span>
           <span class="w-6 shrink-0" />
         </div>
         <div
@@ -470,14 +476,14 @@ useAutoContentType(body, headers);
             type="checkbox"
             :checked="row.enabled"
             class="size-3.5 shrink-0 accent-accent"
-            :aria-label="`Enable row ${index + 1}`"
+            :aria-label="t('request.enableRow', { index: index + 1 })"
             @change="
               updateMultipartRow(index, { enabled: ($event.target as HTMLInputElement).checked })
             "
           />
           <input
             :value="row.name"
-            placeholder="Name"
+            :placeholder="t('request.multipartName')"
             class="w-1/4 shrink-0 bg-transparent font-mono text-[13px] text-1 outline-none placeholder:text-faint"
             @input="updateMultipartRow(index, { name: ($event.target as HTMLInputElement).value })"
           />
@@ -490,12 +496,14 @@ useAutoContentType(body, headers);
               })
             "
           >
-            <option value="text">Text</option>
-            <option value="file">File</option>
+            <option value="text">{{ t("request.typeText") }}</option>
+            <option value="file">{{ t("request.typeFile") }}</option>
           </select>
           <input
             :value="row.value"
-            :placeholder="row.type === 'file' ? 'Path relative to the workspace root' : 'Value'"
+            :placeholder="
+              row.type === 'file' ? t('request.filePathPlaceholder') : t('request.multipartValue')
+            "
             :title="row.type === 'text' ? multipartRowTooltip(row.value) : undefined"
             class="flex-1 bg-transparent font-mono text-[13px] outline-none placeholder:text-faint"
             :class="
@@ -508,7 +516,7 @@ useAutoContentType(body, headers);
           <button
             v-if="index < multipartEntries.length"
             type="button"
-            aria-label="Remove row"
+            :aria-label="t('request.removeRow')"
             class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
             @click="removeMultipartRow(index)"
           >
@@ -519,7 +527,7 @@ useAutoContentType(body, headers);
       </div>
 
       <div v-else-if="bodyType === 'binary'" class="p-2 font-inter text-sm text-muted">
-        The file at the path above is read and sent as the request body.
+        {{ t("request.binaryHint") }}
       </div>
     </div>
 
@@ -531,8 +539,8 @@ useAutoContentType(body, headers);
       <WTabs
         v-model="scriptsSubTab"
         :tabs="[
-          { value: 'preRequest', label: 'Pre-request' },
-          { value: 'tests', label: 'Post-response' },
+          { value: 'preRequest', label: t('request.preRequest') },
+          { value: 'tests', label: t('request.postResponse') },
         ]"
       />
       <div v-if="scriptsSubTab === 'preRequest'" class="h-48">
@@ -559,7 +567,7 @@ useAutoContentType(body, headers);
       <WCodeEditor
         v-model="docs"
         language="text"
-        placeholder="Document this request…"
+        :placeholder="t('request.docsPlaceholder')"
         :unresolved-variables="docsUnresolved"
         :variable-tooltips="docsTooltips"
         :variable-names="variableNames"

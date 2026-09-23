@@ -1,9 +1,9 @@
 /**
  * `methodToken` e `statusToken` — a mesma função por trás do `WMethodBadge`, da árvore
- * de collections e da barra de URL (docs/backlog/EP-02-design-system.md EP-02-T02).
+ * de collections e da barra de URL (arch-docs/backlog/EP-02-design-system.md EP-02-T02).
  *
  * Vivem no renderer, não em `@shared`: `@shared` é compilado nos três bundles e só pode
- * conter `type`/`interface` (docs/conventions.md), e nada aqui roda fora do renderer.
+ * conter `type`/`interface` (arch-docs/conventions.md), e nada aqui roda fora do renderer.
  *
  * Retornam a classe Tailwind **completa**, não só o sufixo do token: o scanner do
  * Tailwind extrai classes por regex sobre texto bruto, então `` `text-${token}` ``

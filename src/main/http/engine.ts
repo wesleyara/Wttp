@@ -43,7 +43,7 @@ const AUTO_GENERATED_HEADERS: readonly KeyValueEntry[] = [
 
 /**
  * Requests em voo, indexadas por `requestId` — é o que permite `http:cancel` achar o
- * `AbortController` certo (docs/architecture.md §4: "Cancelamento é do main").
+ * `AbortController` certo (arch-docs/architecture.md §4: "Cancelamento é do main").
  */
 const inFlight = new Map<string, AbortController>();
 

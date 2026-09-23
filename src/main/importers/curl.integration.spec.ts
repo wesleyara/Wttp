@@ -12,7 +12,7 @@ import { detectImportFormat, runImport } from "./index";
 /**
  * Fixture real: exemplo "Get a repository" da própria documentação REST da GitHub
  * (docs.github.com/en/rest/repos/repos, aba cURL) — satisfaz "fixture real por
- * formato com teste de snapshot" (docs/conventions.md §Testes) sem depender de acesso
+ * formato com teste de snapshot" (arch-docs/conventions.md §Testes) sem depender de acesso
  * de rede a uma API de verdade neste ambiente.
  */
 const fixturePath = join(__dirname, "__fixtures__", "github-get-repo.curl.txt");

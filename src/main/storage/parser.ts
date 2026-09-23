@@ -18,7 +18,7 @@ function withUnknown<T extends object>(known: T, unknown: Record<string, unknown
 
 /**
  * Normaliza o objeto parseado para a versão atual do schema antes de separar campos
- * conhecidos — `wttp` ausente vira versão 1 (docs/file-format.md §6, regra 1), e uma
+ * conhecidos — `wttp` ausente vira versão 1 (arch-docs/file-format.md §6, regra 1), e uma
  * versão maior que a suportada recusa aqui em vez de seguir com um formato que esta
  * versão do app não entende.
  */

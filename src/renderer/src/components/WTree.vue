@@ -6,7 +6,7 @@ import WInput from "@renderer/components/WInput.vue";
 import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 
-/** Altura de linha fixa (docs/design-system.md §4) — base da virtualização por janela. */
+/** Altura de linha fixa (arch-docs/design-system.md §4) — base da virtualização por janela. */
 const ROW_HEIGHT = 28;
 /** Linhas extras renderizadas acima/abaixo da viewport, para rolagem sem "pop-in". */
 const OVERSCAN = 8;

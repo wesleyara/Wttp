@@ -5,7 +5,7 @@ description: Lê, grava, valida ou migra os arquivos YAML de workspace do Wttp. 
 
 # Formato de arquivo do Wttp
 
-Especificação: [docs/file-format.md](../../../docs/file-format.md) — leia a seção relevante antes de editar.
+Especificação: [arch-docs/file-format.md](../../../arch-docs/file-format.md) — leia a seção relevante antes de editar.
 
 Estes arquivos vão para o Git do usuário. Um bug aqui aparece como diff sujo em pull request alheio, ou como perda de dados.
 
@@ -29,7 +29,7 @@ Cada uma existe por um motivo concreto. Nenhuma é negociável.
 
 ## Ao adicionar um campo
 
-1. Atualize [docs/file-format.md](../../../docs/file-format.md) **primeiro** — a especificação lidera, o código segue.
+1. Atualize [arch-docs/file-format.md](../../../arch-docs/file-format.md) **primeiro** — a especificação lidera, o código segue.
 2. Adicione o tipo em `@shared`.
 3. Insira o campo na ordem de chaves do serializer, na posição que fizer sentido para leitura humana.
 4. Trate a ausência do campo em arquivos existentes — campo novo é sempre opcional, ou tem migrador.

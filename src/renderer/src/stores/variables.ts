@@ -110,7 +110,7 @@ export const useVariablesStore = defineStore("variables", () => {
     return chain.reverse();
   }
 
-  /** Variáveis de `folder.yaml` na cadeia até a request, pasta mais próxima primeiro (vence — docs/file-format.md §8). */
+  /** Variáveis de `folder.yaml` na cadeia até a request, pasta mais próxima primeiro (vence — arch-docs/file-format.md §8). */
   function collectionScope(requestPath: string): KeyValueEntry[] {
     return folderChain(requestPath).flatMap(folder => folder.data?.variables ?? []);
   }

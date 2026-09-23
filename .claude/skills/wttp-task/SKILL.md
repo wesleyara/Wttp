@@ -7,7 +7,7 @@ description: Executa uma task do backlog do Wttp (EP-XX-TYY). Use quando pedirem
 
 ## 1. Localizar
 
-Se o ID foi dado, abra `docs/backlog/EP-XX-*.md`. Se pediram "a próxima", abra `docs/backlog/README.md` e pegue a primeira task `Pendente` na ordem dos épicos, cujas dependências estejam `Concluída`.
+Se o ID foi dado, abra `arch-docs/backlog/EP-XX-*.md`. Se pediram "a próxima", abra `arch-docs/backlog/README.md` e pegue a primeira task `Pendente` na ordem dos épicos, cujas dependências estejam `Concluída`.
 
 Leia a task inteira: objetivo, escopo, critérios de aceite e **fora de escopo**.
 
@@ -23,7 +23,7 @@ Marque a task como `Em andamento` no arquivo do épico e no `README.md`.
 
 Fique dentro do escopo. O bloco "Fora de escopo" existe porque aquele trabalho pertence a outra task — fazer a mais aqui bagunça o backlog e infla o diff.
 
-Siga [docs/conventions.md](../../../docs/conventions.md). Se a task envolve:
+Siga [arch-docs/conventions.md](../../../arch-docs/conventions.md). Se a task envolve:
 
 | Assunto                                 | Use também a skill   |
 | --------------------------------------- | -------------------- |
@@ -44,7 +44,7 @@ yarn test
 
 Depois percorra os critérios de aceite **um por um** e verifique cada um de fato — rodando o app, escrevendo um teste, ou inspecionando o arquivo gerado. Não marque `[x]` no que você não verificou.
 
-Definition of Done global (de `docs/backlog/README.md`):
+Definition of Done global (de `arch-docs/backlog/README.md`):
 
 - [ ] lint, typecheck e test passam
 - [ ] lógica nova em `main/` tem teste

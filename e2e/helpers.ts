@@ -120,7 +120,7 @@ export interface EchoServer {
   close: () => Promise<void>;
 }
 
-/** Servidor HTTP local (`127.0.0.1`) — ecoa método/URL/corpo em JSON, sem depender de rede externa (docs/conventions.md §Testes). */
+/** Servidor HTTP local (`127.0.0.1`) — ecoa método/URL/corpo em JSON, sem depender de rede externa (arch-docs/conventions.md §Testes). */
 export function startEchoServer(): Promise<EchoServer> {
   return new Promise((resolvePromise, reject) => {
     const server = createServer((req, res) => {
