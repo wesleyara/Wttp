@@ -129,52 +129,58 @@ function onPasteName(event: ClipboardEvent): void {
       class="flex h-7 items-center gap-2 border-b border-subtle px-2 font-inter text-xs font-medium text-faint"
     >
       <span class="w-5 shrink-0" />
-      <span class="w-1/4 shrink-0">Name</span>
-      <span class="w-1/4 shrink-0">Value</span>
-      <span class="flex-1">Description</span>
+      <span class="w-40 shrink-0">Name</span>
+      <span class="min-w-0 flex-[2]">Value</span>
+      <span class="min-w-0 flex-1">Description</span>
       <span v-if="withSecret" class="w-14 shrink-0">Secret</span>
       <span class="w-6 shrink-0" />
     </div>
     <div
       v-for="(row, index) in rows"
       :key="index"
-      class="flex h-8 items-center gap-2 border-b border-subtle px-2 last:border-b-0"
+      class="flex min-h-8 items-start gap-2 border-b border-subtle px-2 py-1 last:border-b-0"
     >
       <input
         v-if="allowToggle"
         type="checkbox"
         :checked="row.enabled"
-        class="size-3.5 shrink-0 accent-accent"
+        class="mt-[7px] size-3.5 shrink-0 accent-accent"
         :aria-label="`Enable row ${index + 1}`"
         @change="updateRow(index, { enabled: ($event.target as HTMLInputElement).checked })"
       />
-      <span v-else class="size-3.5 shrink-0" />
+      <span v-else class="mt-[7px] size-3.5 shrink-0" />
       <span
         v-if="readonlyName"
-        class="w-1/4 shrink-0 truncate font-mono text-[13px] font-medium text-1"
+        :title="row.name"
+        class="w-40 shrink-0 break-words pt-1 font-mono text-[13px] font-medium text-1"
         >{{ row.name }}</span
       >
       <input
         v-else
         :value="row.name"
+        :title="row.name"
         placeholder="Name"
-        class="w-1/4 shrink-0 bg-transparent font-mono text-[13px] font-medium text-1 outline-none placeholder:text-faint"
+        class="mt-1 h-6 w-40 shrink-0 bg-transparent font-mono text-[13px] font-medium text-1 outline-none placeholder:text-faint"
         @input="updateRow(index, { name: ($event.target as HTMLInputElement).value })"
         @paste="onPasteName"
       />
-      <span class="flex w-1/4 shrink-0 items-center gap-1">
+      <span class="flex min-w-0 flex-[2] items-start gap-1">
         <input
           v-if="isMasked(index, row)"
           type="password"
           :value="row.value"
           placeholder="Value"
-          class="min-w-0 flex-1 bg-transparent font-mono text-[13px] font-medium text-1 outline-none placeholder:text-faint"
+          class="mt-1 h-6 min-w-0 flex-1 bg-transparent font-mono text-[13px] font-medium text-1 outline-none placeholder:text-faint"
           @input="updateRow(index, { value: ($event.target as HTMLInputElement).value })"
         />
+        <!-- `line-wrap` (EP-08.1-T05): um valor longo (token, URL) quebra em várias
+        linhas visuais em vez de cortar sem jeito de ver o resto — continua uma única
+        linha lógica, `Enter` não insere quebra. -->
         <WCodeEditor
           v-else
           :model-value="row.value"
           single-line
+          line-wrap
           bare
           :debounce-ms="0"
           placeholder="Value"
@@ -188,23 +194,27 @@ function onPasteName(event: ClipboardEvent): void {
           v-if="withSecret && row.secret"
           type="button"
           :aria-label="revealed.has(index) ? 'Hide value' : 'Reveal value'"
-          class="flex size-5 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          class="mt-[3px] flex size-5 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           @click="toggleReveal(index)"
         >
           <WIcon :name="revealed.has(index) ? 'eye-off' : 'eye'" />
         </button>
       </span>
-      <input
-        :value="row.description"
+      <WCodeEditor
+        :model-value="row.description"
+        single-line
+        line-wrap
+        bare
+        :debounce-ms="0"
         placeholder="Description"
-        class="flex-1 bg-transparent font-inter text-sm text-1 outline-none placeholder:text-faint"
-        @input="updateRow(index, { description: ($event.target as HTMLInputElement).value })"
+        class="min-w-0 flex-1 font-inter text-sm text-1"
+        @update:model-value="value => updateRow(index, { description: value })"
       />
       <span v-if="withSecret" class="flex w-14 shrink-0 items-center">
         <input
           type="checkbox"
           :checked="Boolean(row.secret)"
-          class="size-3.5 shrink-0 accent-accent"
+          class="mt-[7px] size-3.5 shrink-0 accent-accent"
           :aria-label="`Mark row ${index + 1} as secret`"
           @change="updateRow(index, { secret: ($event.target as HTMLInputElement).checked })"
         />
@@ -213,7 +223,7 @@ function onPasteName(event: ClipboardEvent): void {
         v-if="allowRemove && index < modelValue.length"
         type="button"
         aria-label="Remove row"
-        class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        class="mt-[3px] flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         @click="removeRow(index)"
       >
         <WIcon name="x" />

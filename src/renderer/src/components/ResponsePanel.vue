@@ -8,12 +8,13 @@ import { prettyPrintJson, prettyPrintMarkup } from "@renderer/lib/pretty-print";
 import { describeRequestError } from "@renderer/lib/response-error";
 import { useHistoryStore } from "@renderer/stores/history";
 import { useRequestStore } from "@renderer/stores/request";
+import { useUiStore } from "@renderer/stores/ui";
 import { storeToRefs } from "pinia";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import HistoryPanel from "./HistoryPanel.vue";
+import ResponseStatusBar from "./ResponseStatusBar.vue";
 import ScriptResultsPanel from "./ScriptResultsPanel.vue";
-import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
@@ -35,6 +36,14 @@ const MAX_DISPLAY_BYTES = 2_000_000;
 
 const store = useRequestStore();
 const { sending, lastResult, scriptRun, path } = storeToRefs(store);
+
+// --- Layout (EP-08.1-T05) --------------------------------------------------------------
+// Lateralizado dá pouca largura ao painel de resposta — status/tempo/tamanho/Copy/Save
+// não cabem na mesma linha das tabs sem forçar scroll horizontal nelas. Só nesse modo o
+// bloco volta a ficar numa linha própria acima das tabs; embaixo (largura cheia) cabe
+// tudo numa linha só.
+const ui = useUiStore();
+const statusBarStacked = computed(() => ui.responsePanelPosition === "side");
 
 // --- History (EP-08.1-T04) ------------------------------------------------------------
 const historyStore = useHistoryStore();
@@ -287,34 +296,36 @@ async function saveBody(): Promise<void> {
 
     <template v-else>
       <div
-        v-if="successResult"
+        v-if="successResult && statusBarStacked"
         class="flex h-9 shrink-0 items-center gap-4 border-b border-subtle px-3"
       >
-        <WStatusBadge :code="successResult.status" />
-        <span class="font-mono text-[13px] text-muted" :title="timingTitle">
-          {{ formatDuration(successResult.timing.total) }}
-        </span>
-        <span class="font-mono text-[13px] text-muted">
-          {{ formatBytes(successResult.size.bodyReceived) }}
-        </span>
-        <span
-          v-if="isShowingHistoryFallback"
-          class="flex items-center gap-1 font-inter text-[11px] text-faint"
-          title="No response sent this session yet — showing the last one from history."
-        >
-          <WIcon name="history" size="3" />
-          Last response
-        </span>
-        <div class="ml-auto flex items-center gap-2">
-          <WButton size="sm" variant="ghost" @click="copyBody">Copy</WButton>
-          <WButton v-if="!isShowingHistoryFallback" size="sm" variant="ghost" @click="saveBody">
-            Save
-          </WButton>
-        </div>
+        <ResponseStatusBar
+          :status="successResult.status"
+          :timing-total="successResult.timing.total"
+          :timing-title="timingTitle"
+          :body-size="successResult.size.bodyReceived"
+          :is-showing-history-fallback="isShowingHistoryFallback"
+          @copy="copyBody"
+          @save="saveBody"
+        />
       </div>
 
+      <WTabs v-model="mainTab" class="pt-1.5" :tabs="mainTabs">
+        <template v-if="successResult && !statusBarStacked" #actions>
+          <ResponseStatusBar
+            :status="successResult.status"
+            :timing-total="successResult.timing.total"
+            :timing-title="timingTitle"
+            :body-size="successResult.size.bodyReceived"
+            :is-showing-history-fallback="isShowingHistoryFallback"
+            @copy="copyBody"
+            @save="saveBody"
+          />
+        </template>
+      </WTabs>
+
       <div
-        v-else-if="failureResult"
+        v-if="failureResult"
         class="flex shrink-0 flex-col items-center justify-center gap-2 p-6 text-center"
       >
         <WStatusBadge :code="null" />
@@ -333,12 +344,6 @@ async function saveBody(): Promise<void> {
           No response sent this session yet — showing the last one from history.
         </p>
       </div>
-
-      <p v-else class="shrink-0 px-3 py-2 font-inter text-xs text-muted">
-        No response yet this session — showing history from before.
-      </p>
-
-      <WTabs v-model="mainTab" :tabs="mainTabs" />
 
       <div
         v-if="mainTab === 'body' && successResult"

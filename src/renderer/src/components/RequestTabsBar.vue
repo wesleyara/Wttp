@@ -74,14 +74,17 @@ function onDoubleClick(id: string): void {
 </script>
 
 <template>
-  <div role="tablist" class="flex h-8 items-stretch overflow-x-auto border-b border-subtle">
+  <div
+    role="tablist"
+    class="tab-scroll flex h-[38px] items-start overflow-x-auto border-b border-subtle"
+  >
     <div
       v-for="tab in tabs.tabs"
       :key="tab.id"
       data-request-tab
       role="tab"
       :aria-selected="tab.id === tabs.activeId"
-      class="flex w-44 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-subtle px-3 font-inter text-xs"
+      class="flex h-8 w-44 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-subtle px-3 font-inter text-xs"
       :class="[
         tab.id === tabs.activeId ? 'bg-surface-3 text-1' : 'text-muted hover:bg-surface-3/50',
         draggingId === tab.id
@@ -99,7 +102,12 @@ function onDoubleClick(id: string): void {
         :method="tab.method"
         class="w-8 shrink-0 text-[10px]"
       />
-      <WIcon v-else name="folder" size="3.5" class="shrink-0 text-faint" />
+      <WIcon
+        v-else
+        :name="tab.kind === 'environment' ? 'sliders-horizontal' : 'folder'"
+        size="3.5"
+        class="shrink-0 text-faint"
+      />
       <span class="min-w-0 flex-1 truncate" :class="{ italic: !tab.pinned }">{{ tab.title }}</span>
       <button
         type="button"
@@ -119,3 +127,27 @@ function onDoubleClick(id: string): void {
     @close="tabContextMenu = null"
   />
 </template>
+
+<style scoped>
+/* `::-webkit-scrollbar` não tem equivalente em utilitário Tailwind puro (sem plugin) —
+   escopado só a esta barra de abas em vez de estilo global. Os 6px extras no `h-[38px]`
+   do container (contra `h-8`/32px de cada aba) reservam o espaço da scrollbar nativa
+   sempre, para que aparecer/sumir o scroll não mude a altura visível das abas. */
+.tab-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--w-border-strong)) transparent;
+}
+
+.tab-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tab-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--w-border-strong));
+  border-radius: 3px;
+}
+</style>

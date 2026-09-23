@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -12,12 +12,19 @@ const props = withDefaults(
     collapsed?: boolean;
     /** Qual painel tem tamanho fixo — o outro ocupa o espaço restante (`flex-1`). */
     sizedPane?: "first" | "second";
+    /**
+     * Espaço mínimo, em px, reservado para o painel não controlado — impede que
+     * arrastar o divisor esmague o outro painel (ex.: o painel de resposta cobrindo
+     * as tabs de request). 0 preserva o comportamento antigo (só `min`/`max`).
+     */
+    otherPaneMin?: number;
   }>(),
   {
     min: 160,
     max: Infinity,
     collapsed: false,
     sizedPane: "first",
+    otherPaneMin: 0,
   },
 );
 
@@ -30,6 +37,27 @@ const STEP = 16;
 const isHorizontal = computed(() => props.direction === "horizontal");
 const sizesFirst = computed(() => props.sizedPane === "first");
 const dragging = ref(false);
+
+const containerRef = useTemplateRef<HTMLElement>("container");
+const containerSize = ref(Infinity);
+let resizeObserver: ResizeObserver | undefined;
+
+function measureContainer(): void {
+  const el = containerRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  containerSize.value = isHorizontal.value ? rect.width : rect.height;
+}
+
+onMounted(() => {
+  const el = containerRef.value;
+  if (!el) return;
+  resizeObserver = new ResizeObserver(measureContainer);
+  resizeObserver.observe(el);
+  measureContainer();
+});
+
+onUnmounted(() => resizeObserver?.disconnect());
 
 const firstPaneStyle = computed(() => {
   if (!sizesFirst.value) return { flex: "1 1 0%" };
@@ -44,7 +72,9 @@ const secondPaneStyle = computed(() => {
 });
 
 function clamp(size: number): number {
-  return Math.min(props.max, Math.max(props.min, size));
+  const spaceMax = containerSize.value - props.otherPaneMin;
+  const effectiveMax = Math.min(props.max, spaceMax);
+  return Math.min(effectiveMax, Math.max(props.min, size));
 }
 
 function onPointerDown(event: PointerEvent): void {
@@ -103,7 +133,11 @@ function onDoubleClick(): void {
 </script>
 
 <template>
-  <div class="flex size-full min-h-0 min-w-0" :class="isHorizontal ? 'flex-row' : 'flex-col'">
+  <div
+    ref="container"
+    class="flex size-full min-h-0 min-w-0"
+    :class="isHorizontal ? 'flex-row' : 'flex-col'"
+  >
     <div class="min-h-0 min-w-0 overflow-hidden" :style="firstPaneStyle">
       <slot name="first" />
     </div>

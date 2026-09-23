@@ -3,22 +3,20 @@ import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { type SaveVariableInput, useEnvironmentStore } from "@renderer/stores/environment";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 import type { KeyValueRow } from "./WKeyValueTable.vue";
 
 import WButton from "./WButton.vue";
 import WInput from "./WInput.vue";
 import WKeyValueTable from "./WKeyValueTable.vue";
-import WModal from "./WModal.vue";
 
-const props = defineProps<{
-  open: boolean;
-}>();
-
-const emit = defineEmits<{
-  close: [];
-}>();
+/**
+ * Conteúdo do antigo `EnvironmentEditorModal` (EP-06-T03), agora vivendo como uma aba
+ * comum no strip central em vez de um `WModal` — pedido de uso real: uma tela cheia
+ * "presa" num modal dava menos espaço e não convivia com as outras abas abertas. Mesma
+ * lógica de edição/save de sempre; só a casca mudou.
+ */
 
 const environment = useEnvironmentStore();
 const workspace = useWorkspaceStore();
@@ -65,24 +63,16 @@ function loadDraft(): void {
   }));
 }
 
-watch(
-  () => props.open,
-  async isOpen => {
-    if (!isOpen) return;
-    await environment.refresh();
-    selected.value = environment.activePath ?? WORKSPACE_SELECTION;
-    loadDraft();
-  },
-);
+onMounted(async () => {
+  await environment.refresh();
+  selected.value = environment.activePath ?? WORKSPACE_SELECTION;
+  loadDraft();
+});
 
 watch(selected, () => {
   duplicateWarning.value = null;
   loadDraft();
 });
-
-function close(): void {
-  emit("close");
-}
 
 function toVariableInputs(rows: KeyValueRow[]): SaveVariableInput[] {
   return rows
@@ -163,87 +153,103 @@ async function duplicateEnvironment(): Promise<void> {
 </script>
 
 <template>
-  <WModal :open="open" title="Environments" size="fullscreen" @close="close">
-    <div class="flex h-full min-h-0 gap-4">
-      <div class="flex w-48 shrink-0 flex-col gap-1 border-r border-subtle pr-3">
+  <div class="flex h-full min-h-0 gap-4 p-3">
+    <div class="flex w-48 shrink-0 flex-col gap-1 border-r border-subtle pr-3">
+      <button
+        type="button"
+        class="rounded-md px-2 py-1.5 text-left font-inter text-sm transition-colors"
+        :class="
+          selected === WORKSPACE_SELECTION
+            ? 'bg-surface-3 text-1'
+            : 'text-muted hover:bg-surface-3/50 hover:text-1'
+        "
+        @click="selected = WORKSPACE_SELECTION"
+      >
+        Workspace variables
+      </button>
+
+      <div class="mt-2 flex-1 overflow-y-auto">
         <button
+          v-for="item in environment.items"
+          :key="item.path"
           type="button"
-          class="rounded-md px-2 py-1.5 text-left font-inter text-sm transition-colors"
+          class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left font-inter text-sm transition-colors"
           :class="
-            selected === WORKSPACE_SELECTION
+            selected === item.path
               ? 'bg-surface-3 text-1'
               : 'text-muted hover:bg-surface-3/50 hover:text-1'
           "
-          @click="selected = WORKSPACE_SELECTION"
+          @click="selected = item.path"
         >
-          Workspace variables
-        </button>
-
-        <div class="mt-2 flex-1 overflow-y-auto">
-          <button
-            v-for="item in environment.items"
-            :key="item.path"
-            type="button"
-            class="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left font-inter text-sm transition-colors"
-            :class="
-              selected === item.path
-                ? 'bg-surface-3 text-1'
-                : 'text-muted hover:bg-surface-3/50 hover:text-1'
-            "
-            @click="selected = item.path"
-          >
-            <span
-              v-if="environment.activePath === item.path"
-              class="size-1.5 shrink-0 rounded-full bg-accent"
-              aria-hidden="true"
-            />
-            <span class="truncate">{{ item.data.name }}</span>
-          </button>
-        </div>
-
-        <WButton size="sm" variant="ghost" class="justify-start" @click="createEnvironment">
-          + New environment
-        </WButton>
-      </div>
-
-      <div class="flex min-w-0 flex-1 flex-col gap-3">
-        <div v-if="selected !== WORKSPACE_SELECTION" class="flex items-center gap-2">
-          <WInput v-model="draftName" class="flex-1" placeholder="Environment name" />
-          <WButton size="sm" variant="secondary" @click="duplicateEnvironment">Duplicate</WButton>
-          <WButton size="sm" variant="danger" @click="removeEnvironment">Delete</WButton>
-        </div>
-
-        <p
-          v-if="duplicateWarning === selected"
-          class="rounded-md border border-subtle bg-surface-3 px-2 py-1.5 font-inter text-xs text-muted"
-        >
-          This environment has secret values — they won't be copied to the duplicate. Click
-          "Duplicate" again to confirm.
-        </p>
-
-        <p
-          v-if="duplicateNames.size > 0"
-          class="rounded-md border border-status-5xx/40 bg-surface-3 px-2 py-1.5 font-inter text-xs text-status-5xx"
-        >
-          Duplicate variable name{{ duplicateNames.size > 1 ? "s" : "" }}:
-          {{ [...duplicateNames].join(", ") }}
-        </p>
-
-        <div class="min-h-0 flex-1 overflow-y-auto rounded-md border border-subtle">
-          <WKeyValueTable
-            v-model="draftVariables"
-            :with-secret="selected !== WORKSPACE_SELECTION"
-            :unresolved-variables="draftUnresolved"
-            :variable-tooltips="draftTooltips"
-            :variable-names="draftVariableNames"
+          <span
+            v-if="environment.activePath === item.path"
+            class="size-1.5 shrink-0 rounded-full bg-accent"
+            aria-hidden="true"
           />
-        </div>
+          <span class="truncate">{{ item.data.name }}</span>
+        </button>
       </div>
+
+      <WButton size="sm" variant="ghost" class="justify-start" @click="createEnvironment">
+        + New environment
+      </WButton>
     </div>
 
-    <template #footer>
-      <WButton variant="secondary" @click="close">Close</WButton>
-      <WButton variant="primary" @click="save">Save</WButton>
-    </template>
-  </WModal>
+    <div class="flex min-w-0 flex-1 flex-col gap-3">
+      <div class="flex items-center gap-2">
+        <WInput
+          v-if="selected !== WORKSPACE_SELECTION"
+          v-model="draftName"
+          class="flex-1"
+          placeholder="Environment name"
+        />
+        <h2 v-else class="flex-1 font-barlow text-base font-semibold text-1">
+          Workspace variables
+        </h2>
+        <WButton
+          v-if="selected !== WORKSPACE_SELECTION"
+          size="sm"
+          variant="secondary"
+          @click="duplicateEnvironment"
+        >
+          Duplicate
+        </WButton>
+        <WButton
+          v-if="selected !== WORKSPACE_SELECTION"
+          size="sm"
+          variant="danger"
+          @click="removeEnvironment"
+        >
+          Delete
+        </WButton>
+        <WButton size="sm" variant="primary" @click="save">Save</WButton>
+      </div>
+
+      <p
+        v-if="duplicateWarning === selected"
+        class="rounded-md border border-subtle bg-surface-3 px-2 py-1.5 font-inter text-xs text-muted"
+      >
+        This environment has secret values — they won't be copied to the duplicate. Click
+        "Duplicate" again to confirm.
+      </p>
+
+      <p
+        v-if="duplicateNames.size > 0"
+        class="rounded-md border border-status-5xx/40 bg-surface-3 px-2 py-1.5 font-inter text-xs text-status-5xx"
+      >
+        Duplicate variable name{{ duplicateNames.size > 1 ? "s" : "" }}:
+        {{ [...duplicateNames].join(", ") }}
+      </p>
+
+      <div class="min-h-0 flex-1 overflow-y-auto rounded-md border border-subtle">
+        <WKeyValueTable
+          v-model="draftVariables"
+          :with-secret="selected !== WORKSPACE_SELECTION"
+          :unresolved-variables="draftUnresolved"
+          :variable-tooltips="draftTooltips"
+          :variable-names="draftVariableNames"
+        />
+      </div>
+    </div>
+  </div>
 </template>

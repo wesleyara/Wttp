@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "clicklocal": {
+      "command": "node",
+      "args": ["${HOME}/ClickLocal/mcp-server/dist/index.js"],
+      "env": { "CLICKLOCAL_API_URL": "http://localhost:8880/api" }
+    }
+  }
+}

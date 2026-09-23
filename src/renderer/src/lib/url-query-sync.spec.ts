@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { parseQueryFromUrl, rewriteUrlQuery, urlBase } from "./url-query-sync";
+import {
+  parseQueryFromUrl,
+  reconcileQueryParams,
+  rewriteUrlQuery,
+  urlBase,
+} from "./url-query-sync";
 
 describe("urlBase", () => {
   it("strips the query string", () => {
@@ -33,6 +38,27 @@ describe("parseQueryFromUrl", () => {
   it("works against a templated base url", () => {
     expect(parseQueryFromUrl("{{base_url}}/users?verbose=true")).toEqual([
       { name: "verbose", value: "true", enabled: true, description: "" },
+    ]);
+  });
+});
+
+describe("reconcileQueryParams", () => {
+  it("keeps a disabled row that has no representation in the url", () => {
+    const existing = [
+      { name: "a", value: "1", enabled: true, description: "" },
+      { name: "off", value: "x", enabled: false, description: "" },
+    ];
+    expect(reconcileQueryParams("https://api.dev/users?a=1", existing)).toEqual([
+      { name: "a", value: "1", enabled: true, description: "" },
+      { name: "off", value: "x", enabled: false, description: "" },
+    ]);
+  });
+
+  it("rebuilds enabled rows straight from the url", () => {
+    const existing = [{ name: "a", value: "1", enabled: true, description: "" }];
+    expect(reconcileQueryParams("https://api.dev/users?a=2&b=3", existing)).toEqual([
+      { name: "a", value: "2", enabled: true, description: "" },
+      { name: "b", value: "3", enabled: true, description: "" },
     ]);
   });
 });

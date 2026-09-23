@@ -31,33 +31,33 @@ test("resolves the active environment's variable value when the request is resen
 
     await fillCodeMirror(window, requestUrlEditor(window), `${echo.url}/greet?name={{greeting}}`);
 
-    // Cria os dois environments com o mesmo nome de variável e valores diferentes.
+    // Cria os dois environments com o mesmo nome de variável e valores diferentes —
+    // "Manage environments" abre a aba de Environments (EP-08.1-T05), não mais um modal.
     await window.getByTitle("Manage environments").click();
-    const modal = window.getByRole("dialog");
 
-    await modal.getByRole("button", { name: "+ New environment" }).click();
-    await modal.getByPlaceholder("Environment name").fill("Env A");
-    const nameFieldA = modal.getByPlaceholder("Name", { exact: true }).first();
+    await window.getByRole("button", { name: "+ New environment" }).click();
+    await window.getByPlaceholder("Environment name").fill("Env A");
+    const nameFieldA = window.getByPlaceholder("Name", { exact: true }).first();
     await nameFieldA.fill("greeting");
     const rowA = nameFieldA.locator(
-      'xpath=ancestor::div[contains(@class,"h-8")][1]//div[contains(@class,"cm-editor")]',
+      'xpath=ancestor::div[contains(@class,"min-h-8")][1]//span[contains(@class,"flex-[2]")]//div[contains(@class,"cm-editor")]',
     );
     await fillCodeMirror(window, rowA, "alpha");
-    await modal.getByRole("button", { name: "Save", exact: true }).click();
+    await window.getByRole("button", { name: "Save", exact: true }).click();
 
-    await modal.getByRole("button", { name: "+ New environment" }).click();
-    await modal.getByPlaceholder("Environment name").fill("Env B");
-    const nameFieldB = modal.getByPlaceholder("Name", { exact: true }).first();
+    await window.getByRole("button", { name: "+ New environment" }).click();
+    await window.getByPlaceholder("Environment name").fill("Env B");
+    const nameFieldB = window.getByPlaceholder("Name", { exact: true }).first();
     await nameFieldB.fill("greeting");
     const rowB = nameFieldB.locator(
-      'xpath=ancestor::div[contains(@class,"h-8")][1]//div[contains(@class,"cm-editor")]',
+      'xpath=ancestor::div[contains(@class,"min-h-8")][1]//span[contains(@class,"flex-[2]")]//div[contains(@class,"cm-editor")]',
     );
     await fillCodeMirror(window, rowB, "beta");
-    await modal.getByRole("button", { name: "Save", exact: true }).click();
+    await window.getByRole("button", { name: "Save", exact: true }).click();
 
-    // `WModal` também tem um botão "X" com o mesmo nome acessível ("Close", via
-    // `title`) — o do rodapé (texto visível) vem depois no DOM.
-    await modal.getByRole("button", { name: "Close", exact: true }).last().click();
+    // Volta pra aba de request — a de Environments continua aberta ao lado, sem
+    // "Close": fechar uma aba comum, se algum dia precisar, é o "x" dela mesma.
+    await openRequestTab(window, "New request");
 
     // Env A ativo → resposta carrega "alpha".
     await window.getByTitle("Active environment").click();

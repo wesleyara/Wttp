@@ -122,4 +122,27 @@ describe("abrir/trocar de aba não marca suja (regressão)", () => {
 
     expect(tabs.tabs.every(t => !t.dirty)).toBe(true);
   });
+
+  it("uma query param desabilitada sobrevive a trocar de aba e voltar (regressão)", async () => {
+    files["json.req.yaml"] = {
+      ...jsonRequestFile("json"),
+      query: [
+        { name: "verbose", value: "true", enabled: true },
+        { name: "off", value: "x", enabled: false },
+      ],
+    };
+
+    wireComponentWatchers();
+    const tabs = useRequestTabsStore();
+
+    await tabs.openPinned("json.req.yaml");
+    await tabs.openPinned("plain.req.yaml");
+    tabs.activate("json.req.yaml");
+
+    const jsonTab = tabs.tabs.find(t => t.path === "json.req.yaml" && t.kind === "request");
+    expect(jsonTab?.kind === "request" ? jsonTab.query : undefined).toEqual([
+      { name: "verbose", value: "true", enabled: true },
+      { name: "off", value: "x", enabled: false },
+    ]);
+  });
 });
