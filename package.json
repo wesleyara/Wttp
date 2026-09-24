@@ -22,6 +22,7 @@
     "dev:desktop-entry": "node scripts/install-dev-desktop-entry.mjs",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
+    "build:cli": "vite build --config vite.cli.config.ts",
     "build:unpack": "npm run docs:build:offline && npm run build && electron-builder --dir",
     "build:win": "npm run docs:build:offline && npm run build && electron-builder --win --publish never",
     "build:mac": "npm run docs:build:offline && npm run build && electron-builder --mac --publish never",

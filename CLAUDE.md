@@ -299,6 +299,23 @@ lá); verificação visual de pt-BR nos dois temas e um `build:linux` completo c
 dentro do instalador não foram feitos. Detalhes em
 [EP-08.1](arch-docs/backlog/EP-08.1-sessao-historico-docs.md).
 
+**EP-13** (Collection Runner e CLI, pós-MVP, v0.2) também está pronto, feito pelo card #32
+do ClickLocal. Núcleo de execução em `src/main/runner/` (sem Electron: envio, scripts e
+segredos entram por `RunnerDeps`) que repete o `dispatch()` do envio avulso — herança de
+auth, `{{var}}`, cadeia de pre-request, envio, cadeia de tests — e o estende com plano
+(ordem da árvore ou seleção reordenada), iterações, intervalo, `bail`, Stop e gravação
+opcional das variáveis no fim. Na UI: aba singleton `runner` (`RunnerPanel.vue`,
+`useRunnerStore`, canais `runner:start`/`runner:stop` + evento `runner:event`), aberta por
+"Run…" no menu de pasta/collection ou pela busca rápida. No terminal: `wttp run`
+(`src/cli/`, `yarn build:cli` → `cli/dist/wttp.mjs`, pacote npm `wttp-cli` em `cli/`),
+reporters `cli`/`json`/`junit`, exit 0/1/2, segredos por `WTTP_SECRET_<NOME>` mascarados
+em toda saída; o processo de scripts virou um host genérico (`src/main/scripts/host.ts`)
+sobre `utilityProcess` no app e `child_process.fork` (`serialization: "advanced"`) no CLI.
+`scripts/cli-smoke.mjs` roda o binário sem Electron/display no job `quality` (ubuntu) do
+CI; `action.yml` na raiz é a GitHub Action; doc de usuário em `docs/guia/runner-e-ci.md`.
+**Pendências reais:** publicar `wttp-cli` no npm e a Action (tag `v1`), e testar JUnit/Action
+num CI real — ações do dono do repositório.
+
 Com isso o **MVP (v0.1) está funcionalmente completo** — EP-01 a EP-11 prontos, com as
 pendências de verificação (visual multi-tema numa janela de verdade, multi-SO, e a
 primeira release real) explicitamente registradas em cada épico, não escondidas.
@@ -314,7 +331,9 @@ src/
 ├── main/        Node — HTTP engine, storage, scripts, importers, IPC
 ├── preload/     bridge contextBridge — única superfície do renderer
 ├── renderer/    Vue 3 + Pinia — só UI e estado
-└── shared/      tipos do contrato IPC (sem runtime)
+├── shared/      tipos do contrato IPC (sem runtime)
+└── cli/         `wttp run` (EP-13-T02) — Node puro, reusa src/main/runner
+cli/             pacote npm `wttp-cli` (dist gerado por `yarn build:cli`)
 arch-docs/       referência técnica e backlog (engenharia; nunca vai pro site)
 docs/            site de documentação de usuário (VitePress, só produto)
 .claude/skills/  skills dos fluxos repetitivos
@@ -335,6 +354,7 @@ yarn typecheck       # typecheck:node + typecheck:web
 yarn test            # Vitest
 yarn build           # bundle dos três processos
 yarn build:linux     # instalador (também :win, :mac)
+yarn build:cli       # CLI `wttp run` → cli/dist (smoke: node scripts/cli-smoke.mjs)
 ```
 
 ---

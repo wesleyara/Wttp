@@ -7,6 +7,7 @@ import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import WModal from "@renderer/components/WModal.vue";
 import { fuzzySearch } from "@renderer/lib/fuzzyMatch";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { useRunnerStore } from "@renderer/stores/runner";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -22,6 +23,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const workspace = useWorkspaceStore();
 const tabs = useRequestTabsStore();
+const runner = useRunnerStore();
 
 interface RequestEntry {
   kind: "request";
@@ -66,9 +68,19 @@ const allRequests = computed<RequestEntry[]>(() => {
 });
 
 const commands = computed<CommandEntry[]>(() => {
+  const always: CommandEntry[] = [
+    {
+      kind: "command",
+      id: "run-workspace",
+      name: t("command.runWorkspace"),
+      icon: "list-checks",
+      run: () => runner.configure("", ""),
+    },
+  ];
   const active = tabs.active;
-  if (!isRequestTab(active)) return [];
+  if (!isRequestTab(active)) return always;
   return [
+    ...always,
     {
       kind: "command",
       id: "copy-as-curl",

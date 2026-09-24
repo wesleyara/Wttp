@@ -11,6 +11,7 @@ import RequestConfigTabs from "@renderer/components/RequestConfigTabs.vue";
 import RequestTabsBar from "@renderer/components/RequestTabsBar.vue";
 import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
 import ResponsePanel from "@renderer/components/ResponsePanel.vue";
+import RunnerPanel from "@renderer/components/RunnerPanel.vue";
 import StatusBar from "@renderer/components/StatusBar.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WContextMenu, { type ContextMenuItem } from "@renderer/components/WContextMenu.vue";
@@ -25,6 +26,7 @@ import WTree from "@renderer/components/WTree.vue";
 import { useImportStore } from "@renderer/stores/import";
 import { useMenuStore } from "@renderer/stores/menu";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { useRunnerStore } from "@renderer/stores/runner";
 import { useTreeStore } from "@renderer/stores/tree";
 import { useUiStore } from "@renderer/stores/ui";
 import { useUpdateStore } from "@renderer/stores/update";
@@ -40,6 +42,7 @@ const menu = useMenuStore();
 const workspace = useWorkspaceStore();
 const tree = useTreeStore();
 const requestTabs = useRequestTabsStore();
+const runner = useRunnerStore();
 const importStore = useImportStore();
 const updateStore = useUpdateStore();
 
@@ -126,6 +129,11 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
         label: t("contextMenu.settings"),
         icon: "settings",
         action: () => void requestTabs.openFolderTab(node.path),
+      },
+      {
+        label: t("contextMenu.run"),
+        icon: "list-checks",
+        action: () => runner.configure(node.path, node.name),
       },
     );
   }
@@ -304,6 +312,14 @@ onUnmounted(() => {
           >
             <RequestTabsBar />
             <EnvironmentsPanel class="min-h-0 flex-1" />
+          </main>
+          <!-- Runner (EP-13-T01): mesma regra da aba de environments — coluna inteira. -->
+          <main
+            v-else-if="requestTabs.active?.kind === 'runner'"
+            class="flex h-full flex-col bg-surface-1"
+          >
+            <RequestTabsBar />
+            <RunnerPanel class="min-h-0 flex-1" />
           </main>
           <WSplitPane
             v-else

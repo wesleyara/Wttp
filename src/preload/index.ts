@@ -43,7 +43,10 @@ import type {
   ResolveRequestResultPayload,
   ResolveTextPayload,
   ResolveTextResultPayload,
+  RunEvent,
   RunImportPayload,
+  RunStartPayload,
+  RunStartResult,
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
@@ -201,6 +204,17 @@ const wttp = {
   },
   script: {
     run: (payload: ScriptRunSpec): Promise<ScriptRunResult> => invoke("script:run", payload),
+  },
+  runner: {
+    start: (payload: RunStartPayload): Promise<RunStartResult> => invoke("runner:start", payload),
+    stop: (runId: string): Promise<void> => invoke("runner:stop", runId),
+    // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
+    onEvent: (callback: (event: RunEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, runEvent: RunEvent): void =>
+        callback(runEvent);
+      ipcRenderer.on("runner:event", listener);
+      return () => ipcRenderer.off("runner:event", listener);
+    },
   },
   history: {
     list: (payload: RequestHistoryPayload): Promise<HistoryEntry[]> =>

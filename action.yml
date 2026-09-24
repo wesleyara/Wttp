@@ -1,0 +1,79 @@
+# EP-13-T03: GitHub Action for `wttp run` — runs a Wttp workspace (or a folder in it) with
+# its pre-request and test scripts, and fails the job when a request fails.
+#
+#   - uses: wesleyara/Wttp@v1
+#     with:
+#       path: api-tests
+#       env: ci
+#     env:
+#       WTTP_SECRET_API_KEY: ${{ secrets.API_KEY }}
+#
+# Inputs reach the shell as environment variables, never interpolated into the script —
+# a workspace path or variable value can't inject commands.
+name: Wttp run
+description: Run Wttp collections (requests, scripts and tests) in CI and report JUnit results.
+author: wesleyara
+branding:
+  icon: check-circle
+  color: blue
+
+inputs:
+  path:
+    description: Workspace directory, or a folder/collection inside it.
+    required: true
+  env:
+    description: Environment to use — its name, or the file name in environments/.
+    required: false
+    default: ""
+  iterations:
+    description: How many times to run the whole list.
+    required: false
+    default: "1"
+  bail:
+    description: Stop at the first failing request ("true"/"false").
+    required: false
+    default: "false"
+  vars:
+    description: Variable overrides, one name=value per line.
+    required: false
+    default: ""
+  junit:
+    description: Path of the JUnit report to write (empty to skip it).
+    required: false
+    default: wttp-report.xml
+  version:
+    description: wttp-cli version from npm.
+    required: false
+    default: latest
+
+outputs:
+  junit:
+    description: Path of the JUnit report, when one was written.
+    value: ${{ steps.run.outputs.junit }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      env:
+        WTTP_INPUT_PATH: ${{ inputs.path }}
+        WTTP_INPUT_ENV: ${{ inputs.env }}
+        WTTP_INPUT_ITERATIONS: ${{ inputs.iterations }}
+        WTTP_INPUT_BAIL: ${{ inputs.bail }}
+        WTTP_INPUT_VARS: ${{ inputs.vars }}
+        WTTP_INPUT_JUNIT: ${{ inputs.junit }}
+        WTTP_INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        args=(run "$WTTP_INPUT_PATH" --iterations "$WTTP_INPUT_ITERATIONS" --reporter cli)
+        if [ -n "$WTTP_INPUT_ENV" ]; then args+=(--env "$WTTP_INPUT_ENV"); fi
+        if [ "$WTTP_INPUT_BAIL" = "true" ]; then args+=(--bail); fi
+        while IFS= read -r line; do
+          if [ -n "$line" ]; then args+=(--var "$line"); fi
+        done <<< "$WTTP_INPUT_VARS"
+        if [ -n "$WTTP_INPUT_JUNIT" ]; then
+          args+=(--reporter junit --out "$WTTP_INPUT_JUNIT")
+          echo "junit=$WTTP_INPUT_JUNIT" >> "$GITHUB_OUTPUT"
+        fi
+        npx --yes "wttp-cli@$WTTP_INPUT_VERSION" "${args[@]}"

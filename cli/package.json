@@ -1,0 +1,32 @@
+{
+  "name": "wttp-cli",
+  "version": "0.2.0",
+  "description": "Run Wttp collections from the terminal and in CI — the Collection Runner of the Wttp desktop app, without the app.",
+  "license": "MIT",
+  "author": "wesleyara",
+  "homepage": "https://github.com/wesleyara/Wttp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wesleyara/Wttp.git",
+    "directory": "cli"
+  },
+  "keywords": [
+    "http",
+    "api",
+    "testing",
+    "ci",
+    "junit",
+    "collection-runner",
+    "wttp"
+  ],
+  "type": "module",
+  "bin": {
+    "wttp": "dist/wttp.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

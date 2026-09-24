@@ -3,6 +3,8 @@
   "include": [
     "electron.vite.config.*",
     "src/main/**/*",
+    "src/cli/**/*",
+    "vite.cli.config.ts",
     "src/preload/**/*",
     "src/shared/**/*"
   ],

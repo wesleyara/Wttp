@@ -51,6 +51,12 @@ jobs:
 
       - run: yarn test
 
+      # EP-13-T02: the `wttp run` CLI, bundled and run the way CI would run it —
+      # plain Node, no Electron, no display — against a local mock server.
+      - name: CLI smoke test
+        if: matrix.os == 'ubuntu-latest'
+        run: yarn build:cli && node scripts/cli-smoke.mjs
+
   build:
     if: github.event_name != 'pull_request' || github.event.action != 'labeled'
     name: Build installer (${{ matrix.os }})

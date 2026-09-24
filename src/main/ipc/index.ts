@@ -6,6 +6,7 @@ import { registerHttpHandlers } from "./http";
 import { registerImportHandlers } from "./import";
 import { registerMenuHandlers } from "./menu";
 import { registerNodeHandlers } from "./node";
+import { registerRunnerHandlers } from "./runner";
 import { registerScriptHandlers } from "./scripts";
 import { registerSecretHandlers } from "./secrets";
 import { registerSettingsHandlers } from "./settings";
@@ -30,5 +31,6 @@ export function registerIpcHandlers(): void {
   registerImportHandlers();
   registerScriptHandlers();
   registerHistoryHandlers();
+  registerRunnerHandlers();
   registerUpdateHandlers();
 }

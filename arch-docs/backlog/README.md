@@ -27,13 +27,13 @@ Para executar uma task, use a skill `wttp-task`.
 
 ## Pós-MVP
 
-| Épico                                  | Título                          | Alvo  |
-| -------------------------------------- | ------------------------------- | ----- |
-| [EP-12](EP-12-documentacao-apis.md)    | Documentação de APIs            | v0.2  |
-| [EP-13](EP-13-runner-cli.md)           | Collection Runner e CLI         | v0.2  |
-| [EP-14](EP-14-extensibilidade.md)      | Extensibilidade e plugins       | v0.3  |
-| [EP-15](EP-15-protocolos-avancados.md) | Protocolos e recursos avançados | v0.3+ |
-| [EP-16](EP-16-terminal-git.md)         | Terminal e versionamento Git    | v0.2  |
+| Épico                                  | Título                          | Alvo  | Status                                     |
+| -------------------------------------- | ------------------------------- | ----- | ------------------------------------------ |
+| [EP-12](EP-12-documentacao-apis.md)    | Documentação de APIs            | v0.2  | Pendente                                   |
+| [EP-13](EP-13-runner-cli.md)           | Collection Runner e CLI         | v0.2  | Concluída (publicação npm/Action pendente) |
+| [EP-14](EP-14-extensibilidade.md)      | Extensibilidade e plugins       | v0.3  | Pendente                                   |
+| [EP-15](EP-15-protocolos-avancados.md) | Protocolos e recursos avançados | v0.3+ | Pendente                                   |
+| [EP-16](EP-16-terminal-git.md)         | Terminal e versionamento Git    | v0.2  | Pendente                                   |
 
 ---
 

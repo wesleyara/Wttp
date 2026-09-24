@@ -142,7 +142,23 @@ export interface EnvironmentTabState {
 
 export const ENVIRONMENT_TAB_ID = "__environments__";
 
-export type OpenTab = RequestTabState | FolderTabState | EnvironmentTabState;
+/**
+ * Aba do Collection Runner (EP-13-T01) — singleton como a de environments: sem `path` de
+ * nó real, nunca suja, fora da sessão persistida. O estado do run vive em
+ * `useRunnerStore`, não aqui; a aba só dá o lugar na tela.
+ */
+export interface RunnerTabState {
+  kind: "runner";
+  id: string;
+  path: string;
+  title: string;
+  pinned: true;
+  dirty: false;
+}
+
+export const RUNNER_TAB_ID = "__runner__";
+
+export type OpenTab = RequestTabState | FolderTabState | EnvironmentTabState | RunnerTabState;
 
 export function isRequestTab(tab: OpenTab | null | undefined): tab is RequestTabState {
   return tab?.kind === "request";
@@ -154,6 +170,10 @@ export function isFolderTab(tab: OpenTab | null | undefined): tab is FolderTabSt
 
 export function isEnvironmentTab(tab: OpenTab | null | undefined): tab is EnvironmentTabState {
   return tab?.kind === "environment";
+}
+
+export function isRunnerTab(tab: OpenTab | null | undefined): tab is RunnerTabState {
+  return tab?.kind === "runner";
 }
 
 function isRequestOrFolderTab(tab: OpenTab): tab is RequestTabState | FolderTabState {
@@ -411,6 +431,24 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       dirty: false,
     });
     activate(ENVIRONMENT_TAB_ID);
+  }
+
+  /** Abre (ou ativa) a aba do Collection Runner — quem escolhe o que rodar é `useRunnerStore.configure`. */
+  function openRunnerTab(): void {
+    const existing = tabs.value.find(isRunnerTab);
+    if (existing) {
+      activate(existing.id);
+      return;
+    }
+    tabs.value.push({
+      kind: "runner",
+      id: RUNNER_TAB_ID,
+      path: RUNNER_TAB_ID,
+      title: "Runner",
+      pinned: true,
+      dirty: false,
+    });
+    activate(RUNNER_TAB_ID);
   }
 
   /** Abre (ou ativa, se já aberta) a aba de settings de uma pasta/collection (EP-07.1) — relê `folder.yaml` fresco, mesmo cuidado que `save()` já toma para request. */
@@ -1162,6 +1200,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     openPinned,
     openFolderTab,
     openEnvironmentTab,
+    openRunnerTab,
     requestClose,
     forceClose,
     closeByPath,

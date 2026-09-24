@@ -15,6 +15,9 @@ files:
   - "!docs{,/**}"
   - "!arch-docs{,/**}"
   - "!e2e{,/**}"
+  - "!cli{,/**}"
+  - "!scripts{,/**}"
+  - "!vite.cli.config.ts"
 fileAssociations:
   - ext: wttp.yaml
     name: Wttp Workspace

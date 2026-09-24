@@ -44,7 +44,10 @@ import type {
   ResolveRequestResultPayload,
   ResolveTextPayload,
   ResolveTextResultPayload,
+  RunEvent,
   RunImportPayload,
+  RunStartPayload,
+  RunStartResult,
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
@@ -145,6 +148,11 @@ interface WttpApi {
   };
   script: {
     run: (payload: ScriptRunSpec) => Promise<ScriptRunResult>;
+  };
+  runner: {
+    start: (payload: RunStartPayload) => Promise<RunStartResult>;
+    stop: (runId: string) => Promise<void>;
+    onEvent: (callback: (event: RunEvent) => void) => () => void;
   };
   history: {
     list: (payload: RequestHistoryPayload) => Promise<HistoryEntry[]>;

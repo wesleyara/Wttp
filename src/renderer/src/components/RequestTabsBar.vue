@@ -123,7 +123,13 @@ function onDoubleClick(id: string): void {
       />
       <WIcon
         v-else
-        :name="tab.kind === 'environment' ? 'sliders-horizontal' : 'folder'"
+        :name="
+          tab.kind === 'environment'
+            ? 'sliders-horizontal'
+            : tab.kind === 'runner'
+              ? 'list-checks'
+              : 'folder'
+        "
         size="3.5"
         class="shrink-0 text-faint"
       />

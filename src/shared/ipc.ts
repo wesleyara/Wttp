@@ -25,6 +25,7 @@ import type {
   PreviewImportPayload,
   RunImportPayload,
 } from "./import";
+import type { RunStartPayload, RunStartResult } from "./runner";
 import type { ScriptRunResult, ScriptRunSpec } from "./scripting";
 import type {
   EnvironmentListItem,
@@ -506,6 +507,13 @@ export interface IpcContract {
    * normal para timeout ou exceção não tratada (EP-09-T01/T02).
    */
   "script:run": { payload: ScriptRunSpec; result: ScriptRunResult };
+  /**
+   * Começa um run do Collection Runner (EP-13-T01) e devolve na hora — o progresso chega
+   * por `runner:event` (event ↓), que termina sempre em `finished` ou `failed`.
+   */
+  "runner:start": { payload: RunStartPayload; result: RunStartResult };
+  /** Para o run: aborta a request em andamento e não roda mais nenhuma. No-op se já acabou. */
+  "runner:stop": { payload: string; result: void };
 }
 
 export type IpcChannel = keyof IpcContract;

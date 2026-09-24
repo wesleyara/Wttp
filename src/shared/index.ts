@@ -9,5 +9,6 @@ export type * from "./ipc";
 export type * from "./http";
 export type * from "./history";
 export type * from "./import";
+export type * from "./runner";
 export type * from "./scripting";
 export type * from "./storage";

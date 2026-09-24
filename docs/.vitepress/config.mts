@@ -89,6 +89,7 @@ export default defineConfig({
             items: [
               { text: "Scripts e testes", link: "/guia/scripts" },
               { text: "API de scripts", link: "/guia/api-de-scripts" },
+              { text: "Runner e CI", link: "/guia/runner-e-ci" },
             ],
           },
           {
@@ -142,6 +143,7 @@ export default defineConfig({
             items: [
               { text: "Scripts and tests", link: "/en/guide/scripts" },
               { text: "Scripting API", link: "/en/guide/scripting-api" },
+              { text: "Runner and CI", link: "/en/guide/runner-and-ci" },
             ],
           },
           {
