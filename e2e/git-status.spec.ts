@@ -65,7 +65,7 @@ test("shows the branch and marks changed requests in the tree", async ({
   await saveActiveTab(electronApp);
   await waitForTabSaved(window);
   await expect(row.getByTestId("tree-decoration")).toHaveText("M");
-  await expect(window.getByTestId("git-branch")).toContainText("1 changed");
+  await expect(window.getByTestId("git-changes")).toContainText("1 changed");
 
   // "Only changed": a outra request, sem mudança, some da árvore.
   await createRequest(window);

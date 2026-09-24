@@ -82,6 +82,26 @@ export interface GitCommitResult {
   hash: string;
 }
 
+export interface GitBranches {
+  repository: GitRepositoryInfo;
+  /** Branches locais e remotas (sem tags). */
+  refs: GitRef[];
+  /** Arquivos com mudança fora do workspace (relativos à raiz do repo) — no máximo 20. */
+  outsideChanges: string[];
+  outsideChangesCount: number;
+}
+
+export interface GitCheckoutPayload extends GitRootPayload {
+  /** Branch local, ou remota (`origin/x`) com `track: true`. */
+  name: string;
+  /** Branch remota: cria a local de mesmo nome acompanhando ela ("checkout as local"). */
+  track?: boolean;
+}
+
+export interface GitCreateBranchPayload extends GitRootPayload {
+  name: string;
+}
+
 export type GitFileKind = "request" | "folder" | "environment" | "workspace" | "text";
 
 /** Um lado do diff: o texto cru e, quando o YAML parseia, os dados do arquivo. */

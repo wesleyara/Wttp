@@ -45,7 +45,7 @@ test("shows field-level changes and compares with another branch", async ({
       'headers:\n  - { name: X-Api-Version, value: "2", enabled: true }\n',
   );
 
-  const branch = window.getByTestId("git-branch");
+  const branch = window.getByTestId("git-changes");
   await window.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(branch).toContainText("1 changed");
   await branch.click();

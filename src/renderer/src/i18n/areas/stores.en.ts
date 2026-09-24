@@ -19,6 +19,8 @@ export const storesEn = {
     gitCommitted: "Committed {hash}",
     gitDiscarded: "Discarded changes in {count} file(s)",
     gitInitialized: "Git repository created",
+    gitSwitched: "Switched to {branch}",
+    gitBranchCreated: "Created and switched to {branch}",
     curlCopiedWithSecrets: "Copied as cURL, with secrets",
     curlCopiedUnresolved: "Copied as cURL — unresolved variables left as-is: {names}",
     curlCopyFailed: "Couldn't copy to the clipboard",

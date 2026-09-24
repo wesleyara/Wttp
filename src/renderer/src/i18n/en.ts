@@ -168,6 +168,27 @@ export const en = {
     noRepository: "Not a git repository",
     noRepositoryTooltip: "Open the Changes tab to create a repository here",
   },
+  branches: {
+    search: "Find a branch…",
+    local: "Branches",
+    remote: "Remote branches",
+    checkoutAsLocal: "Check out as a local branch that tracks this one",
+    checkoutAsLocalShort: "checkout as local",
+    noMatch: "No branch matches.",
+    createFrom: "Create branch from {branch}…",
+    newPlaceholder: "feature/my-branch",
+    create: "Create",
+    blockedTitle: "Save or discard first",
+    blockedBody: "These tabs have unsaved changes. Save or discard them before switching branches:",
+    confirmTitle: "Switch to {branch}?",
+    confirmRepoWide:
+      "This switches the branch of the whole repository at {root}, not only this workspace.",
+    outsideChanges:
+      "There are {count} changed file(s) outside this workspace — git will carry them over, or refuse the switch if they conflict:",
+    switch: "Switch branch",
+    deletedOnBranch: "Deleted on this branch",
+    deletedBanner: "This request doesn't exist on the current branch. Saving it creates it again.",
+  },
   changes: {
     title: "Changes",
     count: "{count} changed",

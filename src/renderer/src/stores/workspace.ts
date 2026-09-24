@@ -50,12 +50,23 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   const ready = computed(() => tree.value !== null && !needsInit.value);
 
   let stopWatchingChanges: (() => void) | null = null;
+  /**
+   * Última mudança feita por fora do app (watcher, EP-04-T05) — um `git checkout`, um editor
+   * externo. `useRequestTabsStore` observa para recarregar as abas daqueles arquivos (#54).
+   */
+  const externalChange = ref<{ paths: string[]; version: number } | null>(null);
   let persistUiStateTimer: ReturnType<typeof setTimeout> | null = null;
 
   function watchChanges(): void {
     stopWatchingChanges?.();
     stopWatchingChanges = window.wttp.workspace.onChanged(event => {
-      if (tree.value && event.tree.root === tree.value.root) tree.value = event.tree;
+      if (tree.value && event.tree.root === tree.value.root) {
+        tree.value = event.tree;
+        externalChange.value = {
+          paths: event.changedPaths,
+          version: (externalChange.value?.version ?? 0) + 1,
+        };
+      }
     });
   }
 
@@ -172,6 +183,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   }
 
   return {
+    externalChange,
     tree,
     recents,
     loading,

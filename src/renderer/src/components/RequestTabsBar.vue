@@ -135,7 +135,17 @@ function onDoubleClick(id: string): void {
         size="3.5"
         class="shrink-0 text-faint"
       />
-      <span class="min-w-0 flex-1 truncate" :class="{ italic: !tab.pinned }">{{ tab.title }}</span>
+      <span
+        class="min-w-0 flex-1 truncate"
+        :class="{
+          italic: !tab.pinned,
+          'text-faint line-through': 'deletedOnDisk' in tab && tab.deletedOnDisk,
+        }"
+        :title="
+          'deletedOnDisk' in tab && tab.deletedOnDisk ? t('branches.deletedOnBranch') : undefined
+        "
+        >{{ tab.title }}</span
+      >
       <button
         type="button"
         :aria-label="t('tabs.closeTab')"

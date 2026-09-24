@@ -21,6 +21,8 @@ export const storesPtBR: typeof storesEn = {
     gitCommitted: "Commit {hash} criado",
     gitDiscarded: "Mudanças descartadas em {count} arquivo(s)",
     gitInitialized: "Repositório git criado",
+    gitSwitched: "Agora na branch {branch}",
+    gitBranchCreated: "Branch {branch} criada — agora nela",
     curlCopiedWithSecrets: "Copiado como cURL, com segredos",
     curlCopiedUnresolved: "Copiado como cURL — variáveis não resolvidas ficaram literais: {names}",
     curlCopyFailed: "Não foi possível copiar para a área de transferência",

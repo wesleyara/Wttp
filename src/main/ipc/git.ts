@@ -1,5 +1,6 @@
 import type { GitFileVersionsPayload, GitRootPayload } from "@shared";
 
+import { checkoutBranch, createBranch, getBranches } from "../git/branches";
 import { getChanges, getFileVersions, getGitInfo, getGitStatus, listRefs } from "../git/git";
 import { commitStaged, discardPaths, initRepository, stagePaths, unstagePaths } from "../git/write";
 import { DomainError } from "./errors";
@@ -54,5 +55,17 @@ export function registerGitHandlers(): void {
   registerHandler("git:init", payload => {
     assertRoot(payload);
     return initRepository(payload.root);
+  });
+  registerHandler("git:branches", payload => {
+    assertRoot(payload);
+    return getBranches(payload.root);
+  });
+  registerHandler("git:checkout", payload => {
+    assertRoot(payload);
+    return checkoutBranch(payload.root, payload.name, payload.track === true);
+  });
+  registerHandler("git:createBranch", payload => {
+    assertRoot(payload);
+    return createBranch(payload.root, payload.name);
   });
 }

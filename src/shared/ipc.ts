@@ -8,9 +8,12 @@
  */
 
 import type {
+  GitBranches,
   GitChangesPayload,
+  GitCheckoutPayload,
   GitCommitPayload,
   GitCommitResult,
+  GitCreateBranchPayload,
   GitFileChange,
   GitFileVersions,
   GitFileVersionsPayload,
@@ -546,6 +549,11 @@ export interface IpcContract {
   /** Commit da index — recusa se houver algo staged fora do workspace ou em `.wttp/`. */
   "git:commit": { payload: GitCommitPayload; result: GitCommitResult };
   "git:init": { payload: GitRootPayload; result: void };
+  /** Branches e o que o diálogo de troca precisa saber (raiz do repo, mudanças fora do workspace) — #54. */
+  "git:branches": { payload: GitRootPayload; result: GitBranches };
+  /** `git switch` sem `--force` — a recusa do git chega como `GIT_FAILED` com a mensagem dele. */
+  "git:checkout": { payload: GitCheckoutPayload; result: void };
+  "git:createBranch": { payload: GitCreateBranchPayload; result: void };
 }
 
 export type IpcChannel = keyof IpcContract;

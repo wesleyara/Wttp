@@ -55,7 +55,7 @@ test("stages, commits and discards from the Changes tab", async ({
   await saveActiveTab(electronApp);
   await waitForTabSaved(window);
 
-  await window.getByTestId("git-branch").click();
+  await window.getByTestId("git-changes").click();
   const panel = window.getByTestId("changes-panel");
   const unstaged = panel.getByTestId("changes-unstaged");
   await unstaged.getByTestId("change-row").first().hover();
@@ -79,7 +79,7 @@ test("stages, commits and discards from the Changes tab", async ({
   await waitForTabSaved(window);
   await fillCodeMirror(window, requestUrlEditor(window), "https://api.example.com/unsaved");
 
-  await window.getByTestId("git-branch").click();
+  await window.getByTestId("git-changes").click();
   await unstaged.getByTestId("change-row").first().hover();
   await unstaged.getByTestId("discard-file").first().click();
   const confirm = window.getByTestId("discard-confirm");

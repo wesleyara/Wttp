@@ -397,6 +397,13 @@ onUnmounted(() => {
                 <RequestTabsBar />
                 <div class="min-h-0 flex-1 overflow-y-auto p-3">
                   <template v-if="requestTabs.active?.kind === 'request'">
+                    <p
+                      v-if="requestTabs.active.deletedOnDisk"
+                      class="mb-2 flex items-center gap-1.5 rounded-md bg-status-4xx/10 px-2 py-1 font-inter text-xs text-status-4xx"
+                      data-testid="deleted-on-branch"
+                    >
+                      <WIcon name="triangle-alert" size="3.5" /> {{ t("branches.deletedBanner") }}
+                    </p>
                     <RequestUrlBar />
                     <RequestConfigTabs class="mt-3" />
                   </template>

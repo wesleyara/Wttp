@@ -12,9 +12,12 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  GitBranches,
   GitChangesPayload,
+  GitCheckoutPayload,
   GitCommitPayload,
   GitCommitResult,
+  GitCreateBranchPayload,
   GitFileChange,
   GitFileVersions,
   GitFileVersionsPayload,
@@ -229,6 +232,10 @@ const wttp = {
     discard: (payload: GitPathsPayload): Promise<void> => invoke("git:discard", payload),
     commit: (payload: GitCommitPayload): Promise<GitCommitResult> => invoke("git:commit", payload),
     init: (payload: GitRootPayload): Promise<void> => invoke("git:init", payload),
+    branches: (payload: GitRootPayload): Promise<GitBranches> => invoke("git:branches", payload),
+    checkout: (payload: GitCheckoutPayload): Promise<void> => invoke("git:checkout", payload),
+    createBranch: (payload: GitCreateBranchPayload): Promise<void> =>
+      invoke("git:createBranch", payload),
   },
   runner: {
     start: (payload: RunStartPayload): Promise<RunStartResult> => invoke("runner:start", payload),

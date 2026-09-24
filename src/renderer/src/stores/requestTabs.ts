@@ -96,6 +96,8 @@ export interface RequestTabState {
   scriptRun: ScriptRunSummary | null;
   /** Último `RequestFile` salvo — base do próximo `save`, preserva `settings`/`scripts`/`unknown`. */
   originalData: RequestFile;
+  /** O arquivo sumiu do disco por fora do app (ex. outra branch sem ele, #54) — a aba fica, marcada; salvar recria. */
+  deletedOnDisk?: boolean;
 }
 
 /**
@@ -121,6 +123,7 @@ export interface FolderTabState {
   scripts: RequestScripts;
   /** Último `FolderFile` salvo — base do próximo save, preserva campos desconhecidos e os que esta UI não edita. */
   originalData: FolderFile;
+  deletedOnDisk?: boolean;
 }
 
 /**
@@ -522,16 +525,24 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
    * é fechada. Reler também renova o mtime conhecido, então o próximo save não acusa
    * conflito com a escrita que o próprio Git fez.
    */
-  async function reloadFromDisk(filePaths: string[]): Promise<void> {
+  async function reloadFromDisk(
+    filePaths: string[] | "all",
+    options: { missing?: "close" | "mark"; skipDirty?: boolean } = {},
+  ): Promise<void> {
     const root = workspace.root;
     if (!root) return;
-    const tabPaths = new Set(
-      filePaths.map(path =>
-        path.endsWith("/folder.yaml") ? path.slice(0, -"/folder.yaml".length) : path,
-      ),
-    );
+    const missing = options.missing ?? "close";
+    const tabPaths =
+      filePaths === "all"
+        ? null
+        : new Set(
+            filePaths.map(path =>
+              path.endsWith("/folder.yaml") ? path.slice(0, -"/folder.yaml".length) : path,
+            ),
+          );
     for (const tab of [...tabs.value]) {
-      if (!isRequestOrFolderTab(tab) || !tabPaths.has(tab.path)) continue;
+      if (!isRequestOrFolderTab(tab) || (tabPaths && !tabPaths.has(tab.path))) continue;
+      if (options.skipDirty && tab.dirty) continue;
       try {
         const node = await window.wttp.node.read({ root, path: tab.path });
         const index = tabs.value.findIndex(candidate => candidate.id === tab.id);
@@ -543,11 +554,26 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
           tabs.value[index] = buildFolderTab(node, tab.isCollection);
         }
       } catch {
-        forceClose(tab.id);
+        if (missing === "close") {
+          forceClose(tab.id);
+        } else {
+          const current = tabs.value.find(candidate => candidate.id === tab.id);
+          if (current && isRequestOrFolderTab(current)) current.deletedOnDisk = true;
+        }
       }
     }
     flushDrafts();
   }
+
+  // Mudança feita por fora (checkout, editor externo): abas limpas daqueles arquivos
+  // recarregam; as de arquivos que sumiram ficam marcadas, sem fechar sozinhas (#54). Aba
+  // suja não é tocada — o trabalho não salvo do usuário vale mais que o disco.
+  watch(
+    () => workspace.externalChange,
+    change => {
+      if (change) void reloadFromDisk(change.paths, { missing: "mark", skipDirty: true });
+    },
+  );
 
   function requestClose(id: string): void {
     const tab = tabs.value.find(t => t.id === id);
@@ -617,6 +643,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     await window.wttp.node.write({ root: workspace.root, path: tab.path, node });
     tab.originalData = data;
     tab.dirty = false;
+    tab.deletedOnDisk = false;
     flushDrafts();
     // O watcher de filesystem ignora a própria escrita (evita loop com o save),
     // então a árvore só reflete campos como `method` se pedirmos o refresh aqui.
@@ -643,6 +670,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     await window.wttp.node.write({ root: workspace.root, path: tab.path, node });
     tab.originalData = data;
     tab.dirty = false;
+    tab.deletedOnDisk = false;
     flushDrafts();
     await workspace.refreshTree();
     toast.push(i18n.global.t("toast.saved", { name: tab.title }), "success");

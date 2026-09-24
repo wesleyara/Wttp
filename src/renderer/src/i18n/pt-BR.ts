@@ -169,6 +169,28 @@ export const ptBR: MessageSchema = {
     noRepository: "Não é um repositório git",
     noRepositoryTooltip: "Abra a aba Mudanças para criar um repositório aqui",
   },
+  branches: {
+    search: "Buscar branch…",
+    local: "Branches",
+    remote: "Branches remotas",
+    checkoutAsLocal: "Fazer checkout como uma branch local que acompanha esta",
+    checkoutAsLocalShort: "checkout local",
+    noMatch: "Nenhuma branch encontrada.",
+    createFrom: "Criar branch a partir de {branch}…",
+    newPlaceholder: "feature/minha-branch",
+    create: "Criar",
+    blockedTitle: "Salve ou descarte antes",
+    blockedBody:
+      "Estas abas têm alterações não salvas. Salve ou descarte antes de trocar de branch:",
+    confirmTitle: "Trocar para {branch}?",
+    confirmRepoWide:
+      "Isto troca a branch do repositório inteiro em {root}, não só deste workspace.",
+    outsideChanges:
+      "Há {count} arquivo(s) alterado(s) fora deste workspace — o git leva junto, ou recusa a troca se houver conflito:",
+    switch: "Trocar de branch",
+    deletedOnBranch: "Apagada nesta branch",
+    deletedBanner: "Esta request não existe na branch atual. Salvar cria ela de novo.",
+  },
   changes: {
     title: "Mudanças",
     count: "{count} alterado(s)",

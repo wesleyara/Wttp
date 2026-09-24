@@ -13,9 +13,12 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  GitBranches,
   GitChangesPayload,
+  GitCheckoutPayload,
   GitCommitPayload,
   GitCommitResult,
+  GitCreateBranchPayload,
   GitFileChange,
   GitFileVersions,
   GitFileVersionsPayload,
@@ -171,6 +174,9 @@ interface WttpApi {
     discard: (payload: GitPathsPayload) => Promise<void>;
     commit: (payload: GitCommitPayload) => Promise<GitCommitResult>;
     init: (payload: GitRootPayload) => Promise<void>;
+    branches: (payload: GitRootPayload) => Promise<GitBranches>;
+    checkout: (payload: GitCheckoutPayload) => Promise<void>;
+    createBranch: (payload: GitCreateBranchPayload) => Promise<void>;
   };
   runner: {
     start: (payload: RunStartPayload) => Promise<RunStartResult>;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BranchPicker from "@renderer/components/BranchPicker.vue";
 import JwtToolModal from "@renderer/components/JwtToolModal.vue";
 import WEnvironmentPicker, {
   type EnvironmentPickerItem,
@@ -103,6 +104,18 @@ function cycleTheme(): void {
 }
 
 const jwtToolOpen = ref(false);
+
+// Popover de branches (#54), ancorado para cima como o de environments.
+const branchTriggerRef = useTemplateRef<HTMLElement>("branchTrigger");
+const branchPickerOpen = ref(false);
+const branchPickerPosition = ref({ x: 0, bottom: 0 });
+
+function openBranchPicker(): void {
+  const rect = branchTriggerRef.value?.getBoundingClientRect();
+  if (!rect) return;
+  branchPickerPosition.value = { x: rect.left, bottom: window.innerHeight - rect.top + 4 };
+  branchPickerOpen.value = !branchPickerOpen.value;
+}
 </script>
 
 <template>
@@ -110,20 +123,30 @@ const jwtToolOpen = ref(false);
     class="flex h-8 shrink-0 items-center gap-3 border-t border-subtle bg-surface-2 px-3 font-inter text-xs text-muted"
   >
     <span>{{ workspace.tree?.data?.name ?? t("status.noWorkspace") }}</span>
-    <button
-      v-if="git.repository"
-      type="button"
-      class="-mx-1 flex items-center gap-1 rounded px-1 text-1 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      :title="t('git.branchTooltip', { root: git.repository.root })"
-      data-testid="git-branch"
-      @click="changes.open()"
-    >
-      <WIcon name="git-branch" size="3.5" class="text-faint" />
-      {{ gitBranchLabel }}
-      <span v-if="git.files.length" class="text-faint">
+    <template v-if="git.repository">
+      <button
+        ref="branchTrigger"
+        type="button"
+        class="-mx-1 flex items-center gap-1 rounded px-1 text-1 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        :title="t('git.branchTooltip', { root: git.repository.root })"
+        :aria-expanded="branchPickerOpen"
+        data-testid="git-branch"
+        @click="openBranchPicker"
+      >
+        <WIcon name="git-branch" size="3.5" class="text-faint" />
+        {{ gitBranchLabel }}
+      </button>
+      <button
+        v-if="git.files.length"
+        type="button"
+        class="-ml-2 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        :title="t('changes.showChanges')"
+        data-testid="git-changes"
+        @click="changes.open()"
+      >
         {{ t("git.changesCount", { count: git.files.length }) }}
-      </span>
-    </button>
+      </button>
+    </template>
     <button
       v-else-if="git.available && workspace.ready"
       type="button"
@@ -232,4 +255,11 @@ const jwtToolOpen = ref(false);
   />
 
   <JwtToolModal :open="jwtToolOpen" @close="jwtToolOpen = false" />
+
+  <BranchPicker
+    :open="branchPickerOpen"
+    :x="branchPickerPosition.x"
+    :bottom="branchPickerPosition.bottom"
+    @close="branchPickerOpen = false"
+  />
 </template>
