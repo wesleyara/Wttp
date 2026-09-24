@@ -60,7 +60,9 @@ function onSend(): void {
 
 // Detecção só do lado do cliente ("parece um cURL?") — o parsing de verdade
 // (`window.wttp.import.parseCurl`) fica no main (EP-08-T05); aqui é só decidir se
-// intercepta o paste ou deixa o `WCodeEditor` tratar como texto de URL normal.
+// intercepta o paste ou deixa o `WCodeEditor` tratar como texto de URL normal. Uma vez
+// interceptado, nada é colado como texto: cURL que o parser não entende só gera um
+// aviso (`applyPastedCurl`, card #45) — metade de um comando na URL bar não ajuda ninguém.
 const CURL_PREFIX = /^\s*curl(\.exe)?\s/i;
 
 function onPasteUrl(event: ClipboardEvent): void {

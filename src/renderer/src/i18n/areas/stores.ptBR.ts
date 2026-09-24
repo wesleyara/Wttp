@@ -13,6 +13,10 @@ export const storesPtBR: typeof storesEn = {
     copied: "Copiado",
     curlImported: "cURL importado",
     curlImportedPartial: "cURL importado — {count} item(ns) não convertido(s)",
+    curlImportedNewTab: "Importado do cURL numa request nova — a atual foi mantida",
+    curlImportedNewTabPartial:
+      "Importado do cURL numa request nova — {count} item(ns) não convertido(s)",
+    curlPasteInvalid: "Isso não parece um comando cURL válido — nada foi colado",
     curlCopied: "Copiado como cURL",
     curlCopiedWithSecrets: "Copiado como cURL, com segredos",
     curlCopiedUnresolved: "Copiado como cURL — variáveis não resolvidas ficaram literais: {names}",

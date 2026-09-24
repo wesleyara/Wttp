@@ -11,6 +11,10 @@ export const storesEn = {
     copied: "Copied",
     curlImported: "cURL imported",
     curlImportedPartial: "cURL imported — {count} item(s) not converted",
+    curlImportedNewTab: "Imported from cURL into a new request — the current one was kept",
+    curlImportedNewTabPartial:
+      "Imported from cURL into a new request — {count} item(s) not converted",
+    curlPasteInvalid: "That doesn't look like a valid cURL command — nothing was pasted",
     curlCopied: "Copied as cURL",
     curlCopiedWithSecrets: "Copied as cURL, with secrets",
     curlCopiedUnresolved: "Copied as cURL — unresolved variables left as-is: {names}",

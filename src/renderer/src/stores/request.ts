@@ -9,12 +9,15 @@ import type {
 } from "@shared";
 
 import { i18n } from "@renderer/i18n";
+import { rewriteUrlQuery } from "@renderer/lib/url-query-sync";
 import {
   isRequestTab,
+  type RequestTabState,
   type ScriptRunSummary,
   useRequestTabsStore,
 } from "@renderer/stores/requestTabs";
 import { useToastStore } from "@renderer/stores/toast";
+import { useTreeStore } from "@renderer/stores/tree";
 import { defineStore } from "pinia";
 import { computed } from "vue";
 
@@ -26,9 +29,41 @@ import { computed } from "vue";
  * `useRequestStore()` sem saber que "a" request virou "uma entre N abas" — nenhum dos
  * três precisou mudar uma linha quando as abas chegaram.
  */
+/** Onde um cURL colado na URL bar foi parar (card #45). */
+export type PastedCurlOutcome = "filled" | "newTab" | "invalid";
+
+function hasRows(rows: KeyValueEntry[]): boolean {
+  return rows.some(row => row.name.trim() !== "" || row.value.trim() !== "");
+}
+
+/**
+ * A aba tem algo que colar um cURL por cima apagaria? Olha só os campos que o cURL
+ * substitui — URL, params, headers, body e auth. Docs e scripts não contam: o cURL
+ * nunca mexe neles. Uma "New request" recém-criada (`url: ""`, sem body, auth `none`)
+ * é vazia e pode ser preenchida no lugar.
+ */
+export function hasRequestContent(
+  tab: Pick<RequestTabState, "url" | "pathParams" | "query" | "headers" | "body" | "auth">,
+): boolean {
+  return (
+    tab.url.trim() !== "" ||
+    hasRows(tab.pathParams) ||
+    hasRows(tab.query) ||
+    hasRows(tab.headers) ||
+    tab.body.type !== "none" ||
+    (tab.auth.type !== "none" && tab.auth.type !== "inherit")
+  );
+}
+
+function parentDirOf(path: string): string {
+  const index = path.lastIndexOf("/");
+  return index === -1 ? "" : path.slice(0, index);
+}
+
 export const useRequestStore = defineStore("request", () => {
   const tabs = useRequestTabsStore();
   const toast = useToastStore();
+  const tree = useTreeStore();
 
   // A aba ativa pode agora ser de pasta/collection (EP-07.1) — esta fachada só faz
   // sentido para uma de request; os componentes que a consomem (`RequestConfigTabs`,
@@ -140,31 +175,60 @@ export const useRequestStore = defineStore("request", () => {
   }
 
   /**
-   * Colar um cURL na barra de URL preenche a request inteira (EP-08-T05) em vez de
-   * só o texto colado. Devolve `false` quando o conteúdo não era mesmo um cURL — quem
-   * chama decide deixar o paste padrão acontecer nesse caso.
+   * Colar um cURL na barra de URL monta a request inteira (EP-08-T05, card #45), com o
+   * mesmo parser do import (`import:parseCurl`). Nunca sobrescreve trabalho: aba vazia
+   * é preenchida no lugar; aba com conteúdo (`hasRequestContent`) fica como está e o
+   * cURL vai para uma request nova ao lado dela, aberta numa aba própria — como o
+   * "New request" da árvore, o arquivo nasce com o conteúdo padrão e o cURL entra como
+   * edição não salva. cURL que o parser não entende (sem URL) não cola nada, só avisa.
    */
-  async function applyPastedCurl(content: string): Promise<boolean> {
-    if (!active.value) return false;
+  async function applyPastedCurl(content: string): Promise<PastedCurlOutcome> {
+    const current = active.value;
+    if (!current) return "invalid";
 
     const parsed = await window.wttp.import.parseCurl({ content });
-    if (!parsed) return false;
+    if (!parsed || parsed.url.trim() === "") {
+      toast.push(i18n.global.t("toast.curlPasteInvalid"), "warning");
+      return "invalid";
+    }
 
-    active.value.method = parsed.method;
-    active.value.url = parsed.url;
-    active.value.query = parsed.query;
-    active.value.headers = parsed.headers;
-    if (parsed.auth) active.value.auth = parsed.auth;
-    if (parsed.body) active.value.body = parsed.body;
+    let outcome: PastedCurlOutcome = "filled";
+    if (hasRequestContent(current)) {
+      const createdPath = await tree.createRequest(parentDirOf(current.path), {
+        rename: false,
+        notify: false,
+      });
+      if (!createdPath) return "invalid";
+      await tabs.openPinned(createdPath);
+      outcome = "newTab";
+    }
+
+    const target = active.value;
+    if (!target) return "invalid";
+    target.method = parsed.method;
+    // URL já com a query string, como a sincronização URL ↔ tabela deixaria — senão a
+    // aba nova abriria com params na tabela e uma URL sem eles.
+    target.url = rewriteUrlQuery(parsed.url, parsed.query);
+    target.query = parsed.query;
+    target.headers = parsed.headers;
+    if (parsed.auth) target.auth = parsed.auth;
+    if (parsed.body) target.body = parsed.body;
     tabs.markActiveDirty();
 
+    const partial = parsed.notConverted.length > 0;
+    const key =
+      outcome === "newTab"
+        ? partial
+          ? "toast.curlImportedNewTabPartial"
+          : "toast.curlImportedNewTab"
+        : partial
+          ? "toast.curlImportedPartial"
+          : "toast.curlImported";
     toast.push(
-      parsed.notConverted.length > 0
-        ? i18n.global.t("toast.curlImportedPartial", { count: parsed.notConverted.length })
-        : i18n.global.t("toast.curlImported"),
-      parsed.notConverted.length > 0 ? "warning" : "success",
+      i18n.global.t(key, { count: parsed.notConverted.length }),
+      partial ? "warning" : "success",
     );
-    return true;
+    return outcome;
   }
 
   return {

@@ -8,12 +8,15 @@ import type {
 } from "@shared";
 
 import { useEnvironmentStore } from "@renderer/stores/environment";
+import { hasRequestContent, useRequestStore } from "@renderer/stores/request";
 import { useToastStore } from "@renderer/stores/toast";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 
+import githubCurlFixture from "../../../main/importers/__fixtures__/github-get-repo.curl.txt?raw";
+import { curlImporter, parseCurlToRequest } from "../../../main/importers/curl";
 import { isFolderTab, isRequestTab, useRequestTabsStore } from "./requestTabs";
 
 const ROOT = "/workspace";
@@ -1121,6 +1124,142 @@ describe("useRequestTabsStore", () => {
         message: "Copied as cURL — unresolved variables left as-is: userId",
         variant: "warning",
       });
+    });
+  });
+
+  describe("paste cURL into the URL bar (ClickLocal #45)", () => {
+    const nodeCreate = vi.fn(
+      async ({ parentPath }: { root: string; parentPath: string; kind: string; name: string }) => ({
+        path: parentPath ? `${parentPath}/new-request.req.yaml` : "new-request.req.yaml",
+      }),
+    );
+    // O parser de verdade (o mesmo que `import:parseCurl` chama no main) — puro, sem `node:*`.
+    const parseCurl = vi.fn(async ({ content }: { content: string }) =>
+      parseCurlToRequest(content),
+    );
+
+    function blankNode(path: string): RequestNode {
+      return {
+        kind: "request",
+        path,
+        name: "New request",
+        seq: 2,
+        data: { wttp: 1, name: "New request", seq: 2, method: "GET", url: "" },
+      };
+    }
+
+    beforeEach(() => {
+      nodeCreate.mockClear();
+      parseCurl.mockClear();
+      const wttp = (window as unknown as { wttp: Record<string, Record<string, unknown>> }).wttp;
+      wttp.node.create = nodeCreate;
+      wttp.import = { parseCurl };
+      nodeRead.mockImplementation(async ({ path }: { path: string }) => {
+        if (path.endsWith("new-request.req.yaml")) return blankNode(path);
+        if (!path.endsWith(".req.yaml")) return folderNode(path, path);
+        return requestNode(path, path.replace(".req.yaml", ""));
+      });
+    });
+
+    it("fills an empty tab in place, with the same request the import modal would create", async () => {
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("api/new-request.req.yaml");
+
+      const outcome = await useRequestStore().applyPastedCurl(githubCurlFixture);
+
+      expect(outcome).toBe("filled");
+      expect(nodeCreate).not.toHaveBeenCalled();
+      expect(tabs.tabs).toHaveLength(1);
+      const tab = tabs.active;
+      if (!isRequestTab(tab)) throw new Error("expected a request tab");
+      expect(tab.dirty).toBe(true);
+
+      // O que o import via modal grava (`emit` escreve os campos do filho normalizado).
+      const imported = curlImporter.normalize(curlImporter.parse(githubCurlFixture)).children[0];
+      if (imported.kind !== "request") throw new Error("expected a request");
+      expect(tab.method).toBe(imported.method);
+      expect(tab.url).toBe(imported.url);
+      expect(tab.query).toEqual(imported.query);
+      expect(tab.headers).toEqual(imported.headers);
+      expect(tab.body).toEqual(imported.body ?? { type: "none" });
+      expect(tab.auth).toEqual(imported.auth ?? { type: "none" });
+    });
+
+    it("never overwrites a tab with content: the cURL goes to a new request next to it", async () => {
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("api/users.req.yaml");
+      const original = tabs.active;
+      if (!isRequestTab(original)) throw new Error("expected a request tab");
+      const before = JSON.stringify({ ...original, lastResult: null });
+
+      const outcome = await useRequestStore().applyPastedCurl(
+        "curl -X POST 'https://api.example.com/items?page=2' -H 'X-A: 1' --data-raw '{\"a\":1}'",
+      );
+
+      expect(outcome).toBe("newTab");
+      expect(nodeCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ root: ROOT, parentPath: "api", kind: "request" }),
+      );
+      expect(JSON.stringify({ ...original, lastResult: null })).toBe(before);
+      expect(original.dirty).toBe(false);
+
+      const created = tabs.active;
+      if (!isRequestTab(created)) throw new Error("expected a request tab");
+      expect(created.path).toBe("api/new-request.req.yaml");
+      expect(created.pinned).toBe(true);
+      expect(created.dirty).toBe(true);
+      expect(created.method).toBe("POST");
+      // URL já com a query, consistente com a tabela de params.
+      expect(created.url).toBe("https://api.example.com/items?page=2");
+      expect(created.query).toEqual([{ name: "page", value: "2", enabled: true }]);
+      expect(created.headers).toEqual([{ name: "X-A", value: "1", enabled: true }]);
+      expect(created.body).toEqual({ type: "json", json: '{"a":1}' });
+      expect(useToastStore().items.at(-1)?.message).toBe(
+        "Imported from cURL into a new request — the current one was kept",
+      );
+    });
+
+    it("pastes nothing for an invalid cURL, only warns", async () => {
+      const tabs = useRequestTabsStore();
+      await tabs.openPinned("api/new-request.req.yaml");
+      const tab = tabs.active;
+      if (!isRequestTab(tab)) throw new Error("expected a request tab");
+
+      const outcome = await useRequestStore().applyPastedCurl("curl -X POST -H 'X-A: 1'");
+
+      expect(outcome).toBe("invalid");
+      expect(nodeCreate).not.toHaveBeenCalled();
+      expect(tab.url).toBe("");
+      expect(tab.headers).toEqual([]);
+      expect(tab.dirty).toBe(false);
+      expect(useToastStore().items.at(-1)).toMatchObject({
+        message: "That doesn't look like a valid cURL command — nothing was pasted",
+        variant: "warning",
+      });
+    });
+
+    it("hasRequestContent looks only at the fields a cURL would replace", () => {
+      const blank = {
+        url: "",
+        pathParams: [],
+        query: [],
+        headers: [],
+        body: { type: "none" } as const,
+        auth: { type: "none" } as const,
+      };
+      expect(hasRequestContent(blank)).toBe(false);
+      expect(hasRequestContent({ ...blank, auth: { type: "inherit" } })).toBe(false);
+      expect(
+        hasRequestContent({ ...blank, headers: [{ name: "", value: "", enabled: true }] }),
+      ).toBe(false);
+      expect(hasRequestContent({ ...blank, url: "https://x" })).toBe(true);
+      expect(
+        hasRequestContent({ ...blank, headers: [{ name: "X", value: "", enabled: false }] }),
+      ).toBe(true);
+      expect(hasRequestContent({ ...blank, body: { type: "json", json: "" } })).toBe(true);
+      expect(hasRequestContent({ ...blank, auth: { type: "bearer", bearer: { token: "" } } })).toBe(
+        true,
+      );
     });
   });
 });

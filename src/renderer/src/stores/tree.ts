@@ -108,8 +108,17 @@ export const useTreeStore = defineStore("tree", () => {
     return selected.kind === "folder" ? selected.path : parentDirOf(selected.path);
   }
 
-  async function createRequest(parentPath?: string): Promise<void> {
-    if (!workspace.root) return;
+  /**
+   * Cria "New request" em `parentPath` (ou ao lado da seleção atual) e devolve o path do
+   * nó criado. `rename: false` pula a edição inline do nome e `notify: false` o toast
+   * "Request created" — usados quando quem chama vai abrir a request e preencher na hora
+   * (colar um cURL numa aba com conteúdo, #45), e avisa o usuário com a própria mensagem.
+   */
+  async function createRequest(
+    parentPath?: string,
+    options: { rename?: boolean; notify?: boolean } = {},
+  ): Promise<string | null> {
+    if (!workspace.root) return null;
     const target = parentPath ?? defaultParentPath();
     const node = await window.wttp.node.create({
       root: workspace.root,
@@ -120,8 +129,9 @@ export const useTreeStore = defineStore("tree", () => {
     ensureExpanded(target);
     await workspace.refreshTree();
     selectedPath.value = node.path;
-    editingPath.value = node.path;
-    toast.push(i18n.global.t("toast.requestCreated"), "success");
+    if (options.rename ?? true) editingPath.value = node.path;
+    if (options.notify ?? true) toast.push(i18n.global.t("toast.requestCreated"), "success");
+    return node.path;
   }
 
   async function createFolder(parentPath?: string): Promise<void> {
