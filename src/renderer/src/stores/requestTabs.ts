@@ -462,7 +462,27 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   }
 
   /** A árvore renomeou o nó (EP-05-T03) — mantém a aba aberta apontando pro novo path, request ou pasta. */
+  /** O filtro JSONPath guardado por request (#48) acompanha o rename — da própria request, ou de todas dentro de uma pasta renomeada. */
+  function renameResponseFilters(oldPath: string, newPath: string): void {
+    const filters = workspace.uiState.responseFilters;
+    if (!filters) return;
+    let changed = false;
+    const next: Record<string, string> = {};
+    for (const [path, expression] of Object.entries(filters)) {
+      const moved =
+        path === oldPath
+          ? newPath
+          : path.startsWith(`${oldPath}/`)
+            ? `${newPath}${path.slice(oldPath.length)}`
+            : path;
+      if (moved !== path) changed = true;
+      next[moved] = expression;
+    }
+    if (changed) workspace.patchUiState({ responseFilters: next });
+  }
+
   function renamePath(oldPath: string, newPath: string, newName: string): void {
+    renameResponseFilters(oldPath, newPath);
     const tab = tabs.value.find(t => t.path === oldPath);
     if (!tab) return;
     tab.path = newPath;

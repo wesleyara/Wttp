@@ -33,6 +33,16 @@ O painel de resposta mostra status, tempo e tamanho, e tem abas:
   apaga o histórico daquela request.
 - **Tests** — resultado das asserções e o console dos scripts.
 
+### Filtrar uma resposta JSON
+
+Numa resposta JSON, o ícone de funil ao lado de **Pretty**/**Raw** (ou `Ctrl+F` com o foco
+no body) abre um filtro **JSONPath**: digite `$.data.items[*].id` e o painel mostra só o que
+casa, com a contagem de resultados. Funciona com membros (`$.a.b`, `$['a-b']`), índices e
+fatias (`[0]`, `[-1]`, `[0:2]`), curingas (`[*]`), busca recursiva (`$..id`) e filtros
+(`[?(@.price > 10 && @.active == true)]`). O body original não muda, e limpar o filtro (✕
+ou `Esc`) volta à resposta inteira. O último filtro de cada request fica guardado no seu
+computador (`.wttp/`, nunca no YAML versionado).
+
 Seguir redirects, timeout e validação de TLS são configuráveis por workspace (`wttp.yaml`,
 bloco `settings`). Um envio em andamento pode ser cancelado.
 

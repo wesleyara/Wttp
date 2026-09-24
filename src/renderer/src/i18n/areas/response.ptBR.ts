@@ -2,6 +2,17 @@ import type { responseEn } from "./response.en";
 
 export const responsePtBR: typeof responseEn = {
   response: {
+    filter: {
+      open: "Filtrar com JSONPath (Ctrl+F)",
+      jsonOnly: "O filtro JSONPath só funciona em respostas JSON",
+      placeholder: "$.data.items[*].id",
+      clear: "Limpar filtro",
+      matchesOne: "1 resultado",
+      matchesOther: "{count} resultados",
+      syntaxError: "JSONPath inválido na posição {position}: {message}",
+      invalidJson:
+        "O body da resposta não é um JSON válido (pode ter sido truncado), então não dá para filtrar",
+    },
     tabs: {
       error: "Erro",
       body: "Response",

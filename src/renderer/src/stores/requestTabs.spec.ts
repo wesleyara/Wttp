@@ -1023,6 +1023,28 @@ describe("useRequestTabsStore", () => {
     });
   });
 
+  it("renaming a request or folder carries its JSONPath response filters along (#48)", () => {
+    const workspace = useWorkspaceStore();
+    workspace.uiState = {
+      ...workspace.uiState,
+      responseFilters: {
+        "api/users.req.yaml": "$..id",
+        "api/admin/list.req.yaml": "$[0]",
+        "other.req.yaml": "$.x",
+      },
+    };
+    const tabs = useRequestTabsStore();
+
+    tabs.renamePath("api/users.req.yaml", "api/people.req.yaml", "people");
+    tabs.renamePath("api/admin", "api/staff", "staff");
+
+    expect(workspace.uiState.responseFilters).toEqual({
+      "api/people.req.yaml": "$..id",
+      "api/staff/list.req.yaml": "$[0]",
+      "other.req.yaml": "$.x",
+    });
+  });
+
   describe("copyAsCurl (ClickLocal #44)", () => {
     const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
 

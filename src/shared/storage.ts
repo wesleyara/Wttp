@@ -195,6 +195,12 @@ export interface WorkspaceUiState {
   activeTabPath: string | null;
   /** `path` do environment ativo (EP-06-T04) — `null` = "No environment". */
   activeEnvironment: string | null;
+  /**
+   * Último filtro JSONPath do painel de resposta, por `path` de request (ClickLocal #48).
+   * Opcional: arquivos de antes do campo continuam válidos; request sem filtro não tem
+   * chave. Estado local de navegação, como as abas — nunca vai para o YAML.
+   */
+  responseFilters?: Record<string, string>;
 }
 
 /**

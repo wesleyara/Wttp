@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { HttpResponseResult } from "@shared";
 
+import { useJsonPathFilter } from "@renderer/composables/useJsonPathFilter";
 import { isHtml, isImage, isPdf, isTextual } from "@renderer/lib/content-type";
 import { parseSetCookieHeader } from "@renderer/lib/cookies";
 import { formatBytes, formatDuration } from "@renderer/lib/format";
@@ -10,15 +11,17 @@ import { useHistoryStore } from "@renderer/stores/history";
 import { useRequestStore } from "@renderer/stores/request";
 import { useUiStore } from "@renderer/stores/ui";
 import { storeToRefs } from "pinia";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import HistoryPanel from "./HistoryPanel.vue";
 import ResponseStatusBar from "./ResponseStatusBar.vue";
 import ScriptResultsPanel from "./ScriptResultsPanel.vue";
+import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
+import WInput from "./WInput.vue";
 import WSelect from "./WSelect.vue";
 import WStatusBadge from "./WStatusBadge.vue";
 import WTabs from "./WTabs.vue";
@@ -241,9 +244,75 @@ const prettyBody = computed(() => {
   return { text };
 });
 
-const displayText = computed(() =>
-  bodyViewMode.value === "pretty" ? prettyBody.value.text : decodedBody.value.text,
+// --- Filtro JSONPath (ClickLocal #48) ---------------------------------------------------
+// Só para body JSON; o body original nunca muda — o filtro troca só o que o editor mostra,
+// e limpar volta ao body inteiro. Aberto sozinho quando a request já tem filtro guardado.
+const isJsonBody = computed(() => editorLanguage.value === "json");
+const { expression: filterExpression, result: filterResult } = useJsonPathFilter(
+  path,
+  computed(() => decodedBody.value.text),
+  isJsonBody,
 );
+const filterOpen = ref(false);
+const filterRow = useTemplateRef<HTMLElement>("filterRow");
+
+watch(
+  [path, () => filterExpression.value !== ""],
+  () => {
+    if (filterExpression.value) filterOpen.value = true;
+  },
+  { immediate: true },
+);
+watch(path, () => {
+  filterOpen.value = filterExpression.value !== "";
+});
+
+async function openFilter(): Promise<void> {
+  if (!isJsonBody.value) return;
+  filterOpen.value = true;
+  await nextTick();
+  filterRow.value?.querySelector("input")?.focus();
+}
+
+function closeFilter(): void {
+  filterExpression.value = "";
+  filterOpen.value = false;
+}
+
+/** Ctrl/Cmd+F com o foco no body abre o filtro — em captura, antes da busca do CodeMirror. */
+function onBodyKeydown(event: KeyboardEvent): void {
+  if (!isJsonBody.value || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "f") {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  void openFilter();
+}
+
+const filterMatchesLabel = computed(() => {
+  const result = filterResult.value;
+  if (result.kind !== "ok") return "";
+  return result.count === 1
+    ? t("response.filter.matchesOne")
+    : t("response.filter.matchesOther", { count: result.count });
+});
+
+const filterErrorMessage = computed(() => {
+  const result = filterResult.value;
+  if (result.kind === "syntaxError") {
+    return t("response.filter.syntaxError", {
+      position: result.position + 1,
+      message: result.message,
+    });
+  }
+  if (result.kind === "invalidJson") return t("response.filter.invalidJson");
+  return "";
+});
+
+const displayText = computed(() => {
+  if (filterResult.value.kind === "ok") return filterResult.value.text;
+  return bodyViewMode.value === "pretty" ? prettyBody.value.text : decodedBody.value.text;
+});
 const prettyWarning = computed(() =>
   bodyViewMode.value === "pretty" ? prettyBody.value.warning : undefined,
 );
@@ -376,9 +445,72 @@ async function saveBody(): Promise<void> {
       <div
         v-else-if="mainTab === 'body' && successResult"
         class="flex min-h-0 flex-1 flex-col gap-2 pt-2"
+        @keydown.capture="onBodyKeydown"
       >
-        <div class="w-32">
-          <WSelect v-model="bodyViewMode" :options="bodyViewOptions" />
+        <div class="flex items-center gap-2">
+          <div class="w-32">
+            <WSelect v-model="bodyViewMode" :options="bodyViewOptions" />
+          </div>
+          <span
+            v-if="bodyViewMode !== 'preview'"
+            :title="isJsonBody ? t('response.filter.open') : t('response.filter.jsonOnly')"
+          >
+            <WButton
+              size="sm"
+              variant="ghost"
+              :disabled="!isJsonBody"
+              :aria-label="t('response.filter.open')"
+              :aria-pressed="filterOpen"
+              :class="filterOpen ? 'text-accent' : ''"
+              data-testid="response-filter-toggle"
+              @click="filterOpen ? closeFilter() : openFilter()"
+            >
+              <WIcon name="funnel" />
+            </WButton>
+          </span>
+        </div>
+
+        <div
+          v-if="filterOpen && isJsonBody && bodyViewMode !== 'preview'"
+          ref="filterRow"
+          class="flex flex-col gap-1"
+          @keydown.esc.stop="closeFilter"
+        >
+          <WInput
+            v-model="filterExpression"
+            :placeholder="t('response.filter.placeholder')"
+            :error="filterErrorMessage !== ''"
+            monospace
+            data-testid="response-filter-input"
+          >
+            <template #prefix>
+              <WIcon name="funnel" class="text-faint" />
+            </template>
+            <template #suffix>
+              <span
+                v-if="filterMatchesLabel"
+                class="shrink-0 whitespace-nowrap font-inter text-[11px] text-faint"
+              >
+                {{ filterMatchesLabel }}
+              </span>
+              <button
+                type="button"
+                class="flex size-5 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1"
+                :title="t('response.filter.clear')"
+                :aria-label="t('response.filter.clear')"
+                @click="closeFilter"
+              >
+                <WIcon name="x" size="3" />
+              </button>
+            </template>
+          </WInput>
+          <p
+            v-if="filterErrorMessage"
+            class="font-inter text-xs text-status-5xx"
+            data-testid="response-filter-error"
+          >
+            {{ filterErrorMessage }}
+          </p>
         </div>
 
         <p

@@ -9,6 +9,17 @@ export const responseEn = {
       tests: "Tests",
     },
     view: { pretty: "Pretty", raw: "Raw", preview: "Preview" },
+    filter: {
+      open: "Filter with JSONPath (Ctrl+F)",
+      jsonOnly: "JSONPath filtering works on JSON responses only",
+      placeholder: "$.data.items[*].id",
+      clear: "Clear filter",
+      matchesOne: "1 match",
+      matchesOther: "{count} matches",
+      syntaxError: "Invalid JSONPath at position {position}: {message}",
+      invalidJson:
+        "The response body isn't valid JSON (it may be truncated), so it can't be filtered",
+    },
     preRequestFailed: "Pre-request script failed ({source}) — request not sent",
     empty: {
       title: "No response yet",

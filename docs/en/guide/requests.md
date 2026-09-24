@@ -33,6 +33,16 @@ The response panel shows status, time and size, and has tabs:
   removes that request's history.
 - **Tests** — assertion results and the scripts' console.
 
+### Filter a JSON response
+
+On a JSON response, the funnel icon next to **Pretty**/**Raw** (or `Ctrl+F` with the body
+focused) opens a **JSONPath** filter: type `$.data.items[*].id` and the panel shows only what
+matches, with a match count. It supports members (`$.a.b`, `$['a-b']`), indexes and slices
+(`[0]`, `[-1]`, `[0:2]`), wildcards (`[*]`), recursive descent (`$..id`) and filters
+(`[?(@.price > 10 && @.active == true)]`). The original body doesn't change, and clearing the
+filter (✕ or `Esc`) brings the whole response back. Each request's last filter is kept on your
+machine (`.wttp/`, never in the versioned YAML).
+
 Following redirects, timeout and TLS validation are configurable per workspace
 (`wttp.yaml`, `settings` block). A request in flight can be cancelled.
 
