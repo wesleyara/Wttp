@@ -123,40 +123,6 @@ function openBranchPicker(): void {
     class="flex h-8 shrink-0 items-center gap-3 border-t border-subtle bg-surface-2 px-3 font-inter text-xs text-muted"
   >
     <span>{{ workspace.tree?.data?.name ?? t("status.noWorkspace") }}</span>
-    <template v-if="git.repository">
-      <button
-        ref="branchTrigger"
-        type="button"
-        class="-mx-1 flex items-center gap-1 rounded px-1 text-1 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        :title="t('git.branchTooltip', { root: git.repository.root })"
-        :aria-expanded="branchPickerOpen"
-        data-testid="git-branch"
-        @click="openBranchPicker"
-      >
-        <WIcon name="git-branch" size="3.5" class="text-faint" />
-        {{ gitBranchLabel }}
-      </button>
-      <button
-        v-if="git.files.length"
-        type="button"
-        class="-ml-2 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        :title="t('changes.showChanges')"
-        data-testid="git-changes"
-        @click="changes.open()"
-      >
-        {{ t("git.changesCount", { count: git.files.length }) }}
-      </button>
-    </template>
-    <button
-      v-else-if="git.available && workspace.ready"
-      type="button"
-      class="-mx-1 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      :title="t('git.noRepositoryTooltip')"
-      data-testid="git-no-repo"
-      @click="changes.open()"
-    >
-      {{ t("git.noRepository") }}
-    </button>
     <button
       type="button"
       class="flex items-center text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -165,6 +131,44 @@ function openBranchPicker(): void {
     >
       <WIcon name="arrow-left-right" size="3" />
     </button>
+    <template v-if="git.repository || (git.available && workspace.ready)">
+      <span class="text-faint" aria-hidden="true">·</span>
+      <template v-if="git.repository">
+        <button
+          ref="branchTrigger"
+          type="button"
+          class="-mx-1 flex items-center gap-1 rounded px-1 text-1 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          :title="t('git.branchTooltip', { root: git.repository.root })"
+          :aria-expanded="branchPickerOpen"
+          data-testid="git-branch"
+          @click="openBranchPicker"
+        >
+          <WIcon name="git-branch" size="3.5" class="text-faint" />
+          {{ gitBranchLabel }}
+        </button>
+        <button
+          v-if="git.files.length"
+          type="button"
+          class="-ml-2 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          :title="t('changes.showChanges')"
+          data-testid="git-changes"
+          @click="changes.open()"
+        >
+          {{ t("git.changesCount", { count: git.files.length }) }}
+        </button>
+      </template>
+      <button
+        v-else-if="git.available && workspace.ready"
+        type="button"
+        class="-mx-1 flex items-center gap-1 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        :title="t('git.noRepositoryTooltip')"
+        data-testid="git-no-repo"
+        @click="changes.open()"
+      >
+        <WIcon name="git-branch" size="3.5" />
+        {{ t("git.noRepository") }}
+      </button>
+    </template>
     <span class="text-faint">·</span>
     <button
       ref="environmentTrigger"

@@ -165,8 +165,8 @@ export const en = {
     detached: "detached at {head}",
     branchTooltip: "Git repository: {root} — click to see the changes",
     changesCount: "· {count} changed",
-    noRepository: "Not a git repository",
-    noRepositoryTooltip: "Open the Changes tab to create a repository here",
+    noRepository: "No git",
+    noRepositoryTooltip: "Not a git repository — click to create one",
   },
   branches: {
     search: "Find a branch…",

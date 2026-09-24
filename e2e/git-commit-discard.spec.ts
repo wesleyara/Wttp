@@ -34,6 +34,7 @@ test("stages, commits and discards from the Changes tab", async ({
   const root = join(container, readdirSync(container)[0]);
 
   // Sem repositório: a aba Changes oferece o `git init`, com `.wttp/` no .gitignore.
+  await expect(window.getByTestId("git-no-repo")).toHaveText("No git");
   await window.getByTestId("git-no-repo").click();
   await window.getByTestId("git-init").click();
   await expect(window.getByText("Git repository created")).toBeVisible();

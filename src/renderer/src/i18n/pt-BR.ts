@@ -166,8 +166,8 @@ export const ptBR: MessageSchema = {
     detached: "destacado em {head}",
     branchTooltip: "Repositório git: {root} — clique para ver as mudanças",
     changesCount: "· {count} alterado(s)",
-    noRepository: "Não é um repositório git",
-    noRepositoryTooltip: "Abra a aba Mudanças para criar um repositório aqui",
+    noRepository: "Sem git",
+    noRepositoryTooltip: "Não é um repositório git — clique para criar um",
   },
   branches: {
     search: "Buscar branch…",

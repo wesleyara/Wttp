@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
-import { computed, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import WContextMenu, { type ContextMenuItem } from "./WContextMenu.vue";
@@ -16,6 +16,39 @@ let dragCandidate: { id: string; startX: number } | null = null;
 const draggingId = ref<string | null>(null);
 
 const tabContextMenu = ref<{ id: string; x: number; y: number } | null>(null);
+
+// Espaço da scrollbar só quando ela existe (card #61): com as abas cabendo, a barra tem a
+// altura exata das abas; transbordando, ganha os 6px da scrollbar embaixo — as abas em si
+// continuam com 32px nos dois casos (card #36).
+const barRef = useTemplateRef<HTMLElement>("bar");
+const overflowing = ref(false);
+
+function measureOverflow(): void {
+  const el = barRef.value;
+  overflowing.value = el ? el.scrollWidth > el.clientWidth + 1 : false;
+}
+
+let resizeObserver: ResizeObserver | null = null;
+watch(
+  barRef,
+  el => {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+    if (!el) return;
+    resizeObserver = new ResizeObserver(measureOverflow);
+    resizeObserver.observe(el);
+    measureOverflow();
+  },
+  { immediate: true },
+);
+watch(
+  () => tabs.tabs.length,
+  async () => {
+    await nextTick();
+    measureOverflow();
+  },
+);
+onBeforeUnmount(() => resizeObserver?.disconnect());
 
 function onContextMenu(id: string, event: MouseEvent): void {
   event.preventDefault();
@@ -94,8 +127,10 @@ function onDoubleClick(id: string): void {
 
 <template>
   <div
+    ref="bar"
     role="tablist"
-    class="tab-scroll flex h-[38px] items-start overflow-x-auto overflow-y-hidden border-b border-subtle"
+    class="tab-scroll flex items-start overflow-x-auto overflow-y-hidden border-b border-subtle"
+    :class="overflowing ? 'h-[38px]' : 'h-8'"
   >
     <div
       v-for="tab in tabs.tabs"
@@ -167,9 +202,9 @@ function onDoubleClick(id: string): void {
 
 <style scoped>
 /* `::-webkit-scrollbar` não tem equivalente em utilitário Tailwind puro (sem plugin) —
-   escopado só a esta barra de abas em vez de estilo global. Os 6px extras no `h-[38px]`
-   do container (contra `h-8`/32px de cada aba) reservam o espaço da scrollbar nativa
-   sempre, para que aparecer/sumir o scroll não mude a altura visível das abas. */
+   escopado só a esta barra de abas em vez de estilo global. Quando as abas transbordam, o
+   container passa de `h-8` para `h-[38px]`: os 6px extras são o espaço da scrollbar, para
+   que ela nunca encolha a altura visível das abas (32px). */
 .tab-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--w-border-strong)) transparent;
