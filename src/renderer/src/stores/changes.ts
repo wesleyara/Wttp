@@ -9,6 +9,7 @@ import type {
   WttpError,
 } from "@shared";
 
+import { i18n } from "@renderer/i18n";
 import {
   diffEnvironment,
   diffFolder,
@@ -20,6 +21,7 @@ import {
 } from "@renderer/lib/structuralDiff";
 import { useGitStore } from "@renderer/stores/git";
 import { isChangesTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { useToastStore } from "@renderer/stores/toast";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
@@ -82,6 +84,7 @@ export const useChangesStore = defineStore("changes", () => {
   const workspace = useWorkspaceStore();
   const git = useGitStore();
   const tabs = useRequestTabsStore();
+  const toast = useToastStore();
 
   const base = ref("HEAD");
   const refs = ref<GitRef[]>([]);
@@ -93,14 +96,29 @@ export const useChangesStore = defineStore("changes", () => {
   const versions = ref<GitFileVersions | null>(null);
   const loadingDiff = ref(false);
 
-  const groups = computed<ChangeGroup[]>(() => {
+  function groupByFolder(list: GitFileChange[]): ChangeGroup[] {
     const byFolder = new Map<string, GitFileChange[]>();
-    for (const change of [...changes.value].sort((a, b) => a.path.localeCompare(b.path))) {
+    for (const change of [...list].sort((a, b) => a.path.localeCompare(b.path))) {
       const folder = dirOf(change.path);
       byFolder.set(folder, [...(byFolder.get(folder) ?? []), change]);
     }
-    return [...byFolder.entries()].map(([folder, list]) => ({ folder, changes: list }));
-  });
+    return [...byFolder.entries()].map(([folder, items]) => ({ folder, changes: items }));
+  }
+
+  const groups = computed<ChangeGroup[]>(() => groupByFolder(changes.value));
+
+  /**
+   * Stage/commit/descartar (#53) só fazem sentido contra o último commit — comparando com
+   * outra branch a lista é "o que difere de lá", não "o que dá para commitar".
+   */
+  const canWrite = computed(() => base.value === "HEAD" && git.repository !== null);
+  const stagedGroups = computed(() => groupByFolder(changes.value.filter(change => change.staged)));
+  const unstagedGroups = computed(() =>
+    groupByFolder(changes.value.filter(change => change.unstaged)),
+  );
+  const stagedCount = computed(() => changes.value.filter(change => change.staged).length);
+  const busy = ref(false);
+  const commitMessage = ref("");
 
   const selected = computed(
     () => changes.value.find(change => change.path === selectedPath.value) ?? null,
@@ -171,6 +189,83 @@ export const useChangesStore = defineStore("changes", () => {
     if (target) await select(target.path);
   }
 
+  /** Roda uma escrita Git e atualiza tudo que ela pode ter mudado: status, lista, árvore. */
+  async function mutate(action: () => Promise<void>): Promise<boolean> {
+    if (!workspace.root || busy.value) return false;
+    busy.value = true;
+    error.value = null;
+    try {
+      await action();
+      return true;
+    } catch (caught) {
+      error.value = caught as WttpError;
+      return false;
+    } finally {
+      busy.value = false;
+      await git.refresh();
+      await load();
+    }
+  }
+
+  function stage(paths: string[]): Promise<boolean> {
+    const root = workspace.root!;
+    return mutate(() => window.wttp.git.stage({ root, paths }));
+  }
+
+  function unstage(paths: string[]): Promise<boolean> {
+    const root = workspace.root!;
+    return mutate(() => window.wttp.git.unstage({ root, paths }));
+  }
+
+  function stageAll(): Promise<boolean> {
+    return stage(changes.value.filter(change => change.unstaged).map(change => change.path));
+  }
+
+  /** Abas sujas entre `paths` — a confirmação do descarte avisa que essas edições também somem. */
+  function dirtyTabsFor(paths: string[]): string[] {
+    const targets = new Set(
+      paths.map(path =>
+        path.endsWith("/folder.yaml") ? path.slice(0, -"/folder.yaml".length) : path,
+      ),
+    );
+    return tabs.tabs.filter(tab => tab.dirty && targets.has(tab.path)).map(tab => tab.title);
+  }
+
+  async function discard(paths: string[]): Promise<boolean> {
+    const root = workspace.root!;
+    const ok = await mutate(() => window.wttp.git.discard({ root, paths }));
+    if (ok) {
+      await tabs.reloadFromDisk(paths);
+      await workspace.refreshTree();
+      toast.push(i18n.global.t("toast.gitDiscarded", { count: paths.length }), "success");
+    }
+    return ok;
+  }
+
+  async function commit(): Promise<boolean> {
+    const root = workspace.root!;
+    const message = commitMessage.value;
+    let hash = "";
+    const ok = await mutate(async () => {
+      hash = (await window.wttp.git.commit({ root, message })).hash;
+    });
+    if (ok) {
+      commitMessage.value = "";
+      toast.push(i18n.global.t("toast.gitCommitted", { hash }), "success");
+    }
+    return ok;
+  }
+
+  async function initRepository(): Promise<boolean> {
+    const root = workspace.root!;
+    const ok = await mutate(() => window.wttp.git.init({ root }));
+    if (ok) {
+      await workspace.refreshTree();
+      toast.push(i18n.global.t("toast.gitInitialized"), "success");
+    }
+    return ok;
+  }
+
   async function setBase(next: string): Promise<void> {
     base.value = next || "HEAD";
     await load();
@@ -208,6 +303,19 @@ export const useChangesStore = defineStore("changes", () => {
     versions,
     diff,
     loadingDiff,
+    canWrite,
+    stagedGroups,
+    unstagedGroups,
+    stagedCount,
+    busy,
+    commitMessage,
+    stage,
+    unstage,
+    stageAll,
+    discard,
+    dirtyTabsFor,
+    commit,
+    initRepository,
     open,
     load,
     select,

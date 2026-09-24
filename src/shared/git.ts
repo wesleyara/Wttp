@@ -68,6 +68,20 @@ export interface GitFileVersionsPayload extends GitRootPayload {
   base?: string;
 }
 
+export interface GitPathsPayload extends GitRootPayload {
+  /** Relativos ao workspace. */
+  paths: string[];
+}
+
+export interface GitCommitPayload extends GitRootPayload {
+  message: string;
+}
+
+export interface GitCommitResult {
+  /** Hash curto do commit criado. */
+  hash: string;
+}
+
 export type GitFileKind = "request" | "folder" | "environment" | "workspace" | "text";
 
 /** Um lado do diff: o texto cru e, quando o YAML parseia, os dados do arquivo. */

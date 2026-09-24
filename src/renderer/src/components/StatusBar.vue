@@ -124,9 +124,16 @@ const jwtToolOpen = ref(false);
         {{ t("git.changesCount", { count: git.files.length }) }}
       </span>
     </button>
-    <span v-else-if="git.available && workspace.ready" class="text-faint" data-testid="git-no-repo">
+    <button
+      v-else-if="git.available && workspace.ready"
+      type="button"
+      class="-mx-1 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      :title="t('git.noRepositoryTooltip')"
+      data-testid="git-no-repo"
+      @click="changes.open()"
+    >
       {{ t("git.noRepository") }}
-    </span>
+    </button>
     <button
       type="button"
       class="flex items-center text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"

@@ -1,6 +1,7 @@
 import type { GitFileVersionsPayload, GitRootPayload } from "@shared";
 
 import { getChanges, getFileVersions, getGitInfo, getGitStatus, listRefs } from "../git/git";
+import { commitStaged, discardPaths, initRepository, stagePaths, unstagePaths } from "../git/write";
 import { DomainError } from "./errors";
 import { registerHandler } from "./registry";
 
@@ -33,5 +34,25 @@ export function registerGitHandlers(): void {
       throw new DomainError("INVALID_PAYLOAD", "git:fileVersions needs a path");
     }
     return getFileVersions(payload.root, payload.path, payload.base, payload.from);
+  });
+  registerHandler("git:stage", payload => {
+    assertRoot(payload);
+    return stagePaths(payload.root, payload.paths);
+  });
+  registerHandler("git:unstage", payload => {
+    assertRoot(payload);
+    return unstagePaths(payload.root, payload.paths);
+  });
+  registerHandler("git:discard", payload => {
+    assertRoot(payload);
+    return discardPaths(payload.root, payload.paths);
+  });
+  registerHandler("git:commit", payload => {
+    assertRoot(payload);
+    return commitStaged(payload.root, payload.message);
+  });
+  registerHandler("git:init", payload => {
+    assertRoot(payload);
+    return initRepository(payload.root);
   });
 }

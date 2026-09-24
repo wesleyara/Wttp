@@ -14,10 +14,13 @@ import type {
   EnvironmentPathPayload,
   FolderNode,
   GitChangesPayload,
+  GitCommitPayload,
+  GitCommitResult,
   GitFileChange,
   GitFileVersions,
   GitFileVersionsPayload,
   GitInfo,
+  GitPathsPayload,
   GitRef,
   GitRootPayload,
   GitStatus,
@@ -163,6 +166,11 @@ interface WttpApi {
     refs: (payload: GitRootPayload) => Promise<GitRef[]>;
     changes: (payload: GitChangesPayload) => Promise<GitFileChange[]>;
     fileVersions: (payload: GitFileVersionsPayload) => Promise<GitFileVersions>;
+    stage: (payload: GitPathsPayload) => Promise<void>;
+    unstage: (payload: GitPathsPayload) => Promise<void>;
+    discard: (payload: GitPathsPayload) => Promise<void>;
+    commit: (payload: GitCommitPayload) => Promise<GitCommitResult>;
+    init: (payload: GitRootPayload) => Promise<void>;
   };
   runner: {
     start: (payload: RunStartPayload) => Promise<RunStartResult>;

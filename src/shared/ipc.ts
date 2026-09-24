@@ -9,10 +9,13 @@
 
 import type {
   GitChangesPayload,
+  GitCommitPayload,
+  GitCommitResult,
   GitFileChange,
   GitFileVersions,
   GitFileVersionsPayload,
   GitInfo,
+  GitPathsPayload,
   GitRef,
   GitRootPayload,
   GitStatus,
@@ -535,6 +538,14 @@ export interface IpcContract {
   "git:changes": { payload: GitChangesPayload; result: GitFileChange[] };
   /** Os dois lados de um arquivo (base e disco), já parseados pelo storage. */
   "git:fileVersions": { payload: GitFileVersionsPayload; result: GitFileVersions };
+  /** Escritas da aba Changes (#53) — sempre com caminhos de dentro do workspace. */
+  "git:stage": { payload: GitPathsPayload; result: void };
+  "git:unstage": { payload: GitPathsPayload; result: void };
+  /** Volta ao último commit (index e disco); o que não existe no commit é apagado. */
+  "git:discard": { payload: GitPathsPayload; result: void };
+  /** Commit da index — recusa se houver algo staged fora do workspace ou em `.wttp/`. */
+  "git:commit": { payload: GitCommitPayload; result: GitCommitResult };
+  "git:init": { payload: GitRootPayload; result: void };
 }
 
 export type IpcChannel = keyof IpcContract;
@@ -563,6 +574,9 @@ export type WttpErrorCode =
   | "CANCELLED"
   | "CONNECTION_REFUSED"
   | "IMPORT_FORMAT_UNRECOGNIZED"
+  | "GIT_FAILED"
+  | "GIT_IDENTITY_MISSING"
+  | "GIT_OUTSIDE_WORKSPACE"
   | "UNKNOWN";
 
 /**

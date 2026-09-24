@@ -515,6 +515,40 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     flushDrafts();
   }
 
+  /**
+   * Relê do disco as abas dos arquivos em `filePaths` (relativos ao workspace) — depois de
+   * um descarte pelo Git (#53), que muda os arquivos por fora do app. A aba volta limpa com
+   * o conteúdo do disco; a de um arquivo que deixou de existir (untracked/novo descartado)
+   * é fechada. Reler também renova o mtime conhecido, então o próximo save não acusa
+   * conflito com a escrita que o próprio Git fez.
+   */
+  async function reloadFromDisk(filePaths: string[]): Promise<void> {
+    const root = workspace.root;
+    if (!root) return;
+    const tabPaths = new Set(
+      filePaths.map(path =>
+        path.endsWith("/folder.yaml") ? path.slice(0, -"/folder.yaml".length) : path,
+      ),
+    );
+    for (const tab of [...tabs.value]) {
+      if (!isRequestOrFolderTab(tab) || !tabPaths.has(tab.path)) continue;
+      try {
+        const node = await window.wttp.node.read({ root, path: tab.path });
+        const index = tabs.value.findIndex(candidate => candidate.id === tab.id);
+        if (index === -1) continue;
+        if (tab.kind === "request" && node.kind === "request" && node.data) {
+          const fresh = buildTab(node, tab.pinned);
+          tabs.value[index] = { ...fresh, lastResult: tab.lastResult, scriptRun: tab.scriptRun };
+        } else if (tab.kind === "folder" && node.kind === "folder") {
+          tabs.value[index] = buildFolderTab(node, tab.isCollection);
+        }
+      } catch {
+        forceClose(tab.id);
+      }
+    }
+    flushDrafts();
+  }
+
   function requestClose(id: string): void {
     const tab = tabs.value.find(t => t.id === id);
     if (!tab) return;
@@ -1239,6 +1273,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     openChangesTab,
     requestClose,
     forceClose,
+    reloadFromDisk,
     closeByPath,
     closeUnderPath,
     closeAll,
