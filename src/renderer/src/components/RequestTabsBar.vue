@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
@@ -25,11 +25,28 @@ function onContextMenu(id: string, event: MouseEvent): void {
 const tabContextMenuItems = computed<ContextMenuItem[]>(() => {
   const target = tabContextMenu.value;
   if (!target) return [];
-  return [
+  const items: ContextMenuItem[] = [
     { label: t("tabs.close"), icon: "x", action: () => tabs.requestClose(target.id) },
     { label: t("tabs.closeOthers"), icon: "x", action: () => tabs.closeOthers(target.id) },
     { label: t("tabs.closeAll"), icon: "x", action: () => tabs.closeAll() },
   ];
+  const tab = tabs.tabs.find(candidate => candidate.id === target.id);
+  if (isRequestTab(tab)) {
+    items.push(
+      {
+        label: t("codegen.copyAsCurl"),
+        icon: "terminal",
+        separatorBefore: true,
+        action: () => void tabs.copyAsCurl(tab.path),
+      },
+      {
+        label: t("codegen.copyAsCurlWithSecrets"),
+        icon: "shield-alert",
+        action: () => void tabs.copyAsCurl(tab.path, true),
+      },
+    );
+  }
+  return items;
 });
 
 function onPointerDown(id: string, event: PointerEvent): void {

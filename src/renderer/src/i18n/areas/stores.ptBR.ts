@@ -13,6 +13,10 @@ export const storesPtBR: typeof storesEn = {
     copied: "Copiado",
     curlImported: "cURL importado",
     curlImportedPartial: "cURL importado — {count} item(ns) não convertido(s)",
+    curlCopied: "Copiado como cURL",
+    curlCopiedWithSecrets: "Copiado como cURL, com segredos",
+    curlCopiedUnresolved: "Copiado como cURL — variáveis não resolvidas ficaram literais: {names}",
+    curlCopyFailed: "Não foi possível copiar para a área de transferência",
     preRequestFailed: "Script de pre-request falhou ({source}): {message}",
   },
   update: {

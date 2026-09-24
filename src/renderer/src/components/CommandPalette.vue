@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { WorkspaceNode } from "@shared";
 
+import WIcon from "@renderer/components/WIcon.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import WModal from "@renderer/components/WModal.vue";
 import { fuzzySearch } from "@renderer/lib/fuzzyMatch";
-import { useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, nextTick, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -23,17 +24,35 @@ const workspace = useWorkspaceStore();
 const tabs = useRequestTabsStore();
 
 interface RequestEntry {
+  kind: "request";
   path: string;
   name: string;
   method: string;
   url: string;
 }
 
+/** Ação sobre a aba ativa, achável pela mesma busca das requests (ex. "curl"). */
+interface CommandEntry {
+  kind: "command";
+  id: string;
+  name: string;
+  icon: string;
+  run: () => void;
+}
+
+type PaletteEntry = RequestEntry | CommandEntry;
+
 function collectRequests(nodes: WorkspaceNode[] | undefined, out: RequestEntry[]): void {
   if (!nodes) return;
   for (const node of nodes) {
     if (node.kind === "request" && node.data) {
-      out.push({ path: node.path, name: node.name, method: node.data.method, url: node.data.url });
+      out.push({
+        kind: "request",
+        path: node.path,
+        name: node.name,
+        method: node.data.method,
+        url: node.data.url,
+      });
     } else if (node.kind === "folder") {
       collectRequests(node.children, out);
     }
@@ -46,10 +65,35 @@ const allRequests = computed<RequestEntry[]>(() => {
   return out;
 });
 
+const commands = computed<CommandEntry[]>(() => {
+  const active = tabs.active;
+  if (!isRequestTab(active)) return [];
+  return [
+    {
+      kind: "command",
+      id: "copy-as-curl",
+      name: t("codegen.copyAsCurl"),
+      icon: "terminal",
+      run: () => void tabs.copyAsCurl(active.path),
+    },
+    {
+      kind: "command",
+      id: "copy-as-curl-secrets",
+      name: t("codegen.copyAsCurlWithSecrets"),
+      icon: "shield-alert",
+      run: () => void tabs.copyAsCurl(active.path, true),
+    },
+  ];
+});
+
 const query = ref("");
 const activeIndex = ref(0);
 
-const results = computed(() => fuzzySearch(query.value, allRequests.value, entry => entry));
+const results = computed(() =>
+  fuzzySearch<PaletteEntry>(query.value, [...commands.value, ...allRequests.value], entry =>
+    entry.kind === "request" ? entry : { name: entry.name, path: "", url: "" },
+  ),
+);
 
 watch(results, () => (activeIndex.value = 0));
 
@@ -71,8 +115,9 @@ watch(
   },
 );
 
-function openResult(entry: RequestEntry, pinned: boolean): void {
-  void (pinned ? tabs.openPinned(entry.path) : tabs.openPreview(entry.path));
+function openResult(entry: PaletteEntry, pinned: boolean): void {
+  if (entry.kind === "command") entry.run();
+  else void (pinned ? tabs.openPinned(entry.path) : tabs.openPreview(entry.path));
   emit("close");
 }
 
@@ -103,7 +148,7 @@ function onKeydown(event: KeyboardEvent): void {
       <ul v-else class="flex flex-col">
         <li
           v-for="(entry, index) in results"
-          :key="entry.path"
+          :key="entry.kind === 'request' ? entry.path : entry.id"
           class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5"
           :class="
             index === activeIndex ? 'bg-surface-3 text-1' : 'text-muted hover:bg-surface-3/50'
@@ -111,9 +156,18 @@ function onKeydown(event: KeyboardEvent): void {
           @click="openResult(entry, false)"
           @mouseenter="activeIndex = index"
         >
-          <WMethodBadge :method="entry.method" class="w-10 shrink-0 text-[11px]" />
-          <span class="truncate font-inter text-sm">{{ entry.name }}</span>
-          <span class="ml-auto truncate font-mono text-[11px] text-faint">{{ entry.path }}</span>
+          <template v-if="entry.kind === 'request'">
+            <WMethodBadge :method="entry.method" class="w-10 shrink-0 text-[11px]" />
+            <span class="truncate font-inter text-sm">{{ entry.name }}</span>
+            <span class="ml-auto truncate font-mono text-[11px] text-faint">{{ entry.path }}</span>
+          </template>
+          <template v-else>
+            <span class="flex w-10 shrink-0 justify-center"><WIcon :name="entry.icon" /></span>
+            <span class="truncate font-inter text-sm">{{ entry.name }}</span>
+            <span class="ml-auto shrink-0 font-inter text-[11px] text-faint">
+              {{ t("command.commandHint") }}
+            </span>
+          </template>
         </li>
       </ul>
     </div>

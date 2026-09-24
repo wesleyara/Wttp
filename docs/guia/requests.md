@@ -43,6 +43,18 @@ resolvidas ficam realçadas, com tooltip do valor e autocomplete ao digitar duas
 alguma sem valor, o Wttp pergunta antes de enviar. Veja
 [Environments e variáveis](./environments).
 
+## Copiar como cURL
+
+Clique com o botão direito na aba da request ou nela na árvore e escolha **Copiar como
+cURL**. Também dá para digitar "curl" na busca rápida (`Ctrl+P`). O comando sai pronto para
+colar num terminal bash/zsh e manda a mesma request que o **Send**: variáveis, path params e
+auth herdada já resolvidos, com edições ainda não salvas incluídas. Os scripts de
+pre-request não rodam.
+
+Por padrão os valores de auth e das variáveis secretas saem como `****`. Para copiar os
+valores reais, use a ação separada **Copiar como cURL (com segredos)**. Uma `{{variável}}`
+sem valor fica literal no comando, e o aviso diz qual.
+
 ## Ferramenta JWT
 
 O ícone de chave na barra de status abre a ferramenta JWT: **Decode** mostra header e

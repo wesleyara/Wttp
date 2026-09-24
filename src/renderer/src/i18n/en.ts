@@ -90,6 +90,10 @@ export const en = {
       trash: "It moves to the system trash.",
     },
   },
+  codegen: {
+    copyAsCurl: "Copy as cURL",
+    copyAsCurlWithSecrets: "Copy as cURL (with secrets)",
+  },
   tabs: {
     closeTab: "Close tab",
     close: "Close",
@@ -140,8 +144,9 @@ export const en = {
   },
   command: {
     title: "Quick Open",
-    placeholder: "Search requests by name, path or URL…",
+    placeholder: "Search requests by name, path or URL, or a command…",
     noMatches: "No matches.",
+    commandHint: "Command",
   },
   prefs: {
     sectionsAria: "Preferences sections",

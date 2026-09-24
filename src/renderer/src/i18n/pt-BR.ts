@@ -91,6 +91,10 @@ export const ptBR: MessageSchema = {
       trash: "Vai para a lixeira do sistema.",
     },
   },
+  codegen: {
+    copyAsCurl: "Copiar como cURL",
+    copyAsCurlWithSecrets: "Copiar como cURL (com segredos)",
+  },
   tabs: {
     closeTab: "Fechar aba",
     close: "Fechar",
@@ -141,8 +145,9 @@ export const ptBR: MessageSchema = {
   },
   command: {
     title: "Busca rápida",
-    placeholder: "Buscar requests por nome, caminho ou URL…",
+    placeholder: "Buscar requests por nome, caminho ou URL, ou um comando…",
     noMatches: "Nenhum resultado.",
+    commandHint: "Comando",
   },
   prefs: {
     sectionsAria: "Seções de preferências",

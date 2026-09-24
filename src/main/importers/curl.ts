@@ -101,11 +101,14 @@ const VALUE_FLAGS: Record<string, string> = {
   "-d": "data",
   "--data": "data",
   "--data-raw": "data",
-  "--data-binary": "data",
+  "--data-binary": "data-binary",
   "--data-ascii": "data",
   "--data-urlencode": "data-urlencode",
   "-F": "form",
   "--form": "form",
+  // Emitido pelo "Copy as cURL" do próprio Wttp (#44) para campos de texto — o valor é
+  // sempre literal, nunca leitura de arquivo.
+  "--form-string": "form-string",
   "-u": "user",
   "--user": "user",
   "--url": "url",
@@ -116,6 +119,10 @@ const VALUE_FLAGS: Record<string, string> = {
 const BOOLEAN_FLAGS: Record<string, string> = {
   "-k": "insecure",
   "--insecure": "insecure",
+  "-I": "head",
+  "--head": "head",
+  "-g": "noop",
+  "--globoff": "noop",
   "-L": "location",
   "--location": "location",
   "--compressed": "compressed",
@@ -137,6 +144,28 @@ function splitOnce(text: string, separator: string): [string, string] {
   return [text.slice(0, index), text.slice(index + separator.length)];
 }
 
+/**
+ * Caminho de `-F name=@path[;type=...]`. Entre aspas duplas (`@"/a;b.txt"`, com `\"` e
+ * `\\` escapados), o caminho pode conter `;`/`,` — é como o `curl` aceita esses
+ * caracteres, e como o "Copy as cURL" do Wttp (#44) os emite.
+ */
+function formFilePath(spec: string): string {
+  if (!spec.startsWith('"')) return spec.split(";")[0];
+  let path = "";
+  for (let i = 1; i < spec.length; i += 1) {
+    const char = spec[i];
+    if (char === "\\" && i + 1 < spec.length) {
+      path += spec[i + 1];
+      i += 1;
+    } else if (char === '"') {
+      break;
+    } else {
+      path += char;
+    }
+  }
+  return path;
+}
+
 export function parseCurlCommand(command: string): ParsedCurlRequest {
   const tokens = tokenizeShellCommand(command);
   const notConverted: ImportReportItem[] = [];
@@ -149,6 +178,8 @@ export function parseCurlCommand(command: string): ParsedCurlRequest {
   const multipart: MultipartEntry[] = [];
   let hasData = false;
   let isMultipart = false;
+  let binaryFile: string | undefined;
+  let isHead = false;
   let auth: AuthConfig | undefined;
   let validateTls: boolean | undefined;
   let followRedirects: boolean | undefined;
@@ -168,6 +199,11 @@ export function parseCurlCommand(command: string): ParsedCurlRequest {
           explicitMethod = value.toUpperCase() as HttpMethod;
           break;
         case "header": {
+          // `Nome;` é a sintaxe do curl para mandar o header com valor vazio.
+          if (!value.includes(":") && value.trim().endsWith(";")) {
+            headers.push({ name: value.trim().slice(0, -1).trim(), value: "", enabled: true });
+            break;
+          }
           const [name, rest] = splitOnce(value, ":");
           if (rest === "" && !value.includes(":")) {
             notConverted.push({ path: `header "${value}"`, reason: 'sem ":" — ignorado' });
@@ -178,6 +214,12 @@ export function parseCurlCommand(command: string): ParsedCurlRequest {
         }
         case "data":
           dataParts.push(value);
+          hasData = true;
+          break;
+        case "data-binary":
+          // `--data-binary @arquivo` manda o arquivo como está — o body `binary` do Wttp.
+          if (value.startsWith("@")) binaryFile = value.slice(1);
+          else dataParts.push(value);
           hasData = true;
           break;
         case "data-urlencode": {
@@ -192,12 +234,18 @@ export function parseCurlCommand(command: string): ParsedCurlRequest {
             multipart.push({
               name,
               type: "file",
-              value: rest.slice(1).split(";")[0],
+              value: formFilePath(rest.slice(1)),
               enabled: true,
             });
           } else {
             multipart.push({ name, type: "text", value: rest, enabled: true });
           }
+          isMultipart = true;
+          break;
+        }
+        case "form-string": {
+          const [name, rest] = splitOnce(value, "=");
+          multipart.push({ name, type: "text", value: rest, enabled: true });
           isMultipart = true;
           break;
         }
@@ -224,6 +272,7 @@ export function parseCurlCommand(command: string): ParsedCurlRequest {
     if (booleanKind) {
       if (booleanKind === "insecure") validateTls = false;
       if (booleanKind === "location") followRedirects = true;
+      if (booleanKind === "head") isHead = true;
       i += 1;
       continue;
     }
@@ -252,8 +301,12 @@ export function parseCurlCommand(command: string): ParsedCurlRequest {
       }))
     : [];
 
-  const method: HttpMethod = explicitMethod ?? (isMultipart || hasData ? "POST" : "GET");
-  const body = buildBody({ isMultipart, multipart, hasData, dataParts, headers });
+  const method: HttpMethod =
+    explicitMethod ?? (isHead ? "HEAD" : isMultipart || hasData ? "POST" : "GET");
+  const body: RequestBody | undefined =
+    binaryFile !== undefined
+      ? { type: "binary", binary: binaryFile }
+      : buildBody({ isMultipart, multipart, hasData, dataParts, headers });
 
   const settings =
     validateTls !== undefined || followRedirects !== undefined

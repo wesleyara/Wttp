@@ -11,6 +11,10 @@ export const storesEn = {
     copied: "Copied",
     curlImported: "cURL imported",
     curlImportedPartial: "cURL imported — {count} item(s) not converted",
+    curlCopied: "Copied as cURL",
+    curlCopiedWithSecrets: "Copied as cURL, with secrets",
+    curlCopiedUnresolved: "Copied as cURL — unresolved variables left as-is: {names}",
+    curlCopyFailed: "Couldn't copy to the clipboard",
     preRequestFailed: "Pre-request script failed ({source}): {message}",
   },
   update: {

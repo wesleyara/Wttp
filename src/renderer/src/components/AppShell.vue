@@ -129,8 +129,27 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       },
     );
   }
+  if (node.kind === "request") {
+    items.push(
+      {
+        label: t("codegen.copyAsCurl"),
+        icon: "terminal",
+        action: () => void requestTabs.copyAsCurl(node.path),
+      },
+      {
+        label: t("codegen.copyAsCurlWithSecrets"),
+        icon: "shield-alert",
+        action: () => void requestTabs.copyAsCurl(node.path, true),
+      },
+    );
+  }
   items.push(
-    { label: t("contextMenu.rename"), icon: "pencil", action: () => tree.startRename(node.path) },
+    {
+      label: t("contextMenu.rename"),
+      icon: "pencil",
+      separatorBefore: node.kind === "request",
+      action: () => tree.startRename(node.path),
+    },
     {
       label: t("contextMenu.duplicate"),
       icon: "copy",

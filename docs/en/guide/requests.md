@@ -42,6 +42,17 @@ Write `{{name}}` in any field — URL, params, headers, body, auth. Resolved var
 highlighted, with a value tooltip and autocomplete as you type two opening braces. If any is left
 without a value, Wttp asks before sending. See [Environments and variables](./environments).
 
+## Copy as cURL
+
+Right-click the request's tab, or the request in the tree, and choose **Copy as cURL**. You
+can also type "curl" in Quick Open (`Ctrl+P`). The command is ready to paste into a bash/zsh
+terminal and sends the same request as **Send**: variables, path params and inherited auth
+already resolved, unsaved edits included. Pre-request scripts don't run.
+
+By default auth values and secret variables come out as `****`. To copy the real values, use
+the separate **Copy as cURL (with secrets)** action. A `{{variable}}` with no value stays
+literal in the command, and the notice tells you which one.
+
 ## JWT tool
 
 The key icon in the status bar opens the JWT tool: **Decode** shows the header and payload

@@ -19,6 +19,7 @@ import type {
 } from "@shared";
 
 import { i18n } from "@renderer/i18n";
+import { toCurl } from "@renderer/lib/codegen/curl";
 import { suggestedFileName } from "@renderer/lib/content-type";
 import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/scriptChain";
 import { useEnvironmentStore } from "@renderer/stores/environment";
@@ -936,13 +937,14 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     return resolution.auth;
   }
 
-  /** Resolve `{{var}}` (EP-06-T01) antes de enviar; variável não resolvida pausa e pede confirmação em vez de mandar a request quebrada. */
-  async function send(): Promise<void> {
-    const tab = active.value;
-    if (!isRequestTab(tab) || tab.sending) return;
-
+  /**
+   * A request da aba como ela seria enviada: herança de auth, path params e `{{var}}`
+   * resolvidos (EP-06/EP-07). Único caminho de resolução — `send()` e "Copy as cURL"
+   * (#44) passam por aqui, para o comando copiado nunca divergir do que Send manda.
+   */
+  async function resolveTabRequest(tab: RequestTabState): Promise<ResolveRequestResultPayload> {
     const auth = await effectiveAuthFor(tab);
-    const resolved = await variables.resolveRequestSpec(
+    return variables.resolveRequestSpec(
       {
         url: tab.url,
         pathParams: tab.pathParams,
@@ -953,6 +955,14 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       },
       tab.path,
     );
+  }
+
+  /** Resolve `{{var}}` (EP-06-T01) antes de enviar; variável não resolvida pausa e pede confirmação em vez de mandar a request quebrada. */
+  async function send(): Promise<void> {
+    const tab = active.value;
+    if (!isRequestTab(tab) || tab.sending) return;
+
+    const resolved = await resolveTabRequest(tab);
 
     if (resolved.unresolved.length > 0) {
       unresolvedSendId.value = tab.id;
@@ -970,19 +980,61 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     unresolvedSendNames.value = [];
     if (!tab) return;
 
-    const auth = await effectiveAuthFor(tab);
-    const resolved = await variables.resolveRequestSpec(
-      {
-        url: tab.url,
-        pathParams: tab.pathParams,
-        query: tab.query,
-        headers: tab.headers,
-        auth,
-        body: tab.body,
-      },
-      tab.path,
+    await dispatch(tab, await resolveTabRequest(tab));
+  }
+
+  /**
+   * "Copy as cURL" (ClickLocal #44) da request em `path`: a aba aberta, com edições
+   * ainda não salvas, ou o arquivo em disco quando ela não está aberta (menu da
+   * árvore). Resolve pelo mesmo caminho de `send()`, sem rodar scripts de pre-request
+   * — eles podem ter efeito colateral (gravar variável, gerar token) e copiar não é
+   * enviar. Segredos e auth saem mascarados, a não ser com `withSecrets`.
+   */
+  async function copyAsCurl(path: string, withSecrets = false): Promise<void> {
+    const root = workspace.root;
+    if (!root) return;
+
+    let tab = tabs.value.find(
+      (candidate): candidate is RequestTabState =>
+        isRequestTab(candidate) && candidate.path === path,
     );
-    await dispatch(tab, resolved);
+    if (!tab) {
+      const node = (await window.wttp.node.read({ root, path })) as RequestNode;
+      if (!node.data) return;
+      tab = buildTab(node, false);
+    }
+
+    const resolved = await resolveTabRequest(tab);
+    const command = toCurl(
+      {
+        method: tab.method,
+        url: resolved.url,
+        query: resolved.query,
+        headers: resolved.headers,
+        auth: resolved.auth,
+        body: resolved.body,
+      },
+      { maskSecrets: !withSecrets, secrets: secretsUsedIn(resolved) },
+    );
+
+    try {
+      await navigator.clipboard.writeText(command);
+    } catch {
+      toast.push(i18n.global.t("toast.curlCopyFailed"), "error");
+      return;
+    }
+
+    if (resolved.unresolved.length > 0) {
+      toast.push(
+        i18n.global.t("toast.curlCopiedUnresolved", { names: resolved.unresolved.join(", ") }),
+        "warning",
+      );
+    } else {
+      toast.push(
+        i18n.global.t(withSecrets ? "toast.curlCopiedWithSecrets" : "toast.curlCopied"),
+        "success",
+      );
+    }
   }
 
   function cancelSendUnresolved(): void {
@@ -1110,6 +1162,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     unresolvedSendNames,
     confirmSendUnresolved,
     cancelSendUnresolved,
+    copyAsCurl,
     cancel,
     saveResponseToFile,
     restoreSession,
