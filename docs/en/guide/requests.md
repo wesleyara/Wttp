@@ -33,6 +33,16 @@ The response panel shows status, time and size, and has tabs:
   removes that request's history.
 - **Tests** — assertion results and the scripts' console.
 
+### Compare two runs
+
+In the **History** tab, check two runs and click **Compare**, or use the compare icon on the
+latest one to compare it with the previous. The diff shows status, headers and body. For a
+JSON body the comparison is **by path**: key order doesn't matter, and each difference shows
+up as `$.data.items[2].price: 10 → 12`. A field that always changes (timestamp, request id,
+the `Date` header) is noise: right-click it (or use the eye icon) and choose **Ignore this
+path**. The ignore list is kept per request, on your machine. **Ignore headers** hides every
+header from the comparison.
+
 ### Filter a JSON response
 
 On a JSON response, the funnel icon next to **Pretty**/**Raw** (or `Ctrl+F` with the body

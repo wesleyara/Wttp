@@ -2,7 +2,7 @@ import type { HistoryEntry } from "@shared";
 
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 /**
  * Histórico de execuções por request (EP-08.1-T04), lido de `.wttp/history/<slug>.json`
@@ -32,5 +32,26 @@ export const useHistoryStore = defineStore("history", () => {
     entries.value = [];
   }
 
-  return { path, entries, loadFor, clear };
+  /** Caminhos ignorados no diff de respostas desta request (#49), guardados em `.wttp/ui-state.json`. */
+  const diffIgnores = computed<string[]>(() =>
+    path.value ? (workspace.uiState.responseDiffIgnores?.[path.value] ?? []) : [],
+  );
+
+  function setDiffIgnores(next: string[]): void {
+    if (!path.value) return;
+    const all = { ...workspace.uiState.responseDiffIgnores };
+    if (next.length > 0) all[path.value] = next;
+    else delete all[path.value];
+    workspace.patchUiState({ responseDiffIgnores: all });
+  }
+
+  function addDiffIgnore(pattern: string): void {
+    if (!diffIgnores.value.includes(pattern)) setDiffIgnores([...diffIgnores.value, pattern]);
+  }
+
+  function removeDiffIgnore(pattern: string): void {
+    setDiffIgnores(diffIgnores.value.filter(item => item !== pattern));
+  }
+
+  return { path, entries, loadFor, clear, diffIgnores, addDiffIgnore, removeDiffIgnore };
 });

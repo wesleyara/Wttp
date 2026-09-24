@@ -64,6 +64,31 @@ export const responsePtBR: typeof responseEn = {
     },
   },
   history: {
+    compare: {
+      pickTwo: "Marque duas execuções para comparar",
+      pick: "Selecionar a execução de {time}",
+      compareSelected: "Comparar ({count}/2)",
+      withPrevious: "Comparar com a execução anterior",
+      range: "{before} → {after}",
+      ignoreHeaders: "Ignorar headers",
+      ignored: "Ignorados:",
+      unignore: "Parar de ignorar {path}",
+      headerPattern: "header {name}",
+      truncated:
+        "Um dos bodies foi truncado ao ir para o histórico — o diff só cobre o que foi guardado.",
+      nothing: "Nenhuma diferença.",
+      status: "Status",
+      headers: "Headers",
+      body: "Body",
+      ignorePath: "Ignorar este caminho",
+      copyPath: "Copiar caminho",
+      kind: {
+        added: "adicionado",
+        removed: "removido",
+        changed: "alterado",
+        typeChanged: "tipo trocado",
+      },
+    },
     empty: {
       title: "Nenhum histórico ainda",
       description: "Envie esta request para começar a montar o histórico dela.",

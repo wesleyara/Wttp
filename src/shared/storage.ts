@@ -201,6 +201,12 @@ export interface WorkspaceUiState {
    * chave. Estado local de navegação, como as abas — nunca vai para o YAML.
    */
   responseFilters?: Record<string, string>;
+  /**
+   * Caminhos ignorados no diff de respostas do histórico, por `path` de request (#49) —
+   * JSONPath do body (`$.meta.timestamp`, `$.items[*].updatedAt`) ou `header:<Nome>`.
+   * Local, como os filtros: não vai para o YAML versionado.
+   */
+  responseDiffIgnores?: Record<string, string[]>;
 }
 
 /**

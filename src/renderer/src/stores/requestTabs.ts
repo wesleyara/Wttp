@@ -596,12 +596,15 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
 
   /** A árvore renomeou o nó (EP-05-T03) — mantém a aba aberta apontando pro novo path, request ou pasta. */
   /** O filtro JSONPath guardado por request (#48) acompanha o rename — da própria request, ou de todas dentro de uma pasta renomeada. */
-  function renameResponseFilters(oldPath: string, newPath: string): void {
-    const filters = workspace.uiState.responseFilters;
-    if (!filters) return;
+  function movePathKeys<T>(
+    map: Record<string, T> | undefined,
+    oldPath: string,
+    newPath: string,
+  ): Record<string, T> | null {
+    if (!map) return null;
     let changed = false;
-    const next: Record<string, string> = {};
-    for (const [path, expression] of Object.entries(filters)) {
+    const next: Record<string, T> = {};
+    for (const [path, value] of Object.entries(map)) {
       const moved =
         path === oldPath
           ? newPath
@@ -609,9 +612,21 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
             ? `${newPath}${path.slice(oldPath.length)}`
             : path;
       if (moved !== path) changed = true;
-      next[moved] = expression;
+      next[moved] = value;
     }
-    if (changed) workspace.patchUiState({ responseFilters: next });
+    return changed ? next : null;
+  }
+
+  /** O estado local por request (filtro JSONPath #48, ignorados do diff #49) acompanha o rename — da própria request, ou de todas dentro de uma pasta renomeada. */
+  function renameResponseFilters(oldPath: string, newPath: string): void {
+    const filters = movePathKeys(workspace.uiState.responseFilters, oldPath, newPath);
+    const ignores = movePathKeys(workspace.uiState.responseDiffIgnores, oldPath, newPath);
+    if (filters || ignores) {
+      workspace.patchUiState({
+        ...(filters ? { responseFilters: filters } : {}),
+        ...(ignores ? { responseDiffIgnores: ignores } : {}),
+      });
+    }
   }
 
   function renamePath(oldPath: string, newPath: string, newName: string): void {

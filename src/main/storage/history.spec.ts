@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { diffResponses } from "../../renderer/src/lib/responseDiff";
 import {
   appendHistory,
   deleteHistoryFile,
@@ -139,6 +140,29 @@ describe("history", () => {
     expect(entry.request.body).toEqual({ type: "json", json: '{"token":"[secret]"}' });
     if (!entry.response.ok) throw new Error("expected ok response");
     expect(entry.response.body).toBe('{"echo":"[secret]"}');
+  });
+
+  it("o diff de duas execuções (ClickLocal #49) nunca mostra um segredo — o histórico já vem mascarado", async () => {
+    for (const secret of ["old-s3cr3t", "new-s3cr3t"]) {
+      await appendHistory(root, PATH, {
+        request: requestSpec({
+          headers: [{ name: "Authorization", value: `Bearer ${secret}`, enabled: true }],
+        }),
+        response: successResponse({
+          headers: [{ name: "X-Echo-Token", value: secret, enabled: true }],
+          body: new TextEncoder().encode(JSON.stringify({ token: secret, n: secret.length })),
+        }),
+        secrets: [secret],
+      });
+    }
+    const [newer, older] = await readHistory(root, PATH);
+
+    const diff = diffResponses(older, newer);
+
+    expect(JSON.stringify(diff)).not.toMatch(/s3cr3t/);
+    // As duas execuções mascaradas ficam iguais nesse ponto — sem "mudança" fantasma de segredo.
+    expect(diff.headers).toEqual([]);
+    expect(diff.body).toEqual({ mode: "json", changes: [] });
   });
 
   it("mascara o header Authorization inteiro, mesmo sem nenhum secret na lista", async () => {

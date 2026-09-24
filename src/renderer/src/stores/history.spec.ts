@@ -22,6 +22,7 @@ beforeEach(() => {
   vi.stubGlobal("window", {
     wttp: {
       history: { list, clear, append: vi.fn() },
+      workspace: { setUiState: vi.fn(async () => {}) },
     },
   });
 
@@ -128,5 +129,32 @@ describe("useHistoryStore", () => {
     await history.loadFor("b.req.yaml");
 
     expect(entriesWhenListCalled).toEqual([]);
+  });
+
+  it("keeps the diff's ignored paths per request in ui-state, so they come back next session (#49)", async () => {
+    const history = useHistoryStore();
+    const workspace = useWorkspaceStore();
+    await history.loadFor("a.req.yaml");
+
+    history.addDiffIgnore("$.meta.timestamp");
+    history.addDiffIgnore("header:Date");
+    history.addDiffIgnore("$.meta.timestamp");
+    expect(history.diffIgnores).toEqual(["$.meta.timestamp", "header:Date"]);
+    expect(workspace.uiState.responseDiffIgnores).toEqual({
+      "a.req.yaml": ["$.meta.timestamp", "header:Date"],
+    });
+
+    // Outra request tem a sua própria lista.
+    await history.loadFor("b.req.yaml");
+    expect(history.diffIgnores).toEqual([]);
+
+    // "Próxima sessão": o ui-state lido do disco devolve a lista.
+    workspace.uiState = { ...workspace.uiState };
+    await history.loadFor("a.req.yaml");
+    expect(history.diffIgnores).toEqual(["$.meta.timestamp", "header:Date"]);
+
+    history.removeDiffIgnore("$.meta.timestamp");
+    history.removeDiffIgnore("header:Date");
+    expect(workspace.uiState.responseDiffIgnores).toEqual({});
   });
 });

@@ -109,7 +109,9 @@ function maskResponse(res: HttpResponseResult, secrets: string[]): HistoryEntry[
     ok: true,
     status: res.status,
     statusText: res.statusText,
-    headers: res.headers,
+    // Headers da resposta também — um servidor pode ecoar o token num header (ou num
+    // `Set-Cookie`); sem isso o segredo ia em texto para `.wttp/history/` (achado no #49).
+    headers: res.headers.map(header => ({ ...header, value: maskText(header.value, secrets) })),
     charset: res.charset,
     size: res.size,
     timing: res.timing,

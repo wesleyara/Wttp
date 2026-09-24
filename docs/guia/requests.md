@@ -33,6 +33,16 @@ O painel de resposta mostra status, tempo e tamanho, e tem abas:
   apaga o histórico daquela request.
 - **Tests** — resultado das asserções e o console dos scripts.
 
+### Comparar duas execuções
+
+Na aba **Histórico**, marque duas execuções e clique em **Comparar**, ou use o ícone de
+comparar na mais recente para compará-la com a anterior. O diff mostra o status, os headers e
+o body. Num body JSON, a comparação é **por caminho**: a ordem das chaves não importa, e cada
+diferença sai como `$.data.items[2].price: 10 → 12`. Um campo que muda sempre (timestamp,
+request id, o header `Date`) vira ruído: clique com o botão direito nele (ou no ícone de olho)
+e escolha **Ignorar este caminho**. A lista de ignorados fica guardada por request, no seu
+computador. **Ignorar headers** esconde todos os headers da comparação.
+
 ### Filtrar uma resposta JSON
 
 Numa resposta JSON, o ícone de funil ao lado de **Pretty**/**Raw** (ou `Ctrl+F` com o foco

@@ -60,6 +60,26 @@ export const responseEn = {
     },
   },
   history: {
+    compare: {
+      pickTwo: "Pick two runs to compare",
+      pick: "Select the run at {time}",
+      compareSelected: "Compare ({count}/2)",
+      withPrevious: "Compare with the previous run",
+      range: "{before} → {after}",
+      ignoreHeaders: "Ignore headers",
+      ignored: "Ignored:",
+      unignore: "Stop ignoring {path}",
+      headerPattern: "header {name}",
+      truncated:
+        "One of the bodies was truncated when saved to history — the diff only covers what was kept.",
+      nothing: "No differences.",
+      status: "Status",
+      headers: "Headers",
+      body: "Body",
+      ignorePath: "Ignore this path",
+      copyPath: "Copy path",
+      kind: { added: "added", removed: "removed", changed: "changed", typeChanged: "type changed" },
+    },
     empty: {
       title: "No history yet",
       description: "Send this request to start building its history.",

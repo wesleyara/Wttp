@@ -7,6 +7,7 @@ import { describeRequestError } from "@renderer/lib/response-error";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
+import HistoryCompare from "./HistoryCompare.vue";
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
@@ -32,11 +33,35 @@ const emit = defineEmits<{
 
 const selected = ref<HistoryEntry | null>(null);
 
+// --- Comparar duas execuções (ClickLocal #49) -----------------------------------------
+const checked = ref<string[]>([]);
+const comparing = ref<{ before: HistoryEntry; after: HistoryEntry } | null>(null);
+
+function toggleChecked(id: string): void {
+  checked.value = checked.value.includes(id)
+    ? checked.value.filter(item => item !== id)
+    : [...checked.value, id].slice(-2);
+}
+
+/** Sempre da mais antiga para a mais nova, não importa a ordem em que foram marcadas. */
+function compare(a: HistoryEntry, b: HistoryEntry): void {
+  comparing.value = a.at <= b.at ? { before: a, after: b } : { before: b, after: a };
+}
+
+function compareChecked(): void {
+  const [a, b] = props.entries.filter(entry => checked.value.includes(entry.id));
+  if (a && b) compare(a, b);
+}
+
 // Trocar de aba (o pai já recarrega `entries` por `path`) não deve deixar uma entrada
 // da request anterior selecionada.
 watch(
   () => props.entries,
-  () => (selected.value = null),
+  () => {
+    selected.value = null;
+    comparing.value = null;
+    checked.value = [];
+  },
 );
 
 function selectEntry(entry: HistoryEntry): void {
@@ -66,36 +91,84 @@ const selectedContentType = computed(() => {
       </template>
     </WEmptyState>
 
+    <HistoryCompare
+      v-else-if="comparing"
+      :before="comparing.before"
+      :after="comparing.after"
+      @back="comparing = null"
+    />
+
     <template v-else-if="!selected">
-      <div class="flex h-8 shrink-0 items-center justify-end border-b border-subtle px-2">
+      <div class="flex h-8 shrink-0 items-center justify-end gap-1 border-b border-subtle px-2">
+        <span v-if="entries.length > 1" class="mr-auto font-inter text-[11px] text-faint">
+          {{ t("history.compare.pickTwo") }}
+        </span>
+        <WButton
+          v-if="entries.length > 1"
+          size="sm"
+          variant="ghost"
+          :disabled="checked.length !== 2"
+          data-testid="history-compare-button"
+          @click="compareChecked"
+        >
+          <WIcon name="git-compare" size="3.5" />
+          {{ t("history.compare.compareSelected", { count: checked.length }) }}
+        </WButton>
         <WButton size="sm" variant="ghost" @click="emit('clear')">
           {{ t("history.clear") }}
         </WButton>
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto">
-        <button
-          v-for="entry in entries"
+        <div
+          v-for="(entry, index) in entries"
           :key="entry.id"
-          type="button"
-          class="flex h-8 w-full items-center gap-3 border-b border-subtle px-2 text-left font-mono text-[13px] hover:bg-surface-3/50"
-          @click="selectEntry(entry)"
+          class="flex h-8 items-center border-b border-subtle pl-2 hover:bg-surface-3/50"
+          data-testid="history-row"
         >
-          <WStatusBadge
-            :code="entry.response.ok ? entry.response.status : null"
-            class="w-10 shrink-0"
+          <input
+            v-if="entries.length > 1"
+            type="checkbox"
+            class="size-3.5 shrink-0 accent-accent"
+            :checked="checked.includes(entry.id)"
+            :aria-label="
+              t('history.compare.pick', { time: new Date(entry.at).toLocaleTimeString() })
+            "
+            @change="toggleChecked(entry.id)"
           />
-          <WMethodBadge :method="entry.request.method" class="w-10 shrink-0" />
-          <span class="flex-1 truncate text-muted">{{ entry.request.url }}</span>
-          <span v-if="entry.response.ok" class="w-16 shrink-0 text-right text-faint">
-            {{ formatDuration(entry.response.timing.total) }}
-          </span>
-          <span v-if="entry.response.ok" class="w-16 shrink-0 text-right text-faint">
-            {{ formatBytes(entry.response.size.bodyReceived) }}
-          </span>
-          <span class="w-24 shrink-0 whitespace-nowrap text-right text-faint">
-            {{ new Date(entry.at).toLocaleTimeString() }}
-          </span>
-        </button>
+          <button
+            type="button"
+            class="flex h-full min-w-0 flex-1 items-center gap-3 px-2 text-left font-mono text-[13px]"
+            @click="selectEntry(entry)"
+          >
+            <WStatusBadge
+              :code="entry.response.ok ? entry.response.status : null"
+              class="w-10 shrink-0"
+            />
+            <WMethodBadge :method="entry.request.method" class="w-10 shrink-0" />
+            <span class="flex-1 truncate text-muted">{{ entry.request.url }}</span>
+            <span v-if="entry.response.ok" class="w-16 shrink-0 text-right text-faint">
+              {{ formatDuration(entry.response.timing.total) }}
+            </span>
+            <span v-if="entry.response.ok" class="w-16 shrink-0 text-right text-faint">
+              {{ formatBytes(entry.response.size.bodyReceived) }}
+            </span>
+            <span class="w-24 shrink-0 whitespace-nowrap text-right text-faint">
+              {{ new Date(entry.at).toLocaleTimeString() }}
+            </span>
+          </button>
+          <button
+            v-if="index === 0 && entries.length > 1"
+            type="button"
+            class="mr-1 flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            :title="t('history.compare.withPrevious')"
+            :aria-label="t('history.compare.withPrevious')"
+            data-testid="history-compare-previous"
+            @click="compare(entries[1], entry)"
+          >
+            <WIcon name="git-compare" size="3.5" />
+          </button>
+          <span v-else-if="entries.length > 1" class="mr-1 size-6 shrink-0" />
+        </div>
       </div>
     </template>
 
