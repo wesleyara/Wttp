@@ -5,11 +5,18 @@ import { defineConfig } from "vitepress";
 // servida pelo protocolo `wttp-docs:`) roda na raiz `/`.
 const base = process.env.DOCS_BASE ?? "/Wttp/";
 const outDir = process.env.DOCS_OUT_DIR;
+// Na doc empacotada no app (`DOCS_EMBEDDED`, ClickLocal #60) o tema segue sempre o do
+// próprio Wttp: o main aplica `AppSettings.theme` em `nativeTheme.themeSource`, que é o
+// `prefers-color-scheme` desta janela — `force-auto` segue isso e esconde o seletor de
+// tema do VitePress, que brigaria com as Preferências do app. O site público mantém o
+// seletor.
+const embedded = process.env.DOCS_EMBEDDED === "1";
 
 export default defineConfig({
   title: "Wttp",
   base,
   cleanUrls: true,
+  appearance: embedded ? "force-auto" : true,
   ...(outDir ? { outDir } : {}),
   markdown: {
     config: md => {
@@ -23,7 +30,33 @@ export default defineConfig({
   head: [["link", { rel: "icon", href: `${base}favicon.svg` }]],
   themeConfig: {
     socialLinks: [{ icon: "github", link: "https://github.com/wesleyara/Wttp" }],
-    search: { provider: "local" },
+    search: {
+      provider: "local",
+      options: {
+        locales: {
+          root: {
+            translations: {
+              button: { buttonText: "Buscar", buttonAriaLabel: "Buscar na documentação" },
+              modal: {
+                displayDetails: "Mostrar lista detalhada",
+                resetButtonTitle: "Limpar busca",
+                backButtonTitle: "Fechar busca",
+                noResultsText: "Nenhum resultado para",
+                footer: {
+                  selectText: "selecionar",
+                  selectKeyAriaLabel: "enter",
+                  navigateText: "navegar",
+                  navigateUpKeyAriaLabel: "seta para cima",
+                  navigateDownKeyAriaLabel: "seta para baixo",
+                  closeText: "fechar",
+                  closeKeyAriaLabel: "esc",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   locales: {
     root: {

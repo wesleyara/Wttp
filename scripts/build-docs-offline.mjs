@@ -8,6 +8,7 @@ const outDir = resolve(import.meta.dirname, "..", "resources", "docs-site");
 const result = spawnSync("npx", ["vitepress", "build", "docs"], {
   stdio: "inherit",
   shell: process.platform === "win32",
-  env: { ...process.env, DOCS_BASE: "/", DOCS_OUT_DIR: outDir },
+  // `DOCS_EMBEDDED`: o tema segue o do app, sem seletor próprio (docs/.vitepress/config.mts).
+  env: { ...process.env, DOCS_BASE: "/", DOCS_OUT_DIR: outDir, DOCS_EMBEDDED: "1" },
 });
 process.exit(result.status ?? 1);

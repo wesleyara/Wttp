@@ -61,6 +61,10 @@ export const test = base.extend<WttpFixtures>({
     const app = await electron.launch({
       args: [MAIN_ENTRY, `--user-data-dir=${userDataDir}`, "--headless=new", "--disable-gpu"],
       env: LAUNCH_ENV,
+      // O Playwright emula `prefers-color-scheme: light` por padrão, o que esconde o
+      // `nativeTheme.themeSource` que o app aplica a partir do tema das Preferências
+      // (card #60) — `null` deixa a media query com o valor real, como fora do teste.
+      colorScheme: null,
     });
     try {
       await use(app);
