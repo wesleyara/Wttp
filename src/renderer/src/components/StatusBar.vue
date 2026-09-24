@@ -6,6 +6,7 @@ import WEnvironmentPicker, {
 import WIcon from "@renderer/components/WIcon.vue";
 import { useAppStore } from "@renderer/stores/app";
 import { useEnvironmentStore } from "@renderer/stores/environment";
+import { useGitStore } from "@renderer/stores/git";
 import { useMenuStore } from "@renderer/stores/menu";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useSettingsStore } from "@renderer/stores/settings";
@@ -22,6 +23,15 @@ const workspace = useWorkspaceStore();
 const environment = useEnvironmentStore();
 const ui = useUiStore();
 const requestTabs = useRequestTabsStore();
+const git = useGitStore();
+
+/** Branch atual (ClickLocal #51) — HEAD destacado aparece como o hash curto. */
+const gitBranchLabel = computed(() => {
+  const repo = git.repository;
+  if (!repo) return "";
+  if (repo.detached) return t("git.detached", { head: repo.head ?? "?" });
+  return repo.branch ?? "";
+});
 
 /** Resumo dos scripts do último envio da aba ativa (EP-09-T05) — `null` quando não há nada a resumir. */
 const scriptSummary = computed(() => {
@@ -98,6 +108,21 @@ const jwtToolOpen = ref(false);
     class="flex h-8 shrink-0 items-center gap-3 border-t border-subtle bg-surface-2 px-3 font-inter text-xs text-muted"
   >
     <span>{{ workspace.tree?.data?.name ?? t("status.noWorkspace") }}</span>
+    <span
+      v-if="git.repository"
+      class="flex items-center gap-1 text-1"
+      :title="t('git.branchTooltip', { root: git.repository.root })"
+      data-testid="git-branch"
+    >
+      <WIcon name="git-branch" size="3.5" class="text-faint" />
+      {{ gitBranchLabel }}
+      <span v-if="git.files.length" class="text-faint">
+        {{ t("git.changesCount", { count: git.files.length }) }}
+      </span>
+    </span>
+    <span v-else-if="git.available && workspace.ready" class="text-faint" data-testid="git-no-repo">
+      {{ t("git.noRepository") }}
+    </span>
     <button
       type="button"
       class="flex items-center text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"

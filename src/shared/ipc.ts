@@ -7,6 +7,7 @@
  * um único byte de JavaScript.
  */
 
+import type { GitInfo, GitRootPayload, GitStatus } from "./git";
 import type { HistoryEntry } from "./history";
 import type {
   AuthConfig,
@@ -514,6 +515,10 @@ export interface IpcContract {
   "runner:start": { payload: RunStartPayload; result: RunStartResult };
   /** Para o run: aborta a request em andamento e não roda mais nenhuma. No-op se já acabou. */
   "runner:stop": { payload: string; result: void };
+  /** Repositório e branch do workspace (ClickLocal #51) — nunca rejeita por falta de `git` ou de repo. */
+  "git:info": { payload: GitRootPayload; result: GitInfo };
+  /** `git:info` + mudanças dentro do workspace, caminhos relativos a ele. */
+  "git:status": { payload: GitRootPayload; result: GitStatus };
 }
 
 export type IpcChannel = keyof IpcContract;

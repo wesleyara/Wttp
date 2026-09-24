@@ -20,6 +20,13 @@ interface Row {
   expanded: boolean;
 }
 
+/** Marca curta à direita de uma linha — `class` é um token semântico de cor (ex. `text-status-2xx`). */
+export interface TreeDecoration {
+  text: string;
+  class: string;
+  title: string;
+}
+
 const props = withDefaults(
   defineProps<{
     nodes: WorkspaceNode[];
@@ -30,8 +37,18 @@ const props = withDefaults(
     filterText?: string;
     /** Path do nó em edição inline de nome — `null` quando nada está sendo renomeado. */
     editingPath?: string | null;
+    /** Marca curta à direita de cada linha (ex. status Git `M`/`A`, card #51), por `path` do nó. */
+    decorations?: Map<string, TreeDecoration>;
+    /** Quando presente, só estes paths aparecem (pastas incluídas explicitamente) — com tudo aberto, como no filtro. */
+    restrictTo?: Set<string> | null;
   }>(),
-  { filterText: "", editingPath: null, selectedPaths: () => new Set() },
+  {
+    filterText: "",
+    editingPath: null,
+    selectedPaths: () => new Set(),
+    decorations: () => new Map(),
+    restrictTo: null,
+  },
 );
 
 const emit = defineEmits<{
@@ -104,10 +121,13 @@ watch(containerRef, el => {
   resizeObserver.observe(el);
 });
 
-const filterActive = computed(() => props.filterText.trim().length > 0);
+const filterActive = computed(
+  () => props.filterText.trim().length > 0 || props.restrictTo !== null,
+);
 const filterLower = computed(() => props.filterText.trim().toLowerCase());
 
 function nodeMatches(node: WorkspaceNode): boolean {
+  if (props.restrictTo && !props.restrictTo.has(node.path)) return false;
   return node.name.toLowerCase().includes(filterLower.value);
 }
 
@@ -538,6 +558,18 @@ function onKeydown(event: KeyboardEvent): void {
             class="ml-auto text-status-5xx"
             :title="row.node.issues.map(issue => issue.message).join('; ')"
           />
+          <span
+            v-if="decorations.get(row.node.path)"
+            class="shrink-0 font-mono text-[11px] font-semibold"
+            :class="[
+              decorations.get(row.node.path)!.class,
+              row.node.issues && row.node.issues.length > 0 ? '' : 'ml-auto',
+            ]"
+            :title="decorations.get(row.node.path)!.title"
+            data-testid="tree-decoration"
+          >
+            {{ decorations.get(row.node.path)!.text }}
+          </span>
         </div>
       </div>
     </div>

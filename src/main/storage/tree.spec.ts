@@ -76,6 +76,20 @@ describe("scanWorkspace", () => {
     expect(users.children.map(node => node.name)).toEqual(["Admin", "List users"]);
   });
 
+  it("ignora pastas ocultas (.git, .github) — workspace na raiz de um repositório (ClickLocal #51)", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("auth/folder.yaml", folderYaml("Auth", 1));
+    await writeYaml(".git/HEAD", "ref: refs/heads/main\n");
+    await writeYaml(".git/refs/heads/folder.yaml", folderYaml("Not a folder", 1));
+    await writeYaml(".github/workflows/folder.yaml", folderYaml("Nope", 1));
+    await writeYaml("auth/.hidden/x.req.yaml", requestYaml("Hidden", 1));
+
+    const tree = await scanWorkspace(root);
+
+    expect(tree.children.map(node => node.name)).toEqual(["Auth"]);
+    expect((tree.children[0] as FolderNode).children).toEqual([]);
+  });
+
   it("ignora .wttp/ e environments/ como filhos da árvore", async () => {
     await writeYaml("wttp.yaml", workspaceYaml);
     await writeYaml("environments/dev.yaml", "wttp: 1\nname: dev\n");

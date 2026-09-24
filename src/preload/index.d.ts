@@ -13,6 +13,9 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  GitInfo,
+  GitRootPayload,
+  GitStatus,
   HistoryEntry,
   HttpProgressEvent,
   HttpRequestSpec,
@@ -148,6 +151,10 @@ interface WttpApi {
   };
   script: {
     run: (payload: ScriptRunSpec) => Promise<ScriptRunResult>;
+  };
+  git: {
+    info: (payload: GitRootPayload) => Promise<GitInfo>;
+    status: (payload: GitRootPayload) => Promise<GitStatus>;
   };
   runner: {
     start: (payload: RunStartPayload) => Promise<RunStartResult>;

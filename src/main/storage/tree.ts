@@ -167,6 +167,10 @@ async function scanChildren(root: string, relDir: string): Promise<WorkspaceNode
       }
 
       const relPath = relJoin(relDir, entry.name);
+      // Pasta oculta (`.git`, `.github`, `.vscode`...) nunca é collection nem pasta de
+      // requests — o app só cria pastas a partir de slugs, que nunca começam com ponto. Sem
+      // isso, um workspace na raiz de um repositório mostrava `.git` na árvore (ClickLocal #51).
+      if (entry.isDirectory() && entry.name.startsWith(".")) return null;
       if (entry.isDirectory()) return readFolderNode(root, relPath);
       if (entry.isFile() && entry.name.endsWith(REQUEST_SUFFIX)) {
         return readRequestNode(root, relPath);

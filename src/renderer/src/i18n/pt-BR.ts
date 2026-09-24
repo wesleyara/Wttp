@@ -151,6 +151,21 @@ export const ptBR: MessageSchema = {
     commandHint: "Comando",
     runWorkspace: "Rodar todas as requests do workspace…",
   },
+  git: {
+    status: {
+      modified: "Alterado desde o último commit",
+      added: "Novo (staged)",
+      untracked: "Novo — ainda não rastreado pelo git",
+      deleted: "Apagado",
+      conflicted: "Conflito de merge",
+    },
+    folderChanges: "Tem mudanças dentro",
+    onlyChanged: "Mostrar só o que mudou desde o último commit",
+    detached: "destacado em {head}",
+    branchTooltip: "Repositório git: {root}",
+    changesCount: "· {count} alterado(s)",
+    noRepository: "Não é um repositório git",
+  },
   runner: {
     title: "Rodar “{name}”",
     titleWorkspace: "Rodar o workspace inteiro",

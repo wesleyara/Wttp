@@ -1,6 +1,7 @@
 import { registerAppHandlers } from "./app";
 import { registerDialogHandlers } from "./dialog";
 import { registerEnvironmentHandlers } from "./environment";
+import { registerGitHandlers } from "./git";
 import { registerHistoryHandlers } from "./history";
 import { registerHttpHandlers } from "./http";
 import { registerImportHandlers } from "./import";
@@ -32,5 +33,6 @@ export function registerIpcHandlers(): void {
   registerScriptHandlers();
   registerHistoryHandlers();
   registerRunnerHandlers();
+  registerGitHandlers();
   registerUpdateHandlers();
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { WorkspaceNode } from "@shared";
+import type { GitFileStatus, WorkspaceNode } from "@shared";
 
 import CommandPalette from "@renderer/components/CommandPalette.vue";
 import EnvironmentsPanel from "@renderer/components/EnvironmentsPanel.vue";
@@ -22,7 +22,8 @@ import WModal from "@renderer/components/WModal.vue";
 import WorkspaceLanding from "@renderer/components/WorkspaceLanding.vue";
 import WSplitPane from "@renderer/components/WSplitPane.vue";
 import WToast from "@renderer/components/WToast.vue";
-import WTree from "@renderer/components/WTree.vue";
+import WTree, { type TreeDecoration } from "@renderer/components/WTree.vue";
+import { GIT_STATUS_LETTER, useGitStore } from "@renderer/stores/git";
 import { useImportStore } from "@renderer/stores/import";
 import { useMenuStore } from "@renderer/stores/menu";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
@@ -43,6 +44,30 @@ const workspace = useWorkspaceStore();
 const tree = useTreeStore();
 const requestTabs = useRequestTabsStore();
 const runner = useRunnerStore();
+const git = useGitStore();
+
+// Badges Git na árvore (ClickLocal #51): letra no nó que mudou, ponto na pasta com mudança dentro.
+const GIT_STATUS_CLASS: Record<GitFileStatus, string> = {
+  modified: "text-status-4xx",
+  added: "text-status-2xx",
+  untracked: "text-status-2xx",
+  deleted: "text-status-5xx",
+  conflicted: "text-status-5xx",
+};
+const treeDecorations = computed(() => {
+  const map = new Map<string, TreeDecoration>();
+  for (const folder of git.foldersWithChanges) {
+    map.set(folder, { text: "•", class: "text-status-4xx", title: t("git.folderChanges") });
+  }
+  for (const [path, status] of git.nodeStatus) {
+    map.set(path, {
+      text: GIT_STATUS_LETTER[status],
+      class: GIT_STATUS_CLASS[status],
+      title: t(`git.status.${status}`),
+    });
+  }
+  return map;
+});
 const importStore = useImportStore();
 const updateStore = useUpdateStore();
 
@@ -246,6 +271,19 @@ onUnmounted(() => {
                 :placeholder="t('shell.filterPlaceholder')"
                 class="flex-1"
               />
+              <WButton
+                v-if="git.repository"
+                size="sm"
+                variant="ghost"
+                :class="git.onlyChanged ? 'text-accent' : ''"
+                :title="t('git.onlyChanged')"
+                :aria-label="t('git.onlyChanged')"
+                :aria-pressed="git.onlyChanged"
+                data-testid="tree-only-changed"
+                @click="git.onlyChanged = !git.onlyChanged"
+              >
+                <WIcon name="git-compare" />
+              </WButton>
               <span ref="createButton" class="inline-flex">
                 <WButton
                   size="sm"
@@ -280,6 +318,8 @@ onUnmounted(() => {
                 :selected-paths="tree.selectedPaths"
                 :filter-text="tree.filterText"
                 :editing-path="tree.editingPath"
+                :decorations="treeDecorations"
+                :restrict-to="git.onlyChanged ? git.changedTreePaths : null"
                 @update:expanded-paths="tree.setExpandedPaths"
                 @update:selected-path="tree.selectedPath = $event"
                 @update:selected-paths="tree.selectedPaths = $event"

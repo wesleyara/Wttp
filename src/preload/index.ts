@@ -12,6 +12,9 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  GitInfo,
+  GitRootPayload,
+  GitStatus,
   HistoryEntry,
   HttpProgressEvent,
   HttpRequestSpec,
@@ -204,6 +207,10 @@ const wttp = {
   },
   script: {
     run: (payload: ScriptRunSpec): Promise<ScriptRunResult> => invoke("script:run", payload),
+  },
+  git: {
+    info: (payload: GitRootPayload): Promise<GitInfo> => invoke("git:info", payload),
+    status: (payload: GitRootPayload): Promise<GitStatus> => invoke("git:status", payload),
   },
   runner: {
     start: (payload: RunStartPayload): Promise<RunStartResult> => invoke("runner:start", payload),

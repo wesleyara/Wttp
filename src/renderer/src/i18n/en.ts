@@ -150,6 +150,21 @@ export const en = {
     commandHint: "Command",
     runWorkspace: "Run all requests in the workspace…",
   },
+  git: {
+    status: {
+      modified: "Modified since the last commit",
+      added: "New (staged)",
+      untracked: "New — not tracked by git yet",
+      deleted: "Deleted",
+      conflicted: "Merge conflict",
+    },
+    folderChanges: "Has changes inside",
+    onlyChanged: "Show only what changed since the last commit",
+    detached: "detached at {head}",
+    branchTooltip: "Git repository: {root}",
+    changesCount: "· {count} changed",
+    noRepository: "Not a git repository",
+  },
   runner: {
     title: "Run “{name}”",
     titleWorkspace: "Run the whole workspace",
