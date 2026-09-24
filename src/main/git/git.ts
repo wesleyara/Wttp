@@ -8,11 +8,29 @@
  * que existe, e a UI esconde o que não se aplica.
  */
 
-import type { GitFileChange, GitFileStatus, GitInfo, GitStatus } from "@shared";
+import type {
+  GitFileChange,
+  GitFileKind,
+  GitFileStatus,
+  GitFileVersion,
+  GitFileVersions,
+  GitInfo,
+  GitRef,
+  GitStatus,
+} from "@shared";
 
 import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { relative, sep } from "node:path";
+
+import { DomainError } from "../ipc/errors";
+import { resolveWorkspacePath } from "../storage/paths";
+import {
+  validateEnvironment,
+  validateFolder,
+  validateRequest,
+  validateWorkspace,
+} from "../storage/validate";
 
 const GIT_TIMEOUT_MS = 10_000;
 const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
@@ -243,4 +261,169 @@ export async function getGitStatus(root: string): Promise<GitStatus> {
 export async function getGitInfo(root: string): Promise<GitInfo> {
   const { available, repository } = await getGitStatus(root);
   return { available, repository };
+}
+
+// --- Aba Changes (ClickLocal #52) -----------------------------------------------------------
+
+/**
+ * Uma ref que vira argumento do `git` — nunca começa com `-` (seria lida como opção) nem
+ * tem espaço ou caractere de controle. O resto (`main`, `origin/x`, `v1.2`, `HEAD~3`,
+ * `a1b2c3d`) passa.
+ */
+export function assertSafeRef(ref: string): void {
+  if (!/^[A-Za-z0-9_][A-Za-z0-9._/@{}~^+-]*$/.test(ref) || ref.includes("..")) {
+    throw new DomainError("INVALID_PAYLOAD", `invalid git ref: "${ref}"`);
+  }
+}
+
+/** Branches locais, remotas e tags — as bases possíveis do "Compare with…". */
+export async function listRefs(root: string): Promise<GitRef[]> {
+  const output = await runGit(root, [
+    "for-each-ref",
+    "--format=%(refname)%00%(refname:short)%00%(HEAD)",
+    "refs/heads",
+    "refs/remotes",
+    "refs/tags",
+  ]);
+  const refs: GitRef[] = [];
+  for (const line of output.split("\n")) {
+    if (!line) continue;
+    const [full, short, head] = line.split("\0");
+    if (full.endsWith("/HEAD")) continue; // `origin/HEAD` é só um apelido
+    const kind: GitRef["kind"] = full.startsWith("refs/heads/")
+      ? "branch"
+      : full.startsWith("refs/remotes/")
+        ? "remote"
+        : "tag";
+    refs.push({ name: short, kind, ...(head === "*" ? { current: true } : {}) });
+  }
+  return refs;
+}
+
+/** `--name-status -z` → mudanças; com `--relative`, caminhos já relativos ao workspace. */
+function parseNameStatus(output: string): GitFileChange[] {
+  const tokens = output.split("\0");
+  const changes: GitFileChange[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const code = tokens[i];
+    if (!code) continue;
+    const letter = code[0];
+    if (letter === "R" || letter === "C") {
+      const from = tokens[++i];
+      const path = tokens[++i];
+      changes.push({ path, from, status: "added", staged: false, unstaged: true });
+    } else {
+      const path = tokens[++i];
+      const status: GitFileStatus =
+        letter === "A"
+          ? "added"
+          : letter === "D"
+            ? "deleted"
+            : letter === "U"
+              ? "conflicted"
+              : "modified";
+      changes.push({ path, status, staged: false, unstaged: true });
+    }
+  }
+  return changes;
+}
+
+/**
+ * Mudanças do workspace em relação a `base`. Com `HEAD` é o `git status` do #51; com outra
+ * branch/tag/commit é `git diff <base>` do working tree (sem checkout nenhum), mais os
+ * arquivos untracked, que o diff não vê.
+ */
+export async function getChanges(root: string, base = "HEAD"): Promise<GitFileChange[]> {
+  const status = await getGitStatus(root);
+  if (!status.repository) return [];
+  if (base === "HEAD") return status.files;
+  assertSafeRef(base);
+  const output = await runGit(root, [
+    "diff",
+    "--name-status",
+    "-z",
+    "--find-renames",
+    "--relative",
+    base,
+    "--",
+    ".",
+  ]);
+  const changes = parseNameStatus(output).filter(
+    change => change.path !== ".wttp" && !change.path.startsWith(".wttp/"),
+  );
+  const tracked = new Set(changes.map(change => change.path));
+  for (const file of status.files) {
+    if (file.status === "untracked" && !tracked.has(file.path)) changes.push(file);
+  }
+  return changes;
+}
+
+function kindOf(path: string): GitFileKind {
+  if (path.endsWith(".req.yaml")) return "request";
+  if (path === "folder.yaml" || path.endsWith("/folder.yaml")) return "folder";
+  if (path.startsWith("environments/") && /\.ya?ml$/.test(path)) return "environment";
+  if (path === "wttp.yaml") return "workspace";
+  return "text";
+}
+
+function parseVersion(kind: GitFileKind, text: string): GitFileVersion {
+  const validate =
+    kind === "request"
+      ? validateRequest
+      : kind === "folder"
+        ? validateFolder
+        : kind === "environment"
+          ? validateEnvironment
+          : kind === "workspace"
+            ? validateWorkspace
+            : null;
+  if (!validate) return { text };
+  try {
+    const result = validate(text);
+    return result.valid ? { text, data: result.value } : { text, invalid: true };
+  } catch {
+    return { text, invalid: true };
+  }
+}
+
+/** Conteúdo de `path` (relativo ao workspace) em `ref` — `null` se ele não existe lá. */
+async function showAt(root: string, ref: string, path: string): Promise<string | null> {
+  try {
+    // `<ref>:./<path>` resolve relativo ao `cwd` (a raiz do workspace), mesmo com o
+    // workspace numa subpasta do repositório.
+    return await runGit(root, ["show", `${ref}:./${path}`]);
+  } catch (error) {
+    if (
+      error instanceof GitCommandError &&
+      /does not exist|exists on disk, but not in|bad revision|invalid object name|unknown revision/i.test(
+        error.stderr,
+      )
+    ) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/** Os dois lados de um arquivo para o diff campo a campo: na base e no disco. */
+export async function getFileVersions(
+  root: string,
+  path: string,
+  base = "HEAD",
+  from?: string,
+): Promise<GitFileVersions> {
+  if (base !== "HEAD") assertSafeRef(base);
+  // Mesmo guarda de `node:*`: nada fora da raiz do workspace.
+  const absolute = resolveWorkspacePath(root, path);
+  if (from) resolveWorkspacePath(root, from);
+  const kind = kindOf(path);
+
+  const beforeText = await showAt(root, base, from ?? path);
+  const afterText = await fs.readFile(absolute, "utf-8").catch(() => null);
+
+  return {
+    kind,
+    before: beforeText === null ? null : parseVersion(kind, beforeText),
+    after: afterText === null ? null : parseVersion(kind, afterText),
+  };
 }

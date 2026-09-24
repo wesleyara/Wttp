@@ -13,7 +13,12 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  GitChangesPayload,
+  GitFileChange,
+  GitFileVersions,
+  GitFileVersionsPayload,
   GitInfo,
+  GitRef,
   GitRootPayload,
   GitStatus,
   HistoryEntry,
@@ -155,6 +160,9 @@ interface WttpApi {
   git: {
     info: (payload: GitRootPayload) => Promise<GitInfo>;
     status: (payload: GitRootPayload) => Promise<GitStatus>;
+    refs: (payload: GitRootPayload) => Promise<GitRef[]>;
+    changes: (payload: GitChangesPayload) => Promise<GitFileChange[]>;
+    fileVersions: (payload: GitFileVersionsPayload) => Promise<GitFileVersions>;
   };
   runner: {
     start: (payload: RunStartPayload) => Promise<RunStartResult>;

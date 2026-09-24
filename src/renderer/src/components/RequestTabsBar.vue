@@ -128,7 +128,9 @@ function onDoubleClick(id: string): void {
             ? 'sliders-horizontal'
             : tab.kind === 'runner'
               ? 'list-checks'
-              : 'folder'
+              : tab.kind === 'changes'
+                ? 'git-compare'
+                : 'folder'
         "
         size="3.5"
         class="shrink-0 text-faint"

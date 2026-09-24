@@ -1,6 +1,6 @@
-import type { GitRootPayload } from "@shared";
+import type { GitFileVersionsPayload, GitRootPayload } from "@shared";
 
-import { getGitInfo, getGitStatus } from "../git/git";
+import { getChanges, getFileVersions, getGitInfo, getGitStatus, listRefs } from "../git/git";
 import { DomainError } from "./errors";
 import { registerHandler } from "./registry";
 
@@ -18,5 +18,20 @@ export function registerGitHandlers(): void {
   registerHandler("git:status", payload => {
     assertRoot(payload);
     return getGitStatus(payload.root);
+  });
+  registerHandler("git:refs", payload => {
+    assertRoot(payload);
+    return listRefs(payload.root);
+  });
+  registerHandler("git:changes", payload => {
+    assertRoot(payload);
+    return getChanges(payload.root, payload.base);
+  });
+  registerHandler("git:fileVersions", (payload: GitFileVersionsPayload) => {
+    assertRoot(payload);
+    if (typeof payload.path !== "string" || payload.path.length === 0) {
+      throw new DomainError("INVALID_PAYLOAD", "git:fileVersions needs a path");
+    }
+    return getFileVersions(payload.root, payload.path, payload.base, payload.from);
   });
 }

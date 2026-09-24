@@ -108,6 +108,7 @@ const SHORTCUT_ACTIONS = computed<{ action: MenuAction; label: string }[]>(() =>
   { action: "tab:next", label: t("shortcutActions.tabNext") },
   { action: "search:focus", label: t("shortcutActions.searchFocus") },
   { action: "search:quickOpen", label: t("shortcutActions.searchQuickOpen") },
+  { action: "git:changes", label: t("shortcutActions.gitChanges") },
   { action: "preferences:open", label: t("shortcutActions.preferencesOpen") },
 ]);
 

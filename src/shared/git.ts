@@ -46,3 +46,43 @@ export interface GitRootPayload {
   /** Raiz do workspace aberto. */
   root: string;
 }
+
+/** Base de comparação da aba Changes (#52): `HEAD`, uma branch, tag ou commit. */
+export interface GitRef {
+  name: string;
+  kind: "branch" | "remote" | "tag";
+  /** A branch em que o HEAD está. */
+  current?: boolean;
+}
+
+export interface GitChangesPayload extends GitRootPayload {
+  /** `HEAD` (padrão), branch, tag ou hash — nunca começa com `-`. */
+  base?: string;
+}
+
+export interface GitFileVersionsPayload extends GitRootPayload {
+  /** Relativo ao workspace. */
+  path: string;
+  /** Onde o arquivo estava na base, se foi renomeado. */
+  from?: string;
+  base?: string;
+}
+
+export type GitFileKind = "request" | "folder" | "environment" | "workspace" | "text";
+
+/** Um lado do diff: o texto cru e, quando o YAML parseia, os dados do arquivo. */
+export interface GitFileVersion {
+  text: string;
+  /** `RequestFile`/`FolderFile`/`EnvironmentFile`/`WorkspaceFile`, conforme `kind`. */
+  data?: unknown;
+  /** O YAML não passou no parser/validador — a UI cai para o diff de texto. */
+  invalid?: boolean;
+}
+
+export interface GitFileVersions {
+  kind: GitFileKind;
+  /** `null` = o arquivo não existe na base (novo). */
+  before: GitFileVersion | null;
+  /** `null` = o arquivo não existe mais no disco (apagado). */
+  after: GitFileVersion | null;
+}

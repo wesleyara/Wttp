@@ -158,7 +158,20 @@ export interface RunnerTabState {
 
 export const RUNNER_TAB_ID = "__runner__";
 
-export type OpenTab = RequestTabState | FolderTabState | EnvironmentTabState | RunnerTabState;
+/** Aba Changes (ClickLocal #52) — singleton como as de environments e runner; o estado vive em `useChangesStore`. */
+export interface ChangesTabState {
+  kind: "changes";
+  id: string;
+  path: string;
+  title: string;
+  pinned: true;
+  dirty: false;
+}
+
+export const CHANGES_TAB_ID = "__changes__";
+
+export type OpenTab =
+  RequestTabState | FolderTabState | EnvironmentTabState | RunnerTabState | ChangesTabState;
 
 export function isRequestTab(tab: OpenTab | null | undefined): tab is RequestTabState {
   return tab?.kind === "request";
@@ -174,6 +187,10 @@ export function isEnvironmentTab(tab: OpenTab | null | undefined): tab is Enviro
 
 export function isRunnerTab(tab: OpenTab | null | undefined): tab is RunnerTabState {
   return tab?.kind === "runner";
+}
+
+export function isChangesTab(tab: OpenTab | null | undefined): tab is ChangesTabState {
+  return tab?.kind === "changes";
 }
 
 function isRequestOrFolderTab(tab: OpenTab): tab is RequestTabState | FolderTabState {
@@ -431,6 +448,24 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       dirty: false,
     });
     activate(ENVIRONMENT_TAB_ID);
+  }
+
+  /** Abre (ou ativa) a aba Changes — o que listar e comparar é de `useChangesStore`. */
+  function openChangesTab(): void {
+    const existing = tabs.value.find(isChangesTab);
+    if (existing) {
+      activate(existing.id);
+      return;
+    }
+    tabs.value.push({
+      kind: "changes",
+      id: CHANGES_TAB_ID,
+      path: CHANGES_TAB_ID,
+      title: "Changes",
+      pinned: true,
+      dirty: false,
+    });
+    activate(CHANGES_TAB_ID);
   }
 
   /** Abre (ou ativa) a aba do Collection Runner — quem escolhe o que rodar é `useRunnerStore.configure`. */
@@ -1201,6 +1236,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     openFolderTab,
     openEnvironmentTab,
     openRunnerTab,
+    openChangesTab,
     requestClose,
     forceClose,
     closeByPath,

@@ -4,8 +4,12 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  assertSafeRef,
+  getChanges,
+  getFileVersions,
   getGitStatus,
   isGitAvailable,
+  listRefs,
   parsePorcelainV2,
   resetGitDetectionForTests,
   runGit,
@@ -211,4 +215,121 @@ describe("getGitStatus (ClickLocal #51)", () => {
     expect(status.files).toHaveLength(50);
     expect(elapsed).toBeLessThan(300);
   }, 30_000);
+});
+
+const REQUEST_V1 = `wttp: 1
+name: List users
+seq: 1
+method: GET
+url: "{{base}}/users"
+headers:
+  - { name: X-Api-Version, value: "1", enabled: true }
+`;
+
+describe("Changes tab support (ClickLocal #52)", () => {
+  async function repoWithWorkspace(): Promise<string> {
+    await initRepo(dir);
+    const workspace = join(dir, "api-tests");
+    await write(join(workspace, "wttp.yaml"), "wttp: 1\nname: WS\n");
+    await write(join(workspace, "users", "list.req.yaml"), REQUEST_V1);
+    await write(
+      join(workspace, "users", "old-name.req.yaml"),
+      REQUEST_V1.replace("List users", "Old"),
+    );
+    await commitAll(dir, "v1");
+    return workspace;
+  }
+
+  it("lists branches and tags, marking the current branch", async () => {
+    const workspace = await repoWithWorkspace();
+    await runGit(dir, ["branch", "feature/x"]);
+    await runGit(dir, ["tag", "v1.0"]);
+
+    expect(await listRefs(workspace)).toEqual([
+      { name: "feature/x", kind: "branch" },
+      { name: "main", kind: "branch", current: true },
+      { name: "v1.0", kind: "tag" },
+    ]);
+  });
+
+  it("returns both sides parsed, for a modified request", async () => {
+    const workspace = await repoWithWorkspace();
+    await write(
+      join(workspace, "users", "list.req.yaml"),
+      REQUEST_V1.replace('value: "1"', 'value: "2"'),
+    );
+
+    const versions = await getFileVersions(workspace, "users/list.req.yaml");
+
+    expect(versions.kind).toBe("request");
+    expect(versions.before?.data).toMatchObject({
+      headers: [{ name: "X-Api-Version", value: "1" }],
+    });
+    expect(versions.after?.data).toMatchObject({
+      headers: [{ name: "X-Api-Version", value: "2" }],
+    });
+  });
+
+  it("gives null for the missing side of a new or deleted file, and flags invalid YAML", async () => {
+    const workspace = await repoWithWorkspace();
+    await write(join(workspace, "users", "new.req.yaml"), "wttp: 1\nname: [broken\n");
+    await unlink(join(workspace, "users", "old-name.req.yaml"));
+
+    const created = await getFileVersions(workspace, "users/new.req.yaml");
+    expect(created.before).toBeNull();
+    expect(created.after).toMatchObject({ invalid: true });
+    expect(created.after?.text).toContain("[broken");
+
+    const deleted = await getFileVersions(workspace, "users/old-name.req.yaml");
+    expect(deleted.after).toBeNull();
+    expect(deleted.before?.data).toMatchObject({ name: "Old" });
+  });
+
+  it("compares with another branch without checking it out", async () => {
+    const workspace = await repoWithWorkspace();
+    await runGit(dir, ["checkout", "-q", "-b", "feature/v2"]);
+    await write(join(workspace, "users", "list.req.yaml"), REQUEST_V1.replace("GET", "POST"));
+    await write(
+      join(workspace, "users", "extra.req.yaml"),
+      REQUEST_V1.replace("List users", "Extra"),
+    );
+    await commitAll(dir, "v2");
+    await write(join(workspace, "users", "untracked.req.yaml"), REQUEST_V1);
+
+    const changes = await getChanges(workspace, "main");
+
+    expect(changes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "users/list.req.yaml", status: "modified" }),
+        expect.objectContaining({ path: "users/extra.req.yaml", status: "added" }),
+        expect.objectContaining({ path: "users/untracked.req.yaml", status: "untracked" }),
+      ]),
+    );
+    const versions = await getFileVersions(workspace, "users/list.req.yaml", "main");
+    expect(versions.before?.data).toMatchObject({ method: "GET" });
+    expect(versions.after?.data).toMatchObject({ method: "POST" });
+    // Continua na mesma branch: comparar não fez checkout.
+    expect((await getGitStatus(workspace)).repository?.branch).toBe("feature/v2");
+  });
+
+  it("follows a rename through `from`", async () => {
+    const workspace = await repoWithWorkspace();
+    await runGit(workspace, ["mv", "users/old-name.req.yaml", "users/renamed.req.yaml"]);
+
+    const status = await getGitStatus(workspace);
+    const renamed = status.files.find(file => file.path === "users/renamed.req.yaml");
+    expect(renamed).toMatchObject({ from: "users/old-name.req.yaml", status: "added" });
+
+    const versions = await getFileVersions(workspace, renamed!.path, "HEAD", renamed!.from);
+    expect(versions.before?.data).toMatchObject({ name: "Old" });
+  });
+
+  it("refuses refs that could be read as options or ranges", () => {
+    for (const ref of ["-x", "--output=/tmp/x", "a..b", "a b", "", "main\n"]) {
+      expect(() => assertSafeRef(ref), ref).toThrow(/invalid git ref/);
+    }
+    for (const ref of ["main", "origin/feature-x", "v1.2.3", "HEAD~3", "a1b2c3d", "release@{1}"]) {
+      expect(() => assertSafeRef(ref), ref).not.toThrow();
+    }
+  });
 });

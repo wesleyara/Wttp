@@ -7,7 +7,16 @@
  * um único byte de JavaScript.
  */
 
-import type { GitInfo, GitRootPayload, GitStatus } from "./git";
+import type {
+  GitChangesPayload,
+  GitFileChange,
+  GitFileVersions,
+  GitFileVersionsPayload,
+  GitInfo,
+  GitRef,
+  GitRootPayload,
+  GitStatus,
+} from "./git";
 import type { HistoryEntry } from "./history";
 import type {
   AuthConfig,
@@ -121,6 +130,7 @@ export type MenuAction =
   | "request:send"
   | "search:focus"
   | "search:quickOpen"
+  | "git:changes"
   | "tab:close"
   | "tab:next";
 
@@ -519,6 +529,12 @@ export interface IpcContract {
   "git:info": { payload: GitRootPayload; result: GitInfo };
   /** `git:info` + mudanças dentro do workspace, caminhos relativos a ele. */
   "git:status": { payload: GitRootPayload; result: GitStatus };
+  /** Branches, remotas e tags — as bases do "Compare with…" da aba Changes (#52). */
+  "git:refs": { payload: GitRootPayload; result: GitRef[] };
+  /** Mudanças do workspace contra `base` (padrão `HEAD`), sem checkout. */
+  "git:changes": { payload: GitChangesPayload; result: GitFileChange[] };
+  /** Os dois lados de um arquivo (base e disco), já parseados pelo storage. */
+  "git:fileVersions": { payload: GitFileVersionsPayload; result: GitFileVersions };
 }
 
 export type IpcChannel = keyof IpcContract;

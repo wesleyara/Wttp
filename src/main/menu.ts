@@ -25,6 +25,7 @@ export const DEFAULT_ACCELERATORS: Record<MenuAction, string> = {
   "tab:next": "CmdOrCtrl+Tab",
   "search:focus": "CmdOrCtrl+F",
   "search:quickOpen": "CmdOrCtrl+P",
+  "git:changes": "CmdOrCtrl+Shift+G",
 };
 
 /**
@@ -149,6 +150,12 @@ export function buildMenu(
     {
       label: "View",
       submenu: [
+        {
+          label: "Changes",
+          accelerator: accel("git:changes"),
+          click: () => send(win, "git:changes"),
+        },
+        { type: "separator" },
         { role: "reload" },
         { role: "toggleDevTools" },
         { type: "separator" },

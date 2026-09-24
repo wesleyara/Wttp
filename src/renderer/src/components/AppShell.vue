@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { GitFileStatus, WorkspaceNode } from "@shared";
 
+import ChangesPanel from "@renderer/components/ChangesPanel.vue";
 import CommandPalette from "@renderer/components/CommandPalette.vue";
 import EnvironmentsPanel from "@renderer/components/EnvironmentsPanel.vue";
 import FolderConfigTabs from "@renderer/components/FolderConfigTabs.vue";
@@ -23,6 +24,7 @@ import WorkspaceLanding from "@renderer/components/WorkspaceLanding.vue";
 import WSplitPane from "@renderer/components/WSplitPane.vue";
 import WToast from "@renderer/components/WToast.vue";
 import WTree, { type TreeDecoration } from "@renderer/components/WTree.vue";
+import { useChangesStore } from "@renderer/stores/changes";
 import { GIT_STATUS_LETTER, useGitStore } from "@renderer/stores/git";
 import { useImportStore } from "@renderer/stores/import";
 import { useMenuStore } from "@renderer/stores/menu";
@@ -45,6 +47,7 @@ const tree = useTreeStore();
 const requestTabs = useRequestTabsStore();
 const runner = useRunnerStore();
 const git = useGitStore();
+const changes = useChangesStore();
 
 // Badges Git na árvore (ClickLocal #51): letra no nó que mudou, ponto na pasta com mudança dentro.
 const GIT_STATUS_CLASS: Record<GitFileStatus, string> = {
@@ -176,6 +179,13 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       },
     );
   }
+  if (git.repository) {
+    items.push({
+      label: t("changes.showChanges"),
+      icon: "git-compare",
+      action: () => void changes.open(node.path),
+    });
+  }
   items.push(
     {
       label: t("contextMenu.rename"),
@@ -238,6 +248,9 @@ onMounted(() => {
     },
     "tab:next": onTabNext,
     "search:quickOpen": () => (paletteOpen.value = true),
+    "git:changes": () => {
+      if (git.repository) void changes.open();
+    },
     "preferences:open": () => (preferencesOpen.value = true),
   });
   stopListeningToUpdate = updateStore.listen();
@@ -352,6 +365,14 @@ onUnmounted(() => {
           >
             <RequestTabsBar />
             <EnvironmentsPanel class="min-h-0 flex-1" />
+          </main>
+          <!-- Changes (#52): mesma regra — coluna inteira, sem painel de resposta. -->
+          <main
+            v-else-if="requestTabs.active?.kind === 'changes'"
+            class="flex h-full flex-col bg-surface-1"
+          >
+            <RequestTabsBar />
+            <ChangesPanel class="min-h-0 flex-1" />
           </main>
           <!-- Runner (EP-13-T01): mesma regra da aba de environments — coluna inteira. -->
           <main

@@ -6,6 +6,8 @@ import WInput from "@renderer/components/WInput.vue";
 import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import WModal from "@renderer/components/WModal.vue";
 import { fuzzySearch } from "@renderer/lib/fuzzyMatch";
+import { useChangesStore } from "@renderer/stores/changes";
+import { useGitStore } from "@renderer/stores/git";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useRunnerStore } from "@renderer/stores/runner";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
@@ -24,6 +26,8 @@ const { t } = useI18n();
 const workspace = useWorkspaceStore();
 const tabs = useRequestTabsStore();
 const runner = useRunnerStore();
+const git = useGitStore();
+const changesStore = useChangesStore();
 
 interface RequestEntry {
   kind: "request";
@@ -76,6 +80,17 @@ const commands = computed<CommandEntry[]>(() => {
       icon: "list-checks",
       run: () => runner.configure("", ""),
     },
+    ...(git.repository
+      ? [
+          {
+            kind: "command" as const,
+            id: "show-changes",
+            name: t("command.showChanges"),
+            icon: "git-compare",
+            run: () => void changesStore.open(),
+          },
+        ]
+      : []),
   ];
   const active = tabs.active;
   if (!isRequestTab(active)) return always;

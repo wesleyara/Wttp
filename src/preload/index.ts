@@ -12,7 +12,12 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  GitChangesPayload,
+  GitFileChange,
+  GitFileVersions,
+  GitFileVersionsPayload,
   GitInfo,
+  GitRef,
   GitRootPayload,
   GitStatus,
   HistoryEntry,
@@ -211,6 +216,11 @@ const wttp = {
   git: {
     info: (payload: GitRootPayload): Promise<GitInfo> => invoke("git:info", payload),
     status: (payload: GitRootPayload): Promise<GitStatus> => invoke("git:status", payload),
+    refs: (payload: GitRootPayload): Promise<GitRef[]> => invoke("git:refs", payload),
+    changes: (payload: GitChangesPayload): Promise<GitFileChange[]> =>
+      invoke("git:changes", payload),
+    fileVersions: (payload: GitFileVersionsPayload): Promise<GitFileVersions> =>
+      invoke("git:fileVersions", payload),
   },
   runner: {
     start: (payload: RunStartPayload): Promise<RunStartResult> => invoke("runner:start", payload),
