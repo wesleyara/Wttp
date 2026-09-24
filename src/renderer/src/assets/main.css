@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /**
- * Tokens semânticos — docs/design-system.md §2 e §3. Cada custom property guarda o
+ * Tokens semânticos — arch-docs/design-system.md §2 e §3. Cada custom property guarda o
  * triplet "R G B" (sem `rgb()`), consumido pelo tailwind.config.js como
  * `rgb(var(--w-x) / <alpha-value>)`.
  *

@@ -3,7 +3,9 @@ import { app, BrowserWindow, Menu, shell } from "electron";
 import { join } from "path";
 
 import icon from "../../resources/icon.png?asset";
+import { registerDocsScheme } from "./docs/docsWindow";
 import { registerIpcHandlers } from "./ipc";
+import { readSettings } from "./ipc/settings";
 import { buildMenu } from "./menu";
 import { initAutoUpdater } from "./update/updater";
 import { loadWindowState, watchWindowState } from "./window/windowState";
@@ -38,7 +40,8 @@ async function createWindow(): Promise<BrowserWindow> {
   if (state.isMaximized) mainWindow.maximize();
   watchWindowState(mainWindow);
 
-  Menu.setApplicationMenu(buildMenu(mainWindow));
+  const settings = await readSettings();
+  Menu.setApplicationMenu(buildMenu(mainWindow, settings.shortcuts ?? {}, settings.language));
 
   mainWindow.on("ready-to-show", () => {
     mainWindow.show();
@@ -74,6 +77,8 @@ async function createWindow(): Promise<BrowserWindow> {
 
   return mainWindow;
 }
+
+registerDocsScheme();
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId("com.wttp.app");

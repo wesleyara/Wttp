@@ -8,6 +8,7 @@ import type {
   SaveFileResult,
 } from "@shared";
 
+import { i18n } from "@renderer/i18n";
 import {
   isRequestTab,
   type ScriptRunSummary,
@@ -159,8 +160,8 @@ export const useRequestStore = defineStore("request", () => {
 
     toast.push(
       parsed.notConverted.length > 0
-        ? `cURL importado — ${parsed.notConverted.length} item(ns) não convertido(s)`
-        : "cURL importado",
+        ? i18n.global.t("toast.curlImportedPartial", { count: parsed.notConverted.length })
+        : i18n.global.t("toast.curlImported"),
       parsed.notConverted.length > 0 ? "warning" : "success",
     );
     return true;

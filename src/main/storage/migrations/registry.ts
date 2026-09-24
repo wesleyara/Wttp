@@ -1,5 +1,5 @@
 /**
- * Versão do schema e migração entre versões — docs/file-format.md §6, regra 1.
+ * Versão do schema e migração entre versões — arch-docs/file-format.md §6, regra 1.
  *
  * `resolveSchemaVersion` decide qual versão um arquivo lido tem, tratando `wttp`
  * ausente como versão 1 com aviso (nunca um erro — quem valida decide o que fazer com

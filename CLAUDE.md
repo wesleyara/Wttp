@@ -2,7 +2,7 @@
 
 Cliente HTTP local e open source — desenvolver, testar e documentar APIs. Desktop app (Electron + Vue 3), com workspaces, collections, environments e variáveis persistidos em **arquivos YAML versionáveis** na máquina do usuário.
 
-Visão do produto: [docs/overview.md](docs/overview.md).
+Visão do produto: [arch-docs/overview.md](arch-docs/overview.md).
 
 ---
 
@@ -37,10 +37,10 @@ de disparar e pede confirmação quando sobra alguma `{{var}}` não resolvida.
 precisou mudar. A verificação visual de EP-02/EP-03/EP-05/EP-06 (dois temas, interações
 reais numa janela) ainda não foi feita — este ambiente de desenvolvimento não tem
 `xvfb`/`sudo` para abrir uma; pendente antes de considerar qualquer um dos quatro
-épicos fechado de fato. Ver nota no topo de [EP-02](docs/backlog/EP-02-design-system.md)
-e as notas por task em [EP-03](docs/backlog/EP-03-nucleo-http.md),
-[EP-05](docs/backlog/EP-05-workspaces-collections.md) e
-[EP-06](docs/backlog/EP-06-environments-variaveis.md).
+épicos fechado de fato. Ver nota no topo de [EP-02](arch-docs/backlog/EP-02-design-system.md)
+e as notas por task em [EP-03](arch-docs/backlog/EP-03-nucleo-http.md),
+[EP-05](arch-docs/backlog/EP-05-workspaces-collections.md) e
+[EP-06](arch-docs/backlog/EP-06-environments-variaveis.md).
 
 **EP-07** (Autenticação) também está pronto: `AuthConfig` (`@shared`) como union por
 `type` — `none`/`inherit`/`bearer`/`basic`/`apikey` — já existia desde a preparação de
@@ -62,7 +62,7 @@ auth (própria ou herdada) depende de `{{var}}` não resolvida — o mesmo fluxo
 confirmação de EP-06-T05 cobre isso antes do envio, sem UI nova. Os três tipos de auth
 foram verificados só por teste unitário, não contra um servidor de teste real — não há
 harness de servidor HTTP de integração no repo, registrado como pendência em
-[EP-07](docs/backlog/EP-07-autenticacao.md). Mesma pendência de verificação visual das
+[EP-07](arch-docs/backlog/EP-07-autenticacao.md). Mesma pendência de verificação visual das
 notas acima.
 
 **EP-06.1** (não planejado, aberto após feedback de uso real) também está pronto:
@@ -74,7 +74,7 @@ novo no formato de arquivo (`pathParams`, resolvido pelo `resolver.ts` antes de
 `{{var}}`), highlight/tooltip de variável estendido a Docs/environments/body
 urlencoded/multipart, sistema de toast (`useToastStore`/`WToast`) cobrindo save/
 create/delete em request, folder, environment e linhas de tabela, zebra striping via
-o token `stripe` (novo em `docs/design-system.md`), a árvore sincronizando após
+o token `stripe` (novo em `arch-docs/design-system.md`), a árvore sincronizando após
 salvar uma aba, e diretório padrão de workspace configurável (`defaultWorkspaceDir`).
 Mesma pendência de verificação visual das notas acima.
 
@@ -89,7 +89,7 @@ os dois pares gravam no YAML em disco assim que o script termina (`persistEnvVar
 `persistCollectionVars` em `requestTabs.ts`, via `env:save`/`node:write`), nunca
 sobrescrevem uma variável `secret: true`, e falham com mensagem clara sem environment
 ativo/collection — mais `req` mutável, `res` congelada, `test`/`expect` com os seis
-matchers documentados e `console.*` capturado (`api.ts`, `docs/scripting.md`). A
+matchers documentados e `console.*` capturado (`api.ts`, `arch-docs/scripting.md`). A
 integração no fluxo da request (`useRequestTabsStore.dispatch`) roda a cadeia de
 pre-request de fora pra dentro (collection → pasta → request) antes do envio e a de
 tests de dentro pra fora depois, threadando o mesmo escopo de env/collection vars entre
@@ -211,7 +211,7 @@ configuração do repositório no GitHub (Settings → Branches), não um arquiv
 mudar controle de acesso compartilhado não é algo que um agente deva fazer sem um humano
 decidindo; os passos exatos (quais status checks marcar como obrigatórios, com os nomes
 que saem do workflow) ficam documentados em
-[EP-10](docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci) como pendência
+[EP-10](arch-docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci) como pendência
 explícita do dono do repositório. "PR roda em menos de 10 minutos" também não foi
 verificado com um run real do GitHub Actions (sem `gh` CLI neste sandbox) — só por um
 proxy local (`lint`+`typecheck`+`test`+`build` sequencial, ~20s neste sandbox Linux),
@@ -221,9 +221,9 @@ registrado no épico com a mesma ressalva.
 pronto: `CONTRIBUTING.md` na raiz leva um contribuidor novo de `git clone` a `yarn dev`
 sem depender de nada fora do próprio arquivo, lista os comandos (`lint`/`typecheck`/
 `test`/`test:coverage`/`test:e2e`/`build`), explica como escolher uma task `Pendente`
-com dependências `Concluída` em `docs/backlog/README.md` e ler o épico inteiro
+com dependências `Concluída` em `arch-docs/backlog/README.md` e ler o épico inteiro
 (objetivo/escopo/critérios/**fora de escopo**) antes de codar, resume as regras de
-`docs/conventions.md` que mais pegam quem chega de fora (renderer nunca importa
+`arch-docs/conventions.md` que mais pegam quem chega de fora (renderer nunca importa
 `node:*`/`electron`, só tokens semânticos de cor, YAML é contrato público, docs em
 PT-BR e código/commits/PRs em inglês) e fecha com a Definition of Done. Templates novos
 em `.github/`: `ISSUE_TEMPLATE/bug_report.md`, `ISSUE_TEMPLATE/feature_request.md` e
@@ -235,7 +235,7 @@ os critérios de aceite da task. `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1)
 Com isso **EP-10 está concluído**, com uma única pendência explícita e fora do alcance
 de qualquer agente neste ambiente: a proteção de branch do GitHub (EP-10-T03) precisa
 ser aplicada manualmente pelo dono do repositório, passos documentados em
-[EP-10](docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci).
+[EP-10](arch-docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci).
 
 **EP-11** (Empacotamento e distribuição) também está pronto, com pendências explícitas
 fora do alcance de qualquer agente neste ambiente. `electron-builder.yml` preenchido de
@@ -243,11 +243,11 @@ verdade: `dmg` explícito para `x64`+`arm64` no macOS, `nsis` explícito no Wind
 categoria macOS (`public.app-category.developer-tools`), `fileAssociations` para
 `.wttp.yaml` (funciona em Windows/macOS; o Linux rejeita extensão com ponto no gerador
 de mime-type do próprio electron-builder — limitação real da ferramenta, não algo a
-contornar), e o bloco `files` cortando `docs/`/`e2e/`/`.claude/`/configs de dev que
+contornar), e o bloco `files` cortando `docs/`/`arch-docs/`/`e2e/`/`.claude/`/configs de dev que
 antes vazavam inteiros para dentro do `app.asar` (confirmado inspecionando o asar antes/
 depois). Assinatura de código e notarização (EP-11-T02) ficam atrás de cinco secrets
 opcionais do CI (`CSC_LINK`/`CSC_KEY_PASSWORD`/`APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/
-`APPLE_TEAM_ID`, documentados com custo real em [docs/release.md](docs/release.md)) —
+`APPLE_TEAM_ID`, documentados com custo real em [arch-docs/release.md](arch-docs/release.md)) —
 sem eles o build sai sem assinar, sem erro. Auto-update via `electron-updater`
 (`src/main/update/updater.ts`) checa no boot e a cada 4h (respeitando
 `AppSettings.autoUpdateEnabled`, novo), baixa em background e só troca o binário no
@@ -264,7 +264,7 @@ pelo workflow de release, sempre `--publish always`. `examples/postman-echo-demo
 workspace de exemplo de verdade (não fixture) exercitando collections, environments,
 auth herdada e um fluxo login→bearer via scripts, verificado rodando as cinco requests
 de verdade contra `postman-echo.com`; as duas screenshots do `README.md`
-(`docs/screenshots/`) são capturas reais do app rodando (`Page.screenshot()` do
+(`arch-docs/screenshots/`) são capturas reais do app rodando (`Page.screenshot()` do
 Playwright contra o Chromium headless empacotado, tema trocado pelo botão de verdade da
 UI) — descoberta importante: ao contrário do que as notas de EP-02/EP-03/EP-05/EP-06/
 EP-07 registram, o Chromium headless do Electron renderiza e tira screenshot sem X11
@@ -275,12 +275,34 @@ release real, ainda que rascunho — decisão do dono do repositório), então "
 ponta a ponta com release real" e "pipeline de release disparado de verdade" seguem
 não verificados; e instalação/abertura limpa em Windows e macOS segue impossível neste
 sandbox só-Linux, mesma pendência multi-SO já registrada em EP-10. Detalhes por task em
-[EP-11](docs/backlog/EP-11-distribuicao.md).
+[EP-11](arch-docs/backlog/EP-11-distribuicao.md).
+
+**EP-08.1-T06/T07** (i18n e documentação de usuário, fecham o EP-08.1) também estão
+prontos. `vue-i18n` com `en` (fonte e fallback) e `pt-BR` (`src/renderer/src/i18n/`,
+`pt-BR.ts` tipado como `MessageSchema` — chave faltando quebra o `typecheck`;
+`i18n.spec.ts` confere placeholders), `AppSettings.language` (`system`/`en`/`pt-BR`),
+seletor em Preferências → General com troca na hora, todos os `.vue` (menos
+`DevGalleryPage`) e os toasts/mensagens das stores via `t()`/`i18n.global.t()`; regra nova
+em `arch-docs/conventions.md` ("nenhuma string de UI literal"). Fora: rótulos do menu **nativo**
+e `WttpError` do main, ainda em inglês. `e2e/fixtures.ts` agora fixa `language: "en"` no
+`settings.json` de cada teste — sem isso os e2e dependeriam do idioma do SO. Docs de
+usuário em VitePress, **só de produto** (`docs/guia/**` pt-BR, `docs/en/guide/**`; os
+documentos de engenharia moraram em `docs/` e foram movidos para `arch-docs/` — o site
+nunca os enxerga),
+`yarn docs:build`, workflow `.github/workflows/docs.yml` para GitHub Pages, e — a pedido do
+usuário — uma cópia **empacotada no app** (`yarn docs:build:offline` → `resources/docs-site`,
+janela via protocolo `wttp-docs:`, `app:openDocs`, item Help → Documentation), verificada
+num Electron headless (`e2e/language-and-docs.spec.ts`). `vitepress` foi para
+`devDependencies`. **Pendências reais:** o GitHub Pages precisa que o dono do repositório
+ative Settings → Pages → Source "GitHub Actions" (o link online das Preferências dá 404 até
+lá); verificação visual de pt-BR nos dois temas e um `build:linux` completo com a doc
+dentro do instalador não foram feitos. Detalhes em
+[EP-08.1](arch-docs/backlog/EP-08.1-sessao-historico-docs.md).
 
 Com isso o **MVP (v0.1) está funcionalmente completo** — EP-01 a EP-11 prontos, com as
 pendências de verificação (visual multi-tema numa janela de verdade, multi-SO, e a
 primeira release real) explicitamente registradas em cada épico, não escondidas.
-Trabalho corrente: [docs/backlog/README.md](docs/backlog/README.md) → os próximos
+Trabalho corrente: [arch-docs/backlog/README.md](arch-docs/backlog/README.md) → os próximos
 épicos (EP-12 em diante) são pós-MVP, v0.2+.
 
 ---
@@ -293,7 +315,8 @@ src/
 ├── preload/     bridge contextBridge — única superfície do renderer
 ├── renderer/    Vue 3 + Pinia — só UI e estado
 └── shared/      tipos do contrato IPC (sem runtime)
-docs/            referência técnica e backlog
+arch-docs/       referência técnica e backlog (engenharia; nunca vai pro site)
+docs/            site de documentação de usuário (VitePress, só produto)
 .claude/skills/  skills dos fluxos repetitivos
 ```
 
@@ -305,7 +328,8 @@ Aliases: `@renderer` → `src/renderer/src`, `@shared` → `src/shared`.
 
 ```sh
 yarn                 # instalar
-yarn dev             # Electron + Vite com HMR
+yarn dev             # Electron + Vite com HMR + VitePress da doc (porta 5174)
+yarn dev:app         # só o Electron
 yarn lint            # ESLint
 yarn typecheck       # typecheck:node + typecheck:web
 yarn test            # Vitest
@@ -318,8 +342,8 @@ yarn build:linux     # instalador (também :win, :mac)
 ## Regras críticas
 
 1. **O renderer nunca importa `node:*` nem `electron`.** Todo I/O passa por `window.wttp.*`. Precisa de algo novo? Novo canal IPC — use a skill `wttp-ipc-channel`.
-2. **Nenhuma cor crua em componente.** Só tokens semânticos (`bg-surface-2`, `text-muted`). Ver [docs/design-system.md](docs/design-system.md).
-3. **O formato em disco é contrato público.** Qualquer mudança passa por [docs/file-format.md](docs/file-format.md) primeiro. Serialização é determinística — salvar sem alterar nada produz bytes idênticos.
+2. **Nenhuma cor crua em componente.** Só tokens semânticos (`bg-surface-2`, `text-muted`). Ver [arch-docs/design-system.md](arch-docs/design-system.md).
+3. **O formato em disco é contrato público.** Qualquer mudança passa por [arch-docs/file-format.md](arch-docs/file-format.md) primeiro. Serialização é determinística — salvar sem alterar nada produz bytes idênticos.
 4. **Segredos nunca em YAML.** Keychain do SO, com fallback em `.wttp/` (gitignored).
 5. **Scripts de usuário rodam isolados** em `utilityProcess` + `node:vm` com timeout. Nunca no main, nunca no renderer.
 6. **Docs em PT-BR, código e UI em inglês.**
@@ -330,21 +354,22 @@ yarn build:linux     # instalador (também :win, :mac)
 
 | Documento                                          | Conteúdo                                          |
 | -------------------------------------------------- | ------------------------------------------------- |
-| [docs/overview.md](docs/overview.md)               | visão do produto                                  |
-| [docs/getting-started.md](docs/getting-started.md) | do download à primeira requisição (usuário final) |
-| [docs/architecture.md](docs/architecture.md)       | processos, contrato IPC, fluxo de uma requisição  |
-| [docs/file-format.md](docs/file-format.md)         | especificação do YAML em disco                    |
-| [docs/design-system.md](docs/design-system.md)     | paleta, tokens, tipografia, componentes base      |
-| [docs/conventions.md](docs/conventions.md)         | código, estado, lint, testes, git                 |
-| [docs/release.md](docs/release.md)                 | assinatura, notarização e processo de release     |
-| [docs/backlog/README.md](docs/backlog/README.md)   | épicos e tasks                                    |
+| [arch-docs/overview.md](arch-docs/overview.md)               | visão do produto                                  |
+| [arch-docs/getting-started.md](arch-docs/getting-started.md) | do download à primeira requisição (usuário final) |
+| [arch-docs/architecture.md](arch-docs/architecture.md)       | processos, contrato IPC, fluxo de uma requisição  |
+| [arch-docs/file-format.md](arch-docs/file-format.md)         | especificação do YAML em disco                    |
+| [arch-docs/design-system.md](arch-docs/design-system.md)     | paleta, tokens, tipografia, componentes base      |
+| [arch-docs/conventions.md](arch-docs/conventions.md)         | código, estado, lint, testes, git                 |
+| [arch-docs/release.md](arch-docs/release.md)                 | assinatura, notarização e processo de release     |
+| [arch-docs/backlog/README.md](arch-docs/backlog/README.md)   | épicos e tasks                                    |
 
 ## Skills
 
 | Skill                | Quando                                                  |
 | -------------------- | ------------------------------------------------------- |
-| `wttp-task`          | executar uma task do backlog (`EP-XX-TYY`)              |
-| `wttp-vue-component` | criar ou editar componente/página Vue                   |
-| `wttp-ipc-channel`   | adicionar ou alterar comunicação main↔renderer          |
-| `wttp-file-format`   | ler, gravar ou migrar arquivos de workspace             |
-| `wttp-importer`      | adicionar importador (Postman, Insomnia, OpenAPI, cURL) |
+| `wttp-task`             | executar uma task do backlog por ID explícito (`EP-XX-TYY`) |
+| `wttp-clicklocal-task`  | executar uma task/card do board ClickLocal "Wttp mcp" — desde 2026-09-23, é o que "a task N" significa por padrão |
+| `wttp-vue-component`    | criar ou editar componente/página Vue                   |
+| `wttp-ipc-channel`      | adicionar ou alterar comunicação main↔renderer          |
+| `wttp-file-format`      | ler, gravar ou migrar arquivos de workspace             |
+| `wttp-importer`         | adicionar importador (Postman, Insomnia, OpenAPI, cURL) |

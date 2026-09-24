@@ -11,8 +11,8 @@ Refs <!-- EP-XX-TYY -->
 - [ ] `yarn lint` and `yarn typecheck` pass
 - [ ] `yarn test` passes; new logic under `main/` has a test
 - [ ] New UI is checked in both dark and light themes
-- [ ] Affected documentation (`docs/`, `CLAUDE.md`) is updated in this PR
-- [ ] Task status updated in the backlog (epic file and `docs/backlog/README.md`)
+- [ ] Affected documentation (`arch-docs/`, `docs/`, `CLAUDE.md`) is updated in this PR
+- [ ] Task status updated in the backlog (epic file and `arch-docs/backlog/README.md`)
 
 ## Acceptance criteria
 

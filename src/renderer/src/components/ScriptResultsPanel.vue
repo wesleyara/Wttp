@@ -5,6 +5,8 @@ import type {
 } from "@renderer/stores/requestTabs";
 import type { WttpError } from "@shared";
 
+import { useI18n } from "vue-i18n";
+
 import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
 
@@ -15,6 +17,8 @@ import WIcon from "./WIcon.vue";
  * anexou. Reaproveitado tanto no resultado normal quanto no caso de pre-request ter
  * abortado o envio (sem resposta nenhuma para mostrar).
  */
+const { t } = useI18n();
+
 defineProps<{
   assertions: ScriptAssertionWithSource[];
   consoleEntries: ScriptConsoleEntryWithSource[];
@@ -34,15 +38,17 @@ const CONSOLE_LEVEL_CLASS: Record<string, string> = {
       v-if="preRequestError"
       class="mx-2 flex flex-col gap-1 rounded-md bg-status-5xx/10 px-3 py-2 font-inter text-sm text-status-5xx"
     >
-      <p class="font-medium">Pre-request script failed ({{ preRequestError.source }})</p>
+      <p class="font-medium">
+        {{ t("scriptResults.preRequestFailed", { source: preRequestError.source }) }}
+      </p>
       <p class="font-mono text-xs">{{ preRequestError.error.message }}</p>
-      <p class="text-xs text-muted">The request was not sent.</p>
+      <p class="text-xs text-muted">{{ t("scriptResults.notSent") }}</p>
     </div>
 
     <WEmptyState
       v-if="assertions.length === 0 && consoleEntries.length === 0 && !preRequestError"
-      title="No test scripts"
-      description="This request has no test scripts defined."
+      :title="t('scriptResults.empty.title')"
+      :description="t('scriptResults.empty.description')"
     >
       <template #icon>
         <WIcon name="check" size="5" />
@@ -51,8 +57,12 @@ const CONSOLE_LEVEL_CLASS: Record<string, string> = {
 
     <div v-if="assertions.length > 0" class="flex flex-col gap-1 px-2">
       <p class="font-inter text-xs font-medium text-faint">
-        Assertions —
-        {{ assertions.filter(a => a.passed).length }}/{{ assertions.length }} passed
+        {{
+          t("scriptResults.assertions", {
+            passed: assertions.filter(a => a.passed).length,
+            total: assertions.length,
+          })
+        }}
       </p>
       <div
         v-for="(assertion, index) in assertions"
@@ -79,7 +89,7 @@ const CONSOLE_LEVEL_CLASS: Record<string, string> = {
     </div>
 
     <div v-if="consoleEntries.length > 0" class="flex flex-col gap-1 px-2 pb-2">
-      <p class="font-inter text-xs font-medium text-faint">Console</p>
+      <p class="font-inter text-xs font-medium text-faint">{{ t("scriptResults.console") }}</p>
       <div class="flex flex-col rounded-md border border-subtle">
         <div
           v-for="(entry, index) in consoleEntries"

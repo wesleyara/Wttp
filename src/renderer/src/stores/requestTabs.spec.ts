@@ -352,6 +352,25 @@ describe("useRequestTabsStore", () => {
     expect(call.secrets).toEqual(["s3cr3t"]);
   });
 
+  it("um envio cancelado não entra no histórico e a aba volta ao que mostrava antes", async () => {
+    const tabs = useRequestTabsStore();
+    await tabs.openPinned("a.req.yaml");
+    await tabs.send();
+    const before = (tabs.active as { lastResult?: unknown } | null)?.lastResult;
+    historyAppend.mockClear();
+
+    httpSend.mockImplementationOnce(async () => ({
+      ok: false,
+      requestId: "x",
+      error: { code: "CANCELLED", message: "Request was cancelled" },
+    }));
+    await tabs.send();
+
+    expect(historyAppend).not.toHaveBeenCalled();
+    expect((tabs.active as { lastResult?: unknown } | null)?.lastResult).toEqual(before);
+    expect((tabs.active as { sending?: boolean } | null)?.sending).toBe(false);
+  });
+
   it("grava a entrada de histórico antes de marcar a aba como não mais enviando — ResponsePanel recarrega o histórico assim que `sending` vira false", async () => {
     const tabs = useRequestTabsStore();
     await tabs.openPinned("a.req.yaml");

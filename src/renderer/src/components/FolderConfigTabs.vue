@@ -13,6 +13,7 @@ import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { isFolderTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 
 import type { KeyValueRow } from "./WKeyValueTable.vue";
 
@@ -22,6 +23,7 @@ import WIcon from "./WIcon.vue";
 import WKeyValueTable from "./WKeyValueTable.vue";
 import WTabs from "./WTabs.vue";
 
+const { t } = useI18n();
 const tabsStore = useRequestTabsStore();
 const variablesStore = useVariablesStore();
 
@@ -31,7 +33,9 @@ const tab = computed(() => {
 });
 
 const path = computed(() => tab.value?.path ?? "");
-const selfLabel = computed(() => (tab.value?.isCollection ? "This collection" : "This folder"));
+const selfLabel = computed(() =>
+  tab.value?.isCollection ? t("folder.thisCollection") : t("folder.thisFolder"),
+);
 
 const activeTab = ref("overview");
 
@@ -98,10 +102,14 @@ function countActive(rows: { enabled: boolean; name: string }[]): number {
 }
 
 const tabs = computed(() => [
-  { value: "overview", label: "Overview" },
-  { value: "auth", label: "Auth" },
-  { value: "scripts", label: "Scripts", badge: hasScripts.value ? "●" : undefined },
-  { value: "variables", label: "Variables", count: countActive(variableRows.value) },
+  { value: "overview", label: t("folder.tabs.overview") },
+  { value: "auth", label: t("folder.tabs.auth") },
+  { value: "scripts", label: t("folder.tabs.scripts"), badge: hasScripts.value ? "●" : undefined },
+  {
+    value: "variables",
+    label: t("folder.tabs.variables"),
+    count: countActive(variableRows.value),
+  },
 ]);
 </script>
 
@@ -113,7 +121,7 @@ const tabs = computed(() => [
       <span
         class="shrink-0 rounded-full border border-subtle bg-surface-2 px-2 py-0.5 font-inter text-xs text-muted"
       >
-        {{ tab.isCollection ? "Collection" : "Folder" }}
+        {{ tab.isCollection ? t("folder.collection") : t("folder.folder") }}
       </span>
     </div>
 
@@ -123,7 +131,7 @@ const tabs = computed(() => [
       <WCodeEditor
         v-model="docs"
         language="text"
-        placeholder="Document this folder…"
+        :placeholder="t('folder.docsPlaceholder')"
         :unresolved-variables="docsUnresolved"
         :variable-tooltips="docsTooltips"
         :variable-names="variableNames"
@@ -138,14 +146,17 @@ const tabs = computed(() => [
 
     <div v-else-if="activeTab === 'scripts'" class="flex flex-col gap-2 pt-2">
       <p class="px-2 font-inter text-xs text-faint">
-        Inherited by every request in this {{ tab?.isCollection ? "collection" : "folder" }} — runs
-        around each request's own scripts.
+        {{
+          tab?.isCollection
+            ? t("folder.scriptsInheritedCollection")
+            : t("folder.scriptsInheritedFolder")
+        }}
       </p>
       <WTabs
         v-model="scriptsSubTab"
         :tabs="[
-          { value: 'preRequest', label: 'Pre-request' },
-          { value: 'tests', label: 'Post-response' },
+          { value: 'preRequest', label: t('request.preRequest') },
+          { value: 'tests', label: t('request.postResponse') },
         ]"
       />
       <div v-if="scriptsSubTab === 'preRequest'" class="h-48">

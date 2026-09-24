@@ -1,6 +1,6 @@
 /**
  * Deriva o nome de arquivo/diretório de uma request ou pasta a partir do seu `name` —
- * docs/file-format.md §6, regra 6: o nome do arquivo é derivado, `name` no YAML é a
+ * arch-docs/file-format.md §6, regra 6: o nome do arquivo é derivado, `name` no YAML é a
  * verdade. Colisão entre dois nomes que geram o mesmo slug é resolvida com sufixo
  * numérico, nunca sobrescrevendo o que já existe.
  */

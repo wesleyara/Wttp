@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WContextMenu, { type ContextMenuItem } from "./WContextMenu.vue";
 import WIcon from "./WIcon.vue";
 import WMethodBadge from "./WMethodBadge.vue";
 
 const tabs = useRequestTabsStore();
+const { t } = useI18n();
 
 const DRAG_START_THRESHOLD_PX = 4;
 
@@ -24,9 +26,9 @@ const tabContextMenuItems = computed<ContextMenuItem[]>(() => {
   const target = tabContextMenu.value;
   if (!target) return [];
   return [
-    { label: "Close", icon: "x", action: () => tabs.requestClose(target.id) },
-    { label: "Close others", icon: "x", action: () => tabs.closeOthers(target.id) },
-    { label: "Close all", icon: "x", action: () => tabs.closeAll() },
+    { label: t("tabs.close"), icon: "x", action: () => tabs.requestClose(target.id) },
+    { label: t("tabs.closeOthers"), icon: "x", action: () => tabs.closeOthers(target.id) },
+    { label: t("tabs.closeAll"), icon: "x", action: () => tabs.closeAll() },
   ];
 });
 
@@ -76,7 +78,7 @@ function onDoubleClick(id: string): void {
 <template>
   <div
     role="tablist"
-    class="tab-scroll flex h-[38px] items-start overflow-x-auto border-b border-subtle"
+    class="tab-scroll flex h-[38px] items-start overflow-x-auto overflow-y-hidden border-b border-subtle"
   >
     <div
       v-for="tab in tabs.tabs"
@@ -111,7 +113,7 @@ function onDoubleClick(id: string): void {
       <span class="min-w-0 flex-1 truncate" :class="{ italic: !tab.pinned }">{{ tab.title }}</span>
       <button
         type="button"
-        aria-label="Close tab"
+        :aria-label="t('tabs.closeTab')"
         class="flex size-4 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-2 hover:text-1"
         @click="onClose(tab.id, $event)"
       >

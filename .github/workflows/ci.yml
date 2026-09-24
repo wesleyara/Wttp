@@ -78,7 +78,7 @@ jobs:
 
       # Validates the installer builds successfully on each OS. Not
       # published anywhere — electron-builder's `publish` config is never
-      # invoked here. Signing/notarization secrets (EP-11-T02, docs/release.md) are
+      # invoked here. Signing/notarization secrets (EP-11-T02, arch-docs/release.md) are
       # optional here on purpose: unset on a fork or before the repo owner adds them,
       # electron-builder just skips signing rather than failing the build.
       - run: yarn ${{ matrix.script }}
@@ -111,7 +111,7 @@ jobs:
       - run: npx playwright install-deps chromium
 
       # e2e/*.spec.ts drive `out/main/index.js`, the production build — not
-      # the dev server (see docs/backlog/EP-10-qualidade-ci.md, EP-10-T02).
+      # the dev server (see arch-docs/backlog/EP-10-qualidade-ci.md, EP-10-T02).
       - run: yarn build
 
       - run: yarn test:e2e

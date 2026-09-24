@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WIcon from "./WIcon.vue";
 
@@ -26,11 +27,12 @@ const emit = defineEmits<{
   select: [path: string];
 }>();
 
+const { t } = useI18n();
 const menuRef = useTemplateRef<HTMLElement>("menu");
 const focusedIndex = ref(0);
 
 const allItems = computed<EnvironmentPickerItem[]>(() => [
-  { path: "", label: "No environment", variableCount: 0, production: false },
+  { path: "", label: t("status.noEnvironment"), variableCount: 0, production: false },
   ...props.items,
 ]);
 
@@ -90,7 +92,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onDocumentPoin
       ref="menu"
       role="listbox"
       tabindex="-1"
-      aria-label="Active environment"
+      :aria-label="t('status.activeEnvironment')"
       class="fixed z-50 flex max-h-80 w-64 flex-col gap-0.5 overflow-y-auto rounded-md border border-subtle bg-surface-2 p-1 shadow-lg focus-visible:outline-none"
       :style="{ left: `${x}px`, bottom: `${bottom}px` }"
       @keydown="onKeydown"
@@ -120,7 +122,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onDocumentPoin
           v-if="item.production"
           class="shrink-0 rounded-sm bg-status-5xx/15 px-1 py-0.5 font-inter text-[10px] font-semibold tracking-wide text-status-5xx"
         >
-          PROD
+          {{ t("env.prod") }}
         </span>
         <span v-if="item.path" class="shrink-0 font-inter text-[11px] text-faint">
           {{ item.variableCount }}

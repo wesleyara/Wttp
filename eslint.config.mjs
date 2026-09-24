@@ -15,7 +15,15 @@ export default defineConfig(
   // docs/.vitepress is generated scaffolding for the docs site (config + default
   // theme), not app source — never brought in line with this project's stricter
   // TS/perfectionist rules, and its dev-server cache is regenerated on every run.
-  { ignores: ["**/node_modules", "**/dist", "**/out", "docs/.vitepress/**"] },
+  {
+    ignores: [
+      "**/node_modules",
+      "**/dist",
+      "**/out",
+      "docs/.vitepress/**",
+      "resources/docs-site/**",
+    ],
+  },
   tseslint.configs.recommended,
   eslintPluginVue.configs["flat/recommended"],
   eslintPluginTailwindcss.configs["flat/recommended"],
@@ -48,7 +56,7 @@ export default defineConfig(
     },
   },
   {
-    // docs/design-system.md regra nº1: componentes nunca referenciam uma cor crua da
+    // arch-docs/design-system.md regra nº1: componentes nunca referenciam uma cor crua da
     // escala (`bluewood-900`, `brand-blue-500`) — só o token semântico (`bg-surface-2`).
     // A escala crua só pode aparecer na própria definição dos tokens (tailwind.config.js).
     // `no-restricted-syntax` (core) não enxerga o `templateBody` do vue-eslint-parser —
@@ -63,7 +71,7 @@ export default defineConfig(
           // classe crua em JS dentro do `<script setup>`.
           selector: "Literal[value=/\\b(bluewood|brand-blue)-\\d{2,3}\\b/]",
           message:
-            "Cor crua da escala (bluewood-*/brand-blue-*) não é permitida em componentes — use um token semântico (docs/design-system.md §2).",
+            "Cor crua da escala (bluewood-*/brand-blue-*) não é permitida em componentes — use um token semântico (arch-docs/design-system.md §2).",
         },
       ],
     },

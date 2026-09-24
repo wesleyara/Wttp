@@ -1,5 +1,6 @@
 import type { WorkspaceNode } from "@shared";
 
+import { i18n } from "@renderer/i18n";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useToastStore } from "@renderer/stores/toast";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
@@ -120,7 +121,7 @@ export const useTreeStore = defineStore("tree", () => {
     await workspace.refreshTree();
     selectedPath.value = node.path;
     editingPath.value = node.path;
-    toast.push("Request created", "success");
+    toast.push(i18n.global.t("toast.requestCreated"), "success");
   }
 
   async function createFolder(parentPath?: string): Promise<void> {
@@ -136,7 +137,7 @@ export const useTreeStore = defineStore("tree", () => {
     await workspace.refreshTree();
     selectedPath.value = node.path;
     editingPath.value = node.path;
-    toast.push("Folder created", "success");
+    toast.push(i18n.global.t("toast.folderCreated"), "success");
   }
 
   /** Como `createFolder`, mas sempre na raiz do workspace — "New collection" no menu "+" (EP-07.1), independente da seleção atual na árvore. */
@@ -151,7 +152,7 @@ export const useTreeStore = defineStore("tree", () => {
     await workspace.refreshTree();
     selectedPath.value = node.path;
     editingPath.value = node.path;
-    toast.push("Collection created", "success");
+    toast.push(i18n.global.t("toast.collectionCreated"), "success");
   }
 
   function startRename(path: string): void {
@@ -211,7 +212,7 @@ export const useTreeStore = defineStore("tree", () => {
     if (selectedPath.value === path) selectedPath.value = null;
     requestTabs.closeUnderPath(path);
     await workspace.refreshTree();
-    toast.push(`"${node.name}" deleted`, "warning");
+    toast.push(i18n.global.t("toast.deleted", { name: node.name }), "warning");
   }
 
   /**
@@ -294,7 +295,7 @@ export const useTreeStore = defineStore("tree", () => {
     }
 
     selectedPaths.value = new Set();
-    toast.push(mode === "move" ? "Moved" : "Copied", "success");
+    toast.push(i18n.global.t(mode === "move" ? "toast.moved" : "toast.copied"), "success");
   }
 
   async function reveal(path: string): Promise<void> {

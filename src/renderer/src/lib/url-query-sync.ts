@@ -40,7 +40,7 @@ export function reconcileQueryParams(url: string, existing: KeyValueEntry[]): Ke
   return [...parsed, ...disabled];
 }
 
-/** Canonicaliza para comparação — `description` some do YAML quando vazio (docs/file-format.md), mas `parseQueryFromUrl` sempre inclui `""`; sem isso a mesma query lida do disco e reparseada da URL comparam como diferentes. */
+/** Canonicaliza para comparação — `description` some do YAML quando vazio (arch-docs/file-format.md), mas `parseQueryFromUrl` sempre inclui `""`; sem isso a mesma query lida do disco e reparseada da URL comparam como diferentes. */
 export function normalizeEntries(entries: KeyValueEntry[]): KeyValueEntry[] {
   return entries.map(entry => ({
     name: entry.name,

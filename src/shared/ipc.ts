@@ -43,7 +43,7 @@ export interface AppInfo {
 
 /**
  * Estado de UI persistido entre sessões (EP-02-T04). Especificado em
- * docs/conventions.md como `.wttp/ui-state.json` do workspace; como o EP-04 (leitura e
+ * arch-docs/conventions.md como `.wttp/ui-state.json` do workspace; como o EP-04 (leitura e
  * escrita de workspace) ainda não existe, fica hoje em `app.getPath("userData")` —
  * migra para o arquivo por-workspace quando o EP-04 chegar.
  */
@@ -74,6 +74,20 @@ export interface AppSettings {
    * qualquer forma (ver `UpdateStatus`).
    */
   autoUpdateEnabled?: boolean;
+  /**
+   * Sobrescritas de acelerador por `MenuAction` (EP-08.1, card "Atalhos de teclado
+   * customizáveis"). Ação ausente do mapa usa o padrão de `menu.ts`. Nunca guarda o
+   * mapa inteiro de ações — só as remapeadas, para "Restore default" ser só remover a
+   * chave.
+   */
+  shortcuts?: Partial<Record<MenuAction, string>>;
+  /**
+   * Idioma da UI (EP-08.1-T06). `"system"` resolve por `navigator.language` no
+   * renderer, com fallback em `"en"` — o main nunca decide isso, só guarda a
+   * preferência crua. `undefined` (settings de antes deste campo existir) se comporta
+   * como `"system"`.
+   */
+  language?: "system" | "en" | "pt-BR";
 }
 
 /**
@@ -237,6 +251,14 @@ export interface AppOpenExternalPayload {
   url: string;
 }
 
+/**
+ * Payload de `app:openDocs` (EP-08.1-T07) — abre a documentação empacotada num janela
+ * própria (protocolo `wttp-docs:`, sem rede); `locale` escolhe a raiz pt-BR ou `/en/`.
+ */
+export interface AppOpenDocsPayload {
+  locale: "en" | "pt-BR";
+}
+
 /** Payload de `history:list`/`history:clear` (EP-08.1-T03) — `path` da request dona do histórico. */
 export interface RequestHistoryPayload {
   root: string;
@@ -262,7 +284,7 @@ export interface SetWorkspaceVariablesPayload {
 }
 
 /**
- * `key` é a chave completa `wttp:<workspaceId>:<env>:<name>` (docs/file-format.md §5) —
+ * `key` é a chave completa `wttp:<workspaceId>:<env>:<name>` (arch-docs/file-format.md §5) —
  * quem monta essa string é o chamador (a store de environments, EP-06), não o main.
  * Sempre relativo ao workspace atualmente aberto (`workspace:open`/`workspace:create`);
  * não existe outro jeito de trocar isso pelo IPC hoje.
@@ -400,11 +422,14 @@ export interface DiscoveredWorkspace {
 export interface IpcContract {
   "app:ping": { payload: void; result: AppInfo };
   "app:openExternal": { payload: AppOpenExternalPayload; result: void };
+  "app:openDocs": { payload: AppOpenDocsPayload; result: void };
   "ui:getState": { payload: void; result: UiState };
   "ui:setState": { payload: Partial<UiState>; result: UiState };
   "settings:get": { payload: void; result: AppSettings };
   "settings:set": { payload: Partial<AppSettings>; result: AppSettings };
   "settings:reset": { payload: void; result: AppSettings };
+  /** Acelerador padrão (de `menu.ts`) de cada `MenuAction` — fonte da UI de Shortcuts nas Preferences para saber o que "Restore default" restaura, sem duplicar a tabela no renderer. */
+  "menu:getDefaultAccelerators": { payload: void; result: Record<MenuAction, string> };
   /**
    * Estado atual, sob demanda — o renderer chama isso ao montar a UI de update, antes
    * de (ou junto com) se inscrever em `update:status` (event ↓). Sem isso, um status

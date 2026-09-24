@@ -15,7 +15,7 @@ import type {
 /** Um formato de origem suportado — cada um vira um módulo próprio em `main/importers/`. */
 export type ImportFormat = "postman" | "insomnia" | "openapi" | "curl";
 
-/** Um item que não pôde ser convertido — docs/backlog EP-08: "nunca silenciosamente parcial". */
+/** Um item que não pôde ser convertido — arch-docs/backlog EP-08: "nunca silenciosamente parcial". */
 export interface ImportReportItem {
   /** Caminho/nome legível de onde o item veio na origem (ex.: nome da request, do script). */
   path: string;

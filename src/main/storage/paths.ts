@@ -1,5 +1,5 @@
 /**
- * Resolução de caminhos relativos à raiz do workspace — docs/file-format.md §4:
+ * Resolução de caminhos relativos à raiz do workspace — arch-docs/file-format.md §4:
  * caminhos de arquivo em `body` (binary, multipart) são sempre relativos à raiz,
  * nunca absolutos, e um `../` que escaparia da raiz é recusado.
  */

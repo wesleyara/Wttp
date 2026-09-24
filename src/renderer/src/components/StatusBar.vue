@@ -4,6 +4,7 @@ import WEnvironmentPicker, {
   type EnvironmentPickerItem,
 } from "@renderer/components/WEnvironmentPicker.vue";
 import WIcon from "@renderer/components/WIcon.vue";
+import { useAppStore } from "@renderer/stores/app";
 import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useMenuStore } from "@renderer/stores/menu";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
@@ -11,7 +12,10 @@ import { useSettingsStore } from "@renderer/stores/settings";
 import { useUiStore } from "@renderer/stores/ui";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, ref, useTemplateRef } from "vue";
+import { useI18n } from "vue-i18n";
 
+const { t, locale } = useI18n();
+const appStore = useAppStore();
 const settings = useSettingsStore();
 const menu = useMenuStore();
 const workspace = useWorkspaceStore();
@@ -24,12 +28,15 @@ const scriptSummary = computed(() => {
   const tab = requestTabs.active;
   if (!isRequestTab(tab) || !tab.scriptRun) return null;
   const { assertions, preRequestError } = tab.scriptRun;
-  if (preRequestError) return { text: "Pre-request script failed", failed: true };
+  if (preRequestError) return { text: t("status.scriptPreRequestFailed"), failed: true };
   if (assertions.length === 0) return null;
   const failedCount = assertions.filter(a => !a.passed).length;
   return failedCount > 0
-    ? { text: `${failedCount}/${assertions.length} tests failed`, failed: true }
-    : { text: `${assertions.length} tests passed`, failed: false };
+    ? {
+        text: t("status.scriptTestsFailed", { failed: failedCount, total: assertions.length }),
+        failed: true,
+      }
+    : { text: t("status.scriptTestsPassed", { total: assertions.length }), failed: false };
 });
 
 const emit = defineEmits<{
@@ -43,7 +50,6 @@ type Theme = "system" | "dark" | "light";
 
 const THEME_ORDER: Theme[] = ["system", "dark", "light"];
 const THEME_ICON: Record<Theme, string> = { system: "monitor", dark: "moon", light: "sun" };
-const THEME_LABEL: Record<Theme, string> = { system: "System", dark: "Dark", light: "Light" };
 
 /** Heurística de "produção": nome do environment contém "prod" — não há campo dedicado no schema (EP-06-T04). */
 function isProduction(name: string): boolean {
@@ -61,7 +67,7 @@ const environmentPickerItems = computed<EnvironmentPickerItem[]>(() =>
 
 const activeEnvironmentLabel = computed(() => {
   const active = environment.items.find(item => item.path === environment.activePath);
-  return active?.data.name ?? "No environment";
+  return active?.data.name ?? t("status.noEnvironment");
 });
 
 const environmentTriggerRef = useTemplateRef<HTMLElement>("environmentTrigger");
@@ -91,11 +97,11 @@ const jwtToolOpen = ref(false);
   <div
     class="flex h-8 shrink-0 items-center gap-3 border-t border-subtle bg-surface-2 px-3 font-inter text-xs text-muted"
   >
-    <span>{{ workspace.tree?.data?.name ?? "No workspace" }}</span>
+    <span>{{ workspace.tree?.data?.name ?? t("status.noWorkspace") }}</span>
     <button
       type="button"
       class="flex items-center text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      title="Switch workspace"
+      :title="t('status.switchWorkspace')"
       @click="workspace.close"
     >
       <WIcon name="arrow-left-right" size="3" />
@@ -110,7 +116,7 @@ const jwtToolOpen = ref(false);
           ? 'font-semibold text-status-5xx'
           : 'text-1'
       "
-      title="Active environment"
+      :title="t('status.activeEnvironment')"
       @click="openEnvironmentPicker"
     >
       {{ activeEnvironmentLabel }}
@@ -119,11 +125,11 @@ const jwtToolOpen = ref(false);
     <button
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      title="Manage environments"
+      :title="t('status.manageEnvironments')"
       @click="emit('open-environment-editor')"
     >
       <WIcon name="settings" size="3.5" />
-      Manage
+      {{ t("status.manage") }}
     </button>
     <span
       v-if="scriptSummary"
@@ -137,7 +143,7 @@ const jwtToolOpen = ref(false);
     <button
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      :title="`Response panel: ${ui.responsePanelPosition}`"
+      :title="t('status.responsePanelPosition', { position: ui.responsePanelPosition })"
       @click="ui.toggleResponsePanelPosition"
     >
       <WIcon
@@ -148,7 +154,7 @@ const jwtToolOpen = ref(false);
     <button
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      :title="`Theme: ${THEME_LABEL[settings.theme]}`"
+      :title="t('status.theme', { theme: t(`theme.${settings.theme}`) })"
       @click="cycleTheme"
     >
       <WIcon :name="THEME_ICON[settings.theme]" size="3.5" />
@@ -156,7 +162,7 @@ const jwtToolOpen = ref(false);
     <button
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      title="JWT tool"
+      :title="t('status.jwtTool')"
       @click="jwtToolOpen = true"
     >
       <WIcon name="key" size="3.5" />
@@ -164,7 +170,15 @@ const jwtToolOpen = ref(false);
     <button
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      title="Preferences"
+      :title="t('status.documentation')"
+      @click="appStore.openDocsWindow(locale === 'pt-BR' ? 'pt-BR' : 'en')"
+    >
+      <WIcon name="book-open" size="3.5" />
+    </button>
+    <button
+      type="button"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      :title="t('status.preferences')"
       @click="emit('open-preferences')"
     >
       <WIcon name="sliders-horizontal" size="3.5" />

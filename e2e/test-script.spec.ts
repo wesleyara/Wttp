@@ -14,7 +14,7 @@ import {
 
 // EP-10-T02, fluxo 4: uma request com script de teste anexado mostra o resultado da
 // asserção depois de enviada (`useRequestTabsStore.dispatch` roda a fase `tests` do
-// script depois da resposta chegar, `docs/architecture.md` §4/§5).
+// script depois da resposta chegar, `arch-docs/architecture.md` §4/§5).
 test("runs a request's test script and shows the assertion result", async ({
   window,
   workspacesRoot,

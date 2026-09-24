@@ -1,5 +1,5 @@
 /**
- * Aplicação de `auth` como header/query (EP-07-T02) — docs/file-format.md §4.
+ * Aplicação de `auth` como header/query (EP-07-T02) — arch-docs/file-format.md §4.
  *
  * Roda depois da resolução de variáveis (EP-06): quem monta `HttpRequestSpec` já
  * substituiu `{{token}}` etc. antes de chegar aqui, então este módulo só decide onde o
@@ -28,7 +28,7 @@ function withAuthorizationHeader(spec: HttpRequestSpec, value: string): HttpRequ
 /**
  * Header/query configurados por `spec.auth`, aplicados a uma cópia de `spec` — nunca
  * muta o objeto recebido. Um `Authorization` definido à mão em `spec.headers` vence
- * qualquer `bearer`/`basic` configurado (docs/backlog/EP-07-autenticacao.md,
+ * qualquer `bearer`/`basic` configurado (arch-docs/backlog/EP-07-autenticacao.md,
  * EP-07-T02): a UI que já montou esse header explicitamente sabe o que está fazendo.
  */
 export function applyAuth(spec: HttpRequestSpec): HttpRequestSpec {

@@ -25,5 +25,10 @@ export const useAppStore = defineStore("app", () => {
     void window.wttp.app.openExternal({ url });
   }
 
-  return { info, error, ping, openExternal };
+  /** Abre a documentação empacotada (sem rede) numa janela própria, no idioma pedido (EP-08.1-T07). */
+  function openDocsWindow(locale: "en" | "pt-BR"): void {
+    void window.wttp.app.openDocs({ locale });
+  }
+
+  return { info, error, ping, openExternal, openDocsWindow };
 });

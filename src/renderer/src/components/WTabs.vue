@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
+
 import WIcon from "./WIcon.vue";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   modelValue: string;
@@ -39,10 +43,12 @@ function onKeydown(event: KeyboardEvent): void {
 <template>
   <div
     role="tablist"
-    class="flex h-8 items-stretch gap-1 border-b border-subtle"
+    class="flex h-[38px] items-start gap-1 border-b border-subtle"
     @keydown="onKeydown"
   >
-    <div class="flex flex-1 items-stretch gap-1 overflow-x-auto overflow-y-hidden">
+    <div
+      class="tab-scroll flex h-[38px] flex-1 items-start gap-1 overflow-x-auto overflow-y-hidden"
+    >
       <button
         v-for="tab in tabs"
         :key="tab.value"
@@ -50,7 +56,7 @@ function onKeydown(event: KeyboardEvent): void {
         type="button"
         :aria-selected="tab.value === modelValue"
         :tabindex="tab.value === modelValue ? 0 : -1"
-        class="relative flex items-center rounded-t-md px-3 font-inter text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-2"
+        class="relative flex h-8 shrink-0 items-center whitespace-nowrap rounded-t-md px-3 font-inter text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-2"
         :class="
           tab.value === modelValue
             ? 'bg-surface-3 text-1'
@@ -64,7 +70,7 @@ function onKeydown(event: KeyboardEvent): void {
           name="alert-triangle"
           size="3"
           class="ml-1 text-status-4xx"
-          aria-label="Unresolved variable"
+          :aria-label="t('base.unresolvedVariable')"
         />
         <span
           v-if="tab.count"
@@ -84,8 +90,32 @@ function onKeydown(event: KeyboardEvent): void {
         />
       </button>
     </div>
-    <div v-if="$slots.actions" class="flex shrink-0 items-center gap-1 pl-2">
+    <div v-if="$slots.actions" class="flex h-8 shrink-0 items-center gap-1 pl-2">
       <slot name="actions" />
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Mesma técnica de `RequestTabsBar.vue` (EP-09.1): os 6px extras no `h-[38px]` (contra
+   `h-8`/32px de cada aba) reservam o espaço da scrollbar nativa sempre, para que a tab
+   bar não encolha quando o scroll horizontal aparece (ex. response lateralizada
+   deixando a coluna de request estreita). */
+.tab-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--w-border-strong)) transparent;
+}
+
+.tab-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tab-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--w-border-strong));
+  border-radius: 3px;
+}
+</style>

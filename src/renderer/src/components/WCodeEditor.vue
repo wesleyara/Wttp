@@ -15,6 +15,7 @@ import { Compartment, EditorState, Prec } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, keymap, ViewPlugin } from "@codemirror/view";
 import { placeholder as placeholderExtension } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { i18n } from "@renderer/i18n";
 import { scriptApiCompletionSource } from "@renderer/lib/scriptCompletions";
 import { basicSetup, minimalSetup } from "codemirror";
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from "vue";
@@ -90,7 +91,7 @@ const pathParamHighlightCompartment = new Compartment();
 const timestampHighlightCompartment = new Compartment();
 const autocompleteCompartment = new Compartment();
 
-/** `\{{nome}}` escapado (docs/file-format.md §8) nunca é decorado como variável — mesmo padrão de `main/http/resolver.ts`. */
+/** `\{{nome}}` escapado (arch-docs/file-format.md §8) nunca é decorado como variável — mesmo padrão de `main/http/resolver.ts`. */
 const VARIABLE_PATTERN = /(\\)?\{\{\s*([^{}]+?)\s*\}\}/g;
 
 function buildVariableDecorations(doc: string, unresolvedNames: Set<string>): DecorationSet {
@@ -240,7 +241,7 @@ function jsSyntaxLintExtension(): Extension {
               from: node.from,
               to: Math.max(node.to, node.from + 1),
               severity: "error",
-              message: "Syntax error",
+              message: i18n.global.t("base.syntaxError"),
             });
           }
         });
@@ -354,6 +355,13 @@ const singleLineWrapTheme = EditorView.theme({
   ".cm-line": { padding: 0 },
 });
 
+/** Campo com borda própria (não `bare`): respiro horizontal dentro do editor, para o fundo do padding ser o do input e não o do container. */
+const borderedSingleLineTheme = EditorView.theme({
+  // `&.cm-editor` sobe a especificidade: com o seletor simples, `singleLineTheme`
+  // (`padding: 7px 0`) ganhava a cascata e o respiro nunca aparecia.
+  "&.cm-editor .cm-content": { padding: "7px 8px" },
+});
+
 /** `Enter` nunca quebra linha; qualquer mudança que resultasse em mais de uma linha (colar texto multilinha, por exemplo) é descartada. */
 const singleLineGuard = EditorState.transactionFilter.of(tr => (tr.newDoc.lines > 1 ? [] : tr));
 
@@ -377,6 +385,8 @@ function singleLineExtensions(wrap: boolean): Extension[] {
     ),
     singleLineGuard,
     wrap ? [EditorView.lineWrapping, singleLineWrapTheme] : singleLineTheme,
+    // Depois do tema base: mesmo seletor, vence quem vem por último.
+    props.bare ? [] : borderedSingleLineTheme,
   ];
 }
 

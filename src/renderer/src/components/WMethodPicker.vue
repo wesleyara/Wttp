@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { HTTP_METHODS, methodToken } from "@renderer/lib/http-tokens";
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WIcon from "./WIcon.vue";
 
@@ -10,6 +11,8 @@ import WIcon from "./WIcon.vue";
  * fecha), ancorado **para baixo** (`y`, não `bottom`): o trigger vive na barra de URL,
  * no topo do painel de request, ao contrário do seletor de environment na status bar.
  */
+const { t } = useI18n();
+
 const props = defineProps<{
   open: boolean;
   /** Posição horizontal (px, a partir da esquerda) do canto do popover. */
@@ -85,7 +88,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onDocumentPoin
       ref="menu"
       role="listbox"
       tabindex="-1"
-      aria-label="HTTP method"
+      :aria-label="t('method.ariaLabel')"
       class="fixed z-50 flex w-32 flex-col gap-0.5 overflow-y-auto rounded-md border border-subtle bg-surface-2 p-1 shadow-lg focus-visible:outline-none"
       :style="{ left: `${x}px`, top: `${y}px` }"
       @keydown="onKeydown"

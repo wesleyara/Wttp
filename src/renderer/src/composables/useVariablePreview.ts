@@ -6,7 +6,7 @@ import { ref, watch } from "vue";
 
 const DEBOUNCE_MS = 200;
 
-/** Uma linha de tooltip por variável usada — origem sempre visível, valor só quando não é segredo (docs/file-format.md §5). */
+/** Uma linha de tooltip por variável usada — origem sempre visível, valor só quando não é segredo (arch-docs/file-format.md §5). */
 function describeUsed(variable: ResolvedVariablePayload, isSecret: boolean): string {
   return isSecret
     ? `${variable.name} — ${variable.source} (secret)`

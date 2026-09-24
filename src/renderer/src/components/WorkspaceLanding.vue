@@ -9,11 +9,13 @@ import { useImportStore } from "@renderer/stores/import";
 import { useSettingsStore } from "@renderer/stores/settings";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 const emit = defineEmits<{
   "open-preferences": [];
 }>();
 
+const { t } = useI18n();
 const workspace = useWorkspaceStore();
 const settings = useSettingsStore();
 const importStore = useImportStore();
@@ -94,17 +96,20 @@ function onOpenImportModal(): void {
 <template>
   <div class="flex h-full items-center justify-center bg-surface-1 p-8">
     <div v-if="workspace.needsInit" class="flex w-full max-w-sm flex-col gap-4">
-      <p class="font-barlow text-lg font-semibold text-1">Not a workspace yet</p>
-      <p class="font-inter text-sm text-muted">
-        "{{ workspace.root }}" doesn't have a <span class="font-mono text-[13px]">wttp.yaml</span>.
-        Initialize it as a new workspace?
+      <p class="font-barlow text-lg font-semibold text-1">
+        {{ t("landing.notWorkspaceTitle") }}
       </p>
-      <WInput v-model="initName" placeholder="Workspace name" />
+      <p class="font-inter text-sm text-muted">
+        {{ t("landing.notWorkspaceDescription", { path: workspace.root }) }}
+      </p>
+      <WInput v-model="initName" :placeholder="t('landing.workspaceNamePlaceholder')" />
       <div class="flex gap-2">
         <WButton variant="primary" :disabled="!initName.trim()" @click="onInitializeHere">
-          Initialize here
+          {{ t("landing.initializeHere") }}
         </WButton>
-        <WButton variant="ghost" @click="workspace.close">Choose a different folder</WButton>
+        <WButton variant="ghost" @click="workspace.close">
+          {{ t("landing.chooseDifferentFolder") }}
+        </WButton>
       </div>
     </div>
 
@@ -134,13 +139,15 @@ function onOpenImportModal(): void {
           </defs>
         </svg>
         <p class="font-barlow text-lg font-semibold text-1">Wttp</p>
-        <p class="font-inter text-sm text-muted">Open or create a workspace to get started.</p>
+        <p class="font-inter text-sm text-muted">{{ t("landing.tagline") }}</p>
       </div>
 
       <div class="flex justify-center gap-2">
-        <WButton variant="primary" @click="onOpen">Open workspace</WButton>
-        <WButton variant="secondary" @click="onStartCreate">Create workspace</WButton>
-        <WButton variant="ghost" @click="onOpenImportModal">Import</WButton>
+        <WButton variant="primary" @click="onOpen">{{ t("landing.openWorkspace") }}</WButton>
+        <WButton variant="secondary" @click="onStartCreate">
+          {{ t("landing.createWorkspace") }}
+        </WButton>
+        <WButton variant="ghost" @click="onOpenImportModal">{{ t("landing.import") }}</WButton>
       </div>
 
       <p v-if="workspace.error" class="text-center font-inter text-sm text-status-5xx">
@@ -151,18 +158,20 @@ function onOpenImportModal(): void {
         v-if="!settings.workspacesRootDir"
         class="flex items-center justify-center gap-1.5 font-inter text-xs text-faint"
       >
-        <span>No workspaces root folder set</span>
+        <span>{{ t("landing.noRootFolder") }}</span>
         <button
           type="button"
           class="text-accent hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           @click="emit('open-preferences')"
         >
-          Set it
+          {{ t("landing.setIt") }}
         </button>
       </div>
 
       <div v-if="discovered.length > 0" class="flex flex-col gap-1">
-        <p class="font-inter text-xs font-medium text-muted">Workspaces</p>
+        <p class="font-inter text-xs font-medium text-muted">
+          {{ t("landing.workspaces") }}
+        </p>
         <ul class="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
           <li
             v-for="entry in discovered"
@@ -179,14 +188,14 @@ function onOpenImportModal(): void {
               <p class="truncate font-mono text-[11px] text-faint">{{ entry.path }}</p>
             </div>
             <span v-if="!entry.valid" class="shrink-0 font-inter text-xs text-faint">
-              No wttp.yaml yet
+              {{ t("landing.noYamlYet") }}
             </span>
           </li>
         </ul>
       </div>
 
       <div v-if="workspace.recents.length > 0" class="flex flex-col gap-1">
-        <p class="font-inter text-xs font-medium text-muted">Recent</p>
+        <p class="font-inter text-xs font-medium text-muted">{{ t("landing.recent") }}</p>
         <ul class="flex flex-col divide-y divide-subtle rounded-md border border-subtle">
           <li
             v-for="entry in workspace.recents"
@@ -202,12 +211,14 @@ function onOpenImportModal(): void {
               <p class="truncate font-mono text-[11px] text-faint">{{ entry.path }}</p>
             </div>
             <div class="flex shrink-0 items-center gap-2">
-              <span v-if="entry.missing" class="font-inter text-xs text-status-5xx">Missing</span>
+              <span v-if="entry.missing" class="font-inter text-xs text-status-5xx">{{
+                t("landing.missing")
+              }}</span>
               <span v-else class="font-inter text-xs text-faint">{{
                 formatDate(entry.lastOpened)
               }}</span>
               <WButton size="sm" variant="ghost" @click="onRemoveRecent(entry.path, $event)">
-                Remove
+                {{ t("landing.remove") }}
               </WButton>
             </div>
           </li>
@@ -215,17 +226,23 @@ function onOpenImportModal(): void {
       </div>
     </div>
 
-    <WModal :open="createModalOpen" title="Create workspace" @close="createModalOpen = false">
+    <WModal
+      :open="createModalOpen"
+      :title="t('landing.createWorkspaceTitle')"
+      @close="createModalOpen = false"
+    >
       <div class="flex flex-col gap-3">
         <p class="font-mono text-[11px] text-faint">
           {{ `${settings.workspacesContainerDir}/${createName || "…"}` }}
         </p>
-        <WInput v-model="createName" placeholder="Workspace name" />
+        <WInput v-model="createName" :placeholder="t('landing.workspaceNamePlaceholder')" />
       </div>
       <template #footer>
-        <WButton variant="ghost" @click="createModalOpen = false">Cancel</WButton>
+        <WButton variant="ghost" @click="createModalOpen = false">
+          {{ t("common.cancel") }}
+        </WButton>
         <WButton variant="primary" :disabled="!createName.trim()" @click="onConfirmCreate">
-          Create
+          {{ t("common.create") }}
         </WButton>
       </template>
     </WModal>

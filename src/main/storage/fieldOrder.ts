@@ -1,5 +1,5 @@
 /**
- * Ordem de chaves canônica por tipo de arquivo — docs/file-format.md §6, regra 2.
+ * Ordem de chaves canônica por tipo de arquivo — arch-docs/file-format.md §6, regra 2.
  * A ordem é definida aqui, não pela ordem de inserção do objeto em memória, para que
  * salvar sem alterar nada produza bytes idênticos.
  */
@@ -58,7 +58,7 @@ export const SCRIPTS_FIELD_ORDER = ["preRequest", "tests"] as const;
 
 export const ENVIRONMENT_FIELD_ORDER = ["wttp", "name", "variables"] as const;
 
-/** Ordem por variante de `body.type` — docs/file-format.md §4 "Variantes de body". */
+/** Ordem por variante de `body.type` — arch-docs/file-format.md §4 "Variantes de body". */
 export const BODY_FIELD_ORDER: Record<string, readonly string[]> = {
   none: ["type"],
   json: ["type", "json"],
@@ -68,7 +68,7 @@ export const BODY_FIELD_ORDER: Record<string, readonly string[]> = {
   binary: ["type", "binary"],
 };
 
-/** Ordem por variante de `auth.type` — docs/file-format.md §4 "Variantes de auth". */
+/** Ordem por variante de `auth.type` — arch-docs/file-format.md §4 "Variantes de auth". */
 export const AUTH_FIELD_ORDER: Record<string, readonly string[]> = {
   none: ["type"],
   inherit: ["type"],

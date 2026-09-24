@@ -1,5 +1,5 @@
 /**
- * Escrita atômica de arquivo — docs/backlog EP-04-T04: interromper o app durante um
+ * Escrita atômica de arquivo — arch-docs/backlog EP-04-T04: interromper o app durante um
  * save nunca pode deixar um arquivo truncado. Grava num arquivo temporário no mesmo
  * diretório e troca com `rename`, que o filesystem garante ser atômico — o arquivo
  * final sempre tem o conteúdo antigo por completo ou o novo por completo, nunca algo

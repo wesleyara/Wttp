@@ -1,5 +1,6 @@
 import type { ImportFormat, ImportPreview, ImportReport, WttpError } from "@shared";
 
+import { i18n } from "@renderer/i18n";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
@@ -61,22 +62,29 @@ export const useImportStore = defineStore("import", () => {
     return workspaceName.value.trim().length > 0;
   });
 
-  const reportTitle = computed(() => workspaceName.value || preview.value?.name || "workspace");
+  const reportTitle = computed(
+    () => workspaceName.value || preview.value?.name || i18n.global.t("importReport.fallbackName"),
+  );
 
   /** Relatório legível (EP-08-T06, critério "relatório exportável") — copiável ou salvável como está. */
   const reportText = computed(() => {
     if (!report.value) return "";
     const lines = [
-      `Import report — ${reportTitle.value}`,
-      `Folders created: ${report.value.createdFolders}`,
-      `Requests created: ${report.value.createdRequests}`,
-      `Environments created: ${report.value.createdEnvironments}`,
+      i18n.global.t("importReport.title", { name: reportTitle.value }),
+      i18n.global.t("importReport.foldersCreated", { count: report.value.createdFolders }),
+      i18n.global.t("importReport.requestsCreated", { count: report.value.createdRequests }),
+      i18n.global.t("importReport.environmentsCreated", {
+        count: report.value.createdEnvironments,
+      }),
       "",
     ];
     if (report.value.notConverted.length === 0) {
-      lines.push("Everything converted — nothing needs manual attention.");
+      lines.push(i18n.global.t("importReport.allConverted"));
     } else {
-      lines.push(`${report.value.notConverted.length} item(s) need manual attention:`, "");
+      lines.push(
+        i18n.global.t("importReport.needAttention", { count: report.value.notConverted.length }),
+        "",
+      );
       for (const item of report.value.notConverted) lines.push(`- ${item.path}: ${item.reason}`);
     }
     return lines.join("\n");

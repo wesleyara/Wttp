@@ -3,7 +3,7 @@ import { Document, isMap, isSeq } from "yaml";
 /**
  * Constrói o YAML a partir de um objeto já na ordem de chaves canônica — a ordem de
  * inserção do JS é preservada pelo `yaml`, então quem chama isto já decidiu a ordem
- * (docs/file-format.md §6, regra 2). `flowArrayPaths` marca os arrays cujos itens devem
+ * (arch-docs/file-format.md §6, regra 2). `flowArrayPaths` marca os arrays cujos itens devem
  * virar mapas flow (`{ name: a, value: b }`), como nos exemplos de `query`/`headers`.
  */
 export function buildDocument(

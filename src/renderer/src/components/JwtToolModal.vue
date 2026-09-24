@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 
 import WCodeEditor from "./WCodeEditor.vue";
 import WInput from "./WInput.vue";
@@ -14,6 +15,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+const { t } = useI18n();
 const activeTab = ref<"decode" | "encode">("decode");
 
 function base64UrlEncode(bytes: Uint8Array): string {
@@ -45,7 +47,7 @@ function decodeToken(token: string): void {
 
   const parts = token.trim().split(".");
   if (parts.length !== 3) {
-    decodeError.value = 'Token must have 3 parts separated by "."';
+    decodeError.value = t("jwt.errorThreeParts");
     return;
   }
   try {
@@ -54,7 +56,7 @@ function decodeToken(token: string): void {
     decodedHeader.value = JSON.stringify(header, null, 2);
     decodedPayload.value = JSON.stringify(payload, null, 2);
   } catch {
-    decodeError.value = "Invalid base64url or malformed JSON in header/payload";
+    decodeError.value = t("jwt.errorInvalidBase64");
   }
 }
 
@@ -77,7 +79,7 @@ async function encodeToken(): Promise<void> {
     header = JSON.parse(headerInput.value);
     payload = JSON.parse(payloadInput.value);
   } catch {
-    encodeError.value = "Header and payload must be valid JSON";
+    encodeError.value = t("jwt.errorInvalidJson");
     return;
   }
 
@@ -96,7 +98,7 @@ async function encodeToken(): Promise<void> {
     const signaturePart = base64UrlEncode(new Uint8Array(signature));
     encodedToken.value = `${signingInput}.${signaturePart}`;
   } catch {
-    encodeError.value = "Failed to sign token";
+    encodeError.value = t("jwt.errorSign");
   }
 }
 
@@ -104,19 +106,19 @@ watch([headerInput, payloadInput, secretInput], () => void encodeToken(), { imme
 </script>
 
 <template>
-  <WModal :open="open" title="JWT" size="xl" @close="emit('close')">
+  <WModal :open="open" :title="t('jwt.title')" size="xl" @close="emit('close')">
     <div class="flex flex-col gap-3">
       <WTabs
         v-model="activeTab"
         :tabs="[
-          { value: 'decode', label: 'Decode' },
-          { value: 'encode', label: 'Encode' },
+          { value: 'decode', label: t('jwt.decode') },
+          { value: 'encode', label: t('jwt.encode') },
         ]"
       />
 
       <div v-if="activeTab === 'decode'" class="grid grid-cols-2 gap-4">
         <div class="flex h-[28rem] flex-col gap-1">
-          <p class="font-inter text-xs font-medium text-faint">Token</p>
+          <p class="font-inter text-xs font-medium text-faint">{{ t("jwt.token") }}</p>
           <div class="min-h-0 flex-1">
             <WCodeEditor
               v-model="tokenInput"
@@ -130,13 +132,13 @@ watch([headerInput, payloadInput, secretInput], () => void encodeToken(), { imme
           <p v-if="decodeError" class="font-inter text-xs text-status-5xx">{{ decodeError }}</p>
           <template v-else-if="decodedHeader">
             <div class="flex flex-col gap-1">
-              <p class="font-inter text-xs font-medium text-faint">Header</p>
+              <p class="font-inter text-xs font-medium text-faint">{{ t("jwt.header") }}</p>
               <div class="h-28">
                 <WCodeEditor :model-value="decodedHeader" language="json" read-only line-wrap />
               </div>
             </div>
             <div class="flex min-h-0 flex-1 flex-col gap-1">
-              <p class="font-inter text-xs font-medium text-faint">Payload</p>
+              <p class="font-inter text-xs font-medium text-faint">{{ t("jwt.payload") }}</p>
               <div class="min-h-0 flex-1">
                 <WCodeEditor
                   :model-value="decodedPayload"
@@ -153,24 +155,24 @@ watch([headerInput, payloadInput, secretInput], () => void encodeToken(), { imme
 
       <div v-else class="flex flex-col gap-3">
         <div>
-          <p class="mb-1 font-inter text-xs font-medium text-faint">Header</p>
+          <p class="mb-1 font-inter text-xs font-medium text-faint">{{ t("jwt.header") }}</p>
           <div class="h-24">
             <WCodeEditor v-model="headerInput" language="json" />
           </div>
         </div>
         <div>
-          <p class="mb-1 font-inter text-xs font-medium text-faint">Payload</p>
+          <p class="mb-1 font-inter text-xs font-medium text-faint">{{ t("jwt.payload") }}</p>
           <div class="h-24">
             <WCodeEditor v-model="payloadInput" language="json" highlight-timestamps />
           </div>
         </div>
         <div>
-          <p class="mb-1 font-inter text-xs font-medium text-faint">Secret</p>
-          <WInput v-model="secretInput" placeholder="your-256-bit-secret" monospace />
+          <p class="mb-1 font-inter text-xs font-medium text-faint">{{ t("jwt.secret") }}</p>
+          <WInput v-model="secretInput" :placeholder="t('jwt.secretPlaceholder')" monospace />
         </div>
         <p v-if="encodeError" class="font-inter text-xs text-status-5xx">{{ encodeError }}</p>
         <div v-else-if="encodedToken">
-          <p class="mb-1 font-inter text-xs font-medium text-faint">Token</p>
+          <p class="mb-1 font-inter text-xs font-medium text-faint">{{ t("jwt.token") }}</p>
           <div class="h-24">
             <WCodeEditor :model-value="encodedToken" language="text" read-only line-wrap />
           </div>
