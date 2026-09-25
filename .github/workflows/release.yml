@@ -129,14 +129,25 @@ jobs:
       # `--publish always` — cria/atualiza o release do GitHub para a tag e sobe os
       # instaladores. Assinatura (EP-11-T02) segue opcional: sem os secrets, sai sem
       # assinar, mas ainda publica.
-      - run: yarn ${{ matrix.script }}
+      - name: Build installer
+        shell: bash
         env:
+          SCRIPT: ${{ matrix.script }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Secret ausente chega como string vazia, não como variável indefinida, e o
+          # electron-builder trata `CSC_LINK=""` como "tem certificado": resolve o caminho
+          # vazio para a pasta do projeto e falha com "<repo> not a file" (visto no macOS).
+          # Só as variáveis com valor seguem para o build; sem nenhuma, ele não assina.
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then unset "$name"; fi
+          done
+          yarn "$SCRIPT"
 
       # `electron-builder` já sobe latest.yml/latest-mac.yml/latest-linux.yml (usados
       # pelo auto-update, EP-11-T03) com SHA512 embutido, mas isso não é um checksum

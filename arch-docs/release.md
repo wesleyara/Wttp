@@ -217,6 +217,12 @@ automaticamente (`mac.notarize` não é setado em `electron-builder.yml` — dei
 valor de propósito, porque `notarize: false` desligaria a notarização mesmo com os
 secrets presentes). Sem elas, o build macOS sai sem assinar e sem notarizar, sem erro.
 
+Cuidado com secret **ausente**: no GitHub Actions ele chega como string vazia, não como
+variável indefinida, e o electron-builder trata `CSC_LINK=""` como certificado presente
+(resolve o caminho vazio para a pasta do projeto e falha com `<repo> not a file`). Por
+isso os passos de build do `ci.yml` e do `release.yml` apagam as variáveis de assinatura
+vazias antes de chamar o `yarn`.
+
 ### Linux
 
 Sem assinatura de código — não é uma convenção do ecossistema Linux para `.deb`/
