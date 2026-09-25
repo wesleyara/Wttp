@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vitepress",
+  "installCommand": "yarn install --frozen-lockfile --ignore-scripts",
+  "buildCommand": "yarn docs:build",
+  "outputDirectory": "docs/.vitepress/dist",
+  "cleanUrls": true,
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- docs CHANGELOG.md package.json yarn.lock vercel.json"
+}

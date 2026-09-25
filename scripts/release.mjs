@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type -- script .mjs sem TypeScript; não há onde anotar o tipo de retorno. */
-// `yarn release <versão> [--dry-run]` (card #63): prepara uma versão nova localmente.
+// `yarn release <patch|minor|major|x.y.z> [--dry-run]` (card #63): prepara uma versão nova
+// localmente. Como escolher entre patch/minor/major: arch-docs/release.md.
 //
 // 1. confere working tree limpo e que a tag `v<versão>` ainda não existe;
 // 2. gera a seção da versão com o git-cliff (commits desde a última tag, `cliff.toml`) e
@@ -14,11 +15,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { insertRelease, normalizeVersion } from "./changelog.mjs";
+import { insertRelease, resolveVersion } from "./changelog.mjs";
 
 // Versão fixa: o formato de saída faz parte do CHANGELOG.md versionado.
 const GIT_CLIFF = "git-cliff@2.14.2";
-const SEMVER = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/;
 
 const root = resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
@@ -42,10 +42,14 @@ function bumpVersion(file, version) {
   writeFileSync(path, next);
 }
 
-if (!input) fail("usage: yarn release <version> [--dry-run]   (e.g. yarn release 0.4.0)");
-const version = normalizeVersion(input);
-if (!SEMVER.test(version)) fail(`"${input}" is not a semver version (x.y.z)`);
+const USAGE = "usage: yarn release <patch|minor|major|x.y.z> [--dry-run]";
+if (!input) fail(USAGE);
+const current = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")).version;
+const version = resolveVersion(input, current);
+if (!version)
+  fail(`"${input}" is neither patch/minor/major nor a semver version (x.y.z). ${USAGE}`);
 const tag = `v${version}`;
+console.log(`release: ${current} → ${version}`);
 
 if (git("tag", "--list", tag)) fail(`tag ${tag} already exists`);
 if (!dryRun && git("status", "--porcelain"))

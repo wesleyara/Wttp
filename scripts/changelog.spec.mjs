@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extractSection, insertRelease, normalizeVersion } from "./changelog.mjs";
+import { extractSection, insertRelease, normalizeVersion, resolveVersion } from "./changelog.mjs";
 
 const changelog = `# Changelog
 
@@ -73,5 +73,28 @@ describe("insertRelease", () => {
 
   it("refuses a changelog without an Unreleased heading", () => {
     expect(() => insertRelease("# Changelog\n", section)).toThrow(/Unreleased/);
+  });
+});
+
+describe("resolveVersion", () => {
+  it("bumps patch, minor and major from the current version", () => {
+    expect(resolveVersion("patch", "0.3.0")).toBe("0.3.1");
+    expect(resolveVersion("minor", "0.3.4")).toBe("0.4.0");
+    expect(resolveVersion("major", "0.3.4")).toBe("1.0.0");
+  });
+
+  it("drops a pre-release suffix before bumping", () => {
+    expect(resolveVersion("patch", "1.2.3-beta.1")).toBe("1.2.4");
+  });
+
+  it("accepts an explicit version, with or without v", () => {
+    expect(resolveVersion("0.5.0", "0.3.0")).toBe("0.5.0");
+    expect(resolveVersion("v1.0.0-rc.1", "0.3.0")).toBe("1.0.0-rc.1");
+  });
+
+  it("rejects anything else", () => {
+    expect(resolveVersion("next", "0.3.0")).toBeNull();
+    expect(resolveVersion("1.0", "0.3.0")).toBeNull();
+    expect(resolveVersion("patch", "garbage")).toBeNull();
   });
 });

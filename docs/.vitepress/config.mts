@@ -1,9 +1,9 @@
 import { defineConfig } from "vitepress";
 
-// `DOCS_BASE` separa os dois alvos do mesmo build: GitHub Pages serve o site sob
-// `/Wttp/` (default), e a documentação empacotada no app (`yarn docs:build:offline`,
-// servida pelo protocolo `wttp-docs:`) roda na raiz `/`.
-const base = process.env.DOCS_BASE ?? "/Wttp/";
+// O site público (Vercel, `vercel.json`) e a documentação empacotada no app
+// (`yarn docs:build:offline`, servida pelo protocolo `wttp-docs:`) rodam na raiz `/`.
+// `DOCS_BASE` continua existindo para hospedar sob um subcaminho, se um dia precisar.
+const base = process.env.DOCS_BASE ?? "/";
 const outDir = process.env.DOCS_OUT_DIR;
 // Na doc empacotada no app (`DOCS_EMBEDDED`, ClickLocal #60) o tema segue sempre o do
 // próprio Wttp: o main aplica `AppSettings.theme` em `nativeTheme.themeSource`, que é o

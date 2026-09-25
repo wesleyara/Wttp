@@ -288,13 +288,13 @@ e `WttpError` do main, ainda em inglês. `e2e/fixtures.ts` agora fixa `language:
 usuário em VitePress, **só de produto** (`docs/guia/**` pt-BR, `docs/en/guide/**`; os
 documentos de engenharia moraram em `docs/` e foram movidos para `arch-docs/` — o site
 nunca os enxerga),
-`yarn docs:build`, workflow `.github/workflows/docs.yml` para GitHub Pages, e — a pedido do
+`yarn docs:build`, site público na Vercel (`vercel.json`; antes GitHub Pages, removido), e — a pedido do
 usuário — uma cópia **empacotada no app** (`yarn docs:build:offline` → `resources/docs-site`,
 janela via protocolo `wttp-docs:`, `app:openDocs`, item Help → Documentation), verificada
 num Electron headless (`e2e/language-and-docs.spec.ts`). `vitepress` foi para
-`devDependencies`. **Pendências reais:** o GitHub Pages precisa que o dono do repositório
-ative Settings → Pages → Source "GitHub Actions" (o link online das Preferências dá 404 até
-lá); verificação visual de pt-BR nos dois temas e um `build:linux` completo com a doc
+`devDependencies`. **Pendências reais:** o projeto na Vercel precisa ser criado pelo dono do repositório, e o
+link online (menu Help, Preferências, README) ainda aponta para o antigo GitHub Pages até
+existir o domínio; verificação visual de pt-BR nos dois temas e um `build:linux` completo com a doc
 dentro do instalador não foram feitos. Detalhes em
 EP-08.1.
 
@@ -373,7 +373,7 @@ yarn test            # Vitest
 yarn build           # bundle dos três processos
 yarn build:linux     # instalador (também :win, :mac)
 yarn build:cli       # CLI `wttp run` → cli/dist (smoke: node scripts/cli-smoke.mjs)
-yarn release 0.4.0   # CHANGELOG.md + bump + commit + tag (ver arch-docs/release.md)
+yarn release minor   # patch/minor/major: CHANGELOG.md + bump + commit + tag (arch-docs/release.md)
 ```
 
 ---

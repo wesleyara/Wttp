@@ -99,7 +99,7 @@ green.
 
 ## Releases
 
-Maintainers cut a version with `yarn release <version>`, which updates
+Maintainers cut a version with `yarn release <patch|minor|major>`, which updates
 [CHANGELOG.md](CHANGELOG.md) from the commits since the last tag, bumps the
 version, and creates a `chore(release)` commit and tag. Pushing the tag builds
 the installers into a draft GitHub Release. Details in

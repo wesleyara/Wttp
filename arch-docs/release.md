@@ -7,37 +7,131 @@ empacotadas, assinadas e publicadas.
 
 ## Publicar uma versão
 
+### 1. Escolher o tipo: patch, minor ou major
+
+O Wttp segue [Semantic Versioning](https://semver.org/lang/pt-BR/): `MAJOR.MINOR.PATCH`.
+O script calcula o número a partir do `version` atual do `package.json`:
+
+| Comando              | Exemplo (a partir de 0.3.0) | Quando usar                                                                |
+| -------------------- | --------------------------- | -------------------------------------------------------------------------- |
+| `yarn release patch` | 0.3.0 → **0.3.1**           | Só correções (`fix:`), nada novo para o usuário aprender                   |
+| `yarn release minor` | 0.3.0 → **0.4.0**           | Pelo menos uma funcionalidade nova (`feat:`), sem quebrar nada existente   |
+| `yarn release major` | 0.3.0 → **1.0.0**           | Algo deixa de funcionar como antes (formato em disco, CLI, API de scripts) |
+
+**Enquanto o Wttp for `0.x`**, a convenção é mais frouxa: uma mudança incompatível entra
+num **minor** (0.3 → 0.4), não num major, e o `1.0.0` fica reservado para quando o formato
+em disco e a CLI forem considerados estáveis. O `CHANGELOG.md` avisa isso no topo.
+
+Na dúvida, olhe o que entraria (passo 2): se tem `### Added`, é minor; só `### Fixed`, patch.
+
+"Incompatível" no Wttp quer dizer principalmente:
+
+- **Formato em disco** ([file-format.md](file-format.md)): um campo que muda de
+  significado, ou mudança que exige migrador e incrementa `wttp:`.
+- **CLI `wttp run`**: flag removida/renomeada, exit code ou formato de reporter diferente.
+- **API de scripts** (`wttp.*`, `req`, `res`, `expect`): algo removido ou com
+  comportamento diferente.
+
+Número explícito também funciona (`yarn release 0.5.0`, `yarn release 1.0.0-rc.1`), útil
+para pré-releases ou para pular versões.
+
+### 2. Conferir o que vai entrar (dry run)
+
 ```sh
-yarn release 0.4.0 --dry-run   # só mostra a seção que seria gerada
-yarn release 0.4.0             # CHANGELOG.md + package.json + cli/package.json, commit e tag
-git push origin <branch> v0.4.0
+git checkout develop
+git pull
+yarn release minor --dry-run
 ```
 
-[`scripts/release.mjs`](../scripts/release.mjs) exige working tree limpo e tag inédita,
-gera a seção da versão com o [git-cliff](https://git-cliff.org) (`npx`, versão fixa no
-script; config em [`cliff.toml`](../cliff.toml)) a partir dos Conventional Commits desde a
-última tag, cola logo abaixo de `## [Unreleased]` no [`CHANGELOG.md`](../CHANGELOG.md),
-sobe `version` do app e do `wttp-cli` juntos, e cria o commit `chore(release): v<versão>`
-e a tag anotada. Nada é empurrado — dá tempo de revisar e editar o texto (o changelog é
-lido por usuários; commits vagos como "fix: adjust ui" são filtrados pelo `cliff.toml`,
-mas vale reler). Editou? `git commit --amend` e `git tag -f -a v<versão> -m v<versão>`
-antes do push.
+Mostra a versão calculada (`0.3.0 → 0.4.0`) e a seção que o
+[git-cliff](https://git-cliff.org) geraria ([`cliff.toml`](../cliff.toml)) a partir dos
+Conventional Commits desde a última tag: `feat:` vira **Added**, `fix:` **Fixed**,
+`refactor:` **Changed**; `chore:`/`test:`/`ci:` e commits vagos ficam de fora. Não grava
+nada. Se sair "no user-facing commits since the last tag", não há o que lançar.
 
-Empurrar a tag dispara [`.github/workflows/release.yml`](../.github/workflows/release.yml):
-lint/typecheck/test rodam de novo (uma tag pode apontar pra um commit que nunca passou
-pela `main`), **Linux e Windows** empacotam e sobem os instaladores + um
-`SHA256SUMS-<SO>.txt` para o mesmo release do GitHub, e a seção da versão no
-`CHANGELOG.md` (`node scripts/changelog.mjs section v<versão>`) vira o corpo do release —
-o mesmo texto que o site de documentação mostra em `/changelog` (pt-BR) e
-`/en/changelog`, via `<!--@include-->`. **O release sai como rascunho**
-(`releaseType: draft` em `electron-builder.yml`) — alguém revisa e clica em "Publish
-release" no GitHub à mão. O workflow recusa uma tag cuja versão não bate com o
-`package.json`.
+### 3. Criar a versão
 
-**macOS é opcional.** Sem certificado Developer ID o `.dmg` é bloqueado pelo Gatekeeper, e
-o runner macOS é o mais caro. Para incluí-lo numa versão: Actions → Release → Run workflow,
-com a tag e `macos` marcado — reaproveita o mesmo release rascunho. Sem `.dmg` publicado
-não há `latest-mac.yml`, então o auto-update não oferece aquela versão a usuários de Mac.
+```sh
+yarn release minor
+```
+
+Exige working tree limpo e tag inédita. Faz, localmente:
+
+1. insere a seção nova logo abaixo de `## [Unreleased]` no [`CHANGELOG.md`](../CHANGELOG.md);
+2. sobe `version` em `package.json` e `cli/package.json` (app e `wttp-cli` andam juntos);
+3. cria o commit `chore(release): v0.4.0` e a tag anotada `v0.4.0`.
+
+Nada é enviado ainda. Releia o `CHANGELOG.md` — é o texto que o usuário lê no GitHub, no
+site de documentação (`/changelog`, `/en/changelog`) e no auto-update. Para ajustar
+(reescrever uma linha, juntar duas, adicionar um parágrafo de resumo no topo da seção):
+
+```sh
+# edite CHANGELOG.md
+git add CHANGELOG.md
+git commit --amend --no-edit
+git tag -f -a v0.4.0 -m v0.4.0
+```
+
+Desistiu? `git tag -d v0.4.0 && git reset --hard HEAD~1` desfaz tudo (só antes do push).
+
+### 4. Enviar
+
+```sh
+git push origin develop v0.4.0
+
+git checkout main
+git merge --ff-only develop
+git push origin main
+git checkout develop
+```
+
+A `main` avança por fast-forward (sem merge commit), então a tag fica na ponta dela.
+Nunca pelo botão de merge de PR do GitHub, que criaria um merge commit.
+
+### 5. Acompanhar o build
+
+O push da tag dispara [`.github/workflows/release.yml`](../.github/workflows/release.yml)
+(**Actions → Release**, ~10–20 min):
+
+1. `meta` confere que a versão do `package.json` bate com a tag;
+2. `quality` roda lint/typecheck/test de novo;
+3. `build` gera os instaladores de **Linux** (`.AppImage`, `.deb`) e **Windows** (`.exe`)
+   e sobe para um release **rascunho** `v0.4.0`, com um `SHA256SUMS-<SO>.txt` por sistema;
+4. `finalize` põe a seção da versão do `CHANGELOG.md` como descrição do release.
+
+Falhou? Corrija na `develop` com um commit normal; se o release ainda não foi publicado,
+mova a tag para o commit novo (`git tag -f -a v0.4.0 -m v0.4.0` e
+`git push --force origin v0.4.0`) — se o GitHub não disparar de novo, rode à mão em
+**Actions → Release → Run workflow**, com `tag: v0.4.0`. Se já foi publicado, não mexa na
+tag: lance um patch.
+
+**macOS (opcional).** Sem certificado Developer ID o `.dmg` é bloqueado pelo Gatekeeper, e
+o runner macOS é o mais caro, então não entra por padrão. Para incluí-lo: **Actions →
+Release → Run workflow**, `Use workflow from: main`, `tag: v0.4.0`, `macos` marcado — o
+`.dmg` vai para o mesmo release. Sem ele não há `latest-mac.yml`, e o auto-update não
+oferece a versão a usuários de Mac.
+
+### 6. Publicar
+
+**Releases** → rascunho `v0.4.0` → lápis (Edit): confira os anexos e o texto, marque
+**Set as the latest release** e **Publish release**. Só a partir daqui a versão é pública
+e o auto-update dos usuários (`electron-updater`) passa a oferecê-la.
+
+### Pré-release (opcional)
+
+`yarn release 1.0.0-rc.1` cria uma versão de teste. No passo 6, marque **Set as a
+pre-release** em vez de "latest": fica disponível para download, mas o auto-update não a
+oferece a quem está numa versão estável. Depois, `yarn release 1.0.0` fecha a versão final.
+
+### Resumo
+
+```sh
+yarn release <patch|minor|major> --dry-run   # confere
+yarn release <patch|minor|major>             # changelog + versão + commit + tag
+git push origin develop v<versão>
+git checkout main && git merge --ff-only develop && git push origin main && git checkout develop
+# GitHub: Actions → Release verde → Releases → publicar o rascunho
+```
 
 ### Versões retroativas (0.1.0 e 0.2.0)
 

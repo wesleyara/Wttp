@@ -18,6 +18,27 @@ export function normalizeVersion(version) {
   return version.trim().replace(/^v/, "");
 }
 
+const BUMPS = ["patch", "minor", "major"];
+
+/**
+ * Versão alvo de `yarn release`: um número explícito (`0.4.0`, `v0.4.0`) ou `patch`/
+ * `minor`/`major` calculado a partir de `current` (`package.json`). Um sufixo de
+ * pré-release na versão atual é descartado antes do incremento. `null` se `input` não
+ * for nenhum dos dois.
+ */
+export function resolveVersion(input, current) {
+  if (BUMPS.includes(input)) {
+    const match = /^(\d+)\.(\d+)\.(\d+)/.exec(current);
+    if (!match) return null;
+    const [major, minor, patch] = match.slice(1).map(Number);
+    if (input === "major") return `${major + 1}.0.0`;
+    if (input === "minor") return `${major}.${minor + 1}.0`;
+    return `${major}.${minor}.${patch + 1}`;
+  }
+  const version = normalizeVersion(input);
+  return /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version) ? version : null;
+}
+
 /**
  * Corpo da seção de uma versão (tudo entre o título dela e o título seguinte), sem o
  * título. `null` quando a versão não existe no changelog.

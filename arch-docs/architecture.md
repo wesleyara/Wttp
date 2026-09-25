@@ -138,7 +138,7 @@ src/main/
 ### Documentação de usuário dentro do app
 
 O site VitePress (`docs/`, pt-BR na raiz e `en/`) tem dois destinos do mesmo build:
-GitHub Pages (base `/Wttp/`, `.github/workflows/docs.yml`) e o app (`yarn docs:build:offline`,
+o site público na Vercel (`vercel.json`, `yarn docs:build`) e o app (`yarn docs:build:offline`,
 base `/`, saída em `resources/docs-site/`, empacotada pelo electron-builder). `app:openDocs`
 abre uma `BrowserWindow` sem preload, `sandbox` ligado, que carrega `wttp-docs://app/…` —
 um protocolo privilegiado (`registerSchemesAsPrivileged`, antes do `whenReady`) servido de
