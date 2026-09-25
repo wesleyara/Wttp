@@ -191,4 +191,4 @@ export function buildMenu(
 
 // `package.json#homepage` do projeto — não uma URL digitada pelo usuário.
 const ISSUES_URL = "https://github.com/wesleyara/Wttp/issues";
-const DOCS_SITE_URL = "https://wesleyara.github.io/Wttp";
+const DOCS_SITE_URL = "https://wttp.vercel.app";

@@ -292,9 +292,8 @@ nunca os enxerga),
 usuário — uma cópia **empacotada no app** (`yarn docs:build:offline` → `resources/docs-site`,
 janela via protocolo `wttp-docs:`, `app:openDocs`, item Help → Documentation), verificada
 num Electron headless (`e2e/language-and-docs.spec.ts`). `vitepress` foi para
-`devDependencies`. **Pendências reais:** o projeto na Vercel precisa ser criado pelo dono do repositório, e o
-link online (menu Help, Preferências, README) ainda aponta para o antigo GitHub Pages até
-existir o domínio; verificação visual de pt-BR nos dois temas e um `build:linux` completo com a doc
+`devDependencies`. O site público é <https://wttp.vercel.app> (menu Help, Preferências, README e a allowlist
+de `externalUrls.ts` apontam para ele). **Pendências reais:** verificação visual de pt-BR nos dois temas e um `build:linux` completo com a doc
 dentro do instalador não foram feitos. Detalhes em
 EP-08.1.
 

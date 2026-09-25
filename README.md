@@ -24,7 +24,7 @@ also includes `SHA256SUMS-<OS>.txt` so you can verify your download.
 - **macOS:** builds are not published by default. The app is not signed or notarized
   (Gatekeeper will block it), so for now run it from source (see [Development](#development)).
 
-User documentation (English and Portuguese): <https://wesleyara.github.io/Wttp>.
+User documentation (English and Portuguese): <https://wttp.vercel.app>.
 
 ## What is Wttp?
 

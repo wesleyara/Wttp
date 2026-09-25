@@ -138,7 +138,7 @@ function onResetAllShortcuts(): void {
 }
 
 const REPO_URL = "https://github.com/wesleyara/Wttp";
-const DOCS_SITE_URL = "https://wesleyara.github.io/Wttp";
+const DOCS_SITE_URL = "https://wttp.vercel.app";
 
 /** Site publicado no idioma da UI — pt-BR na raiz, en em `/en/` (config do VitePress, EP-08.1-T07). */
 const docsUrl = computed<string>(() =>

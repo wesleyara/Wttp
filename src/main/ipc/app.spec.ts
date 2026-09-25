@@ -17,9 +17,10 @@ describe("isAllowedExternalUrl", () => {
   });
 
   it("permite o site publicado da documentação", () => {
-    expect(isAllowedExternalUrl("https://wesleyara.github.io/Wttp/")).toBe(true);
-    expect(isAllowedExternalUrl("https://wesleyara.github.io/Wttp/en/guide/requests")).toBe(true);
-    expect(isAllowedExternalUrl("https://wesleyara.github.io/other")).toBe(false);
+    expect(isAllowedExternalUrl("https://wttp.vercel.app")).toBe(true);
+    expect(isAllowedExternalUrl("https://wttp.vercel.app/en/guide/requests")).toBe(true);
+    expect(isAllowedExternalUrl("https://wttp.vercel.app.evil.example/")).toBe(false);
+    expect(isAllowedExternalUrl("https://other.vercel.app/")).toBe(false);
   });
 
   it("recusa domínio diferente, mesmo parecido", () => {

@@ -7,8 +7,8 @@ export const ALLOWED_EXTERNAL_URLS = [
   "https://github.com/wesleyara/Wttp",
   "https://github.com/wesleyara/Wttp/issues",
   "https://github.com/wesleyara/Wttp/tree/main/docs",
-  // Site publicado da documentação (EP-08.1-T07, GitHub Pages).
-  "https://wesleyara.github.io/Wttp",
+  // Site publicado da documentação (EP-08.1-T07), hospedado na Vercel (`vercel.json`).
+  "https://wttp.vercel.app",
 ];
 
 export function isAllowedExternalUrl(url: string): boolean {
