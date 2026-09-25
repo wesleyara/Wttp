@@ -1,29 +1,71 @@
 # Release
 
-Como os instaladores do Wttp são assinados, notarizados e publicados. Ver também
-[arch-docs/backlog/EP-11-distribuicao.md](backlog/EP-11-distribuicao.md).
+Como versões do Wttp são numeradas, registradas no [CHANGELOG.md](../CHANGELOG.md),
+empacotadas, assinadas e publicadas.
 
 ---
 
 ## Publicar uma versão
 
-`git tag v0.1.0 && git push --tags` — o resto é automático via
-[`.github/workflows/release.yml`](../.github/workflows/release.yml) (EP-11-T04):
-lint/typecheck/test rodam de novo (uma tag pode apontar pra um commit que nunca passou
-pela `main`), os três SOs empacotam e sobem os instaladores + um `SHA256SUMS-<SO>.txt`
-para o mesmo release do GitHub, e um changelog agrupado por tipo de commit
-(`feat:`/`fix:`/`refactor:`/`docs:`/`test:`/`chore:`, as categorias de
-[Conventional Commits](conventions.md#git) deste repositório) vira o corpo do release.
-**O release sai como rascunho** (`releaseType: draft` em `electron-builder.yml`) —
-alguém revisa o changelog e os artefatos e clica em "Publish release" no GitHub à mão
-antes de qualquer usuário ver a versão nova.
+```sh
+yarn release 0.4.0 --dry-run   # só mostra a seção que seria gerada
+yarn release 0.4.0             # CHANGELOG.md + package.json + cli/package.json, commit e tag
+git push origin <branch> v0.4.0
+```
 
-`yarn build:<os>` (usado pelo CI normal e por qualquer contribuidor local) nunca
-publica nada (`--publish never` explícito) — só `yarn release:<os>`, usado
-exclusivamente pelo workflow acima, publica (`--publish always`). A distinção existe
-porque, sem ela, o electron-builder detecta `CI=true` e tenta publicar sozinho mesmo
-fora de uma tag — quebrava o build normal do CI antes desse fix (achado ao testar,
-registrado em EP-11-T04).
+[`scripts/release.mjs`](../scripts/release.mjs) exige working tree limpo e tag inédita,
+gera a seção da versão com o [git-cliff](https://git-cliff.org) (`npx`, versão fixa no
+script; config em [`cliff.toml`](../cliff.toml)) a partir dos Conventional Commits desde a
+última tag, cola logo abaixo de `## [Unreleased]` no [`CHANGELOG.md`](../CHANGELOG.md),
+sobe `version` do app e do `wttp-cli` juntos, e cria o commit `chore(release): v<versão>`
+e a tag anotada. Nada é empurrado — dá tempo de revisar e editar o texto (o changelog é
+lido por usuários; commits vagos como "fix: adjust ui" são filtrados pelo `cliff.toml`,
+mas vale reler). Editou? `git commit --amend` e `git tag -f -a v<versão> -m v<versão>`
+antes do push.
+
+Empurrar a tag dispara [`.github/workflows/release.yml`](../.github/workflows/release.yml):
+lint/typecheck/test rodam de novo (uma tag pode apontar pra um commit que nunca passou
+pela `main`), **Linux e Windows** empacotam e sobem os instaladores + um
+`SHA256SUMS-<SO>.txt` para o mesmo release do GitHub, e a seção da versão no
+`CHANGELOG.md` (`node scripts/changelog.mjs section v<versão>`) vira o corpo do release —
+o mesmo texto que o site de documentação mostra em `/changelog` (pt-BR) e
+`/en/changelog`, via `<!--@include-->`. **O release sai como rascunho**
+(`releaseType: draft` em `electron-builder.yml`) — alguém revisa e clica em "Publish
+release" no GitHub à mão. O workflow recusa uma tag cuja versão não bate com o
+`package.json`.
+
+**macOS é opcional.** Sem certificado Developer ID o `.dmg` é bloqueado pelo Gatekeeper, e
+o runner macOS é o mais caro. Para incluí-lo numa versão: Actions → Release → Run workflow,
+com a tag e `macos` marcado — reaproveita o mesmo release rascunho. Sem `.dmg` publicado
+não há `latest-mac.yml`, então o auto-update não oferece aquela versão a usuários de Mac.
+
+### Versões retroativas (0.1.0 e 0.2.0)
+
+O histórico anterior ao primeiro release foi versionado depois do fato: `v0.1.0` marca o
+fim do MVP (commit "add launch materials"), `v0.2.0` o Collection Runner + CLI e `v0.3.0`
+o primeiro `chore(release)`. As seções dessas três versões no `CHANGELOG.md` foram
+escritas à mão a partir dos commits e não são regeneradas.
+
+`v0.1.0`/`v0.2.0` não geram instaladores e seus releases no GitHub são só de notas. Cuidado
+ao empurrá-las: num push de tag o GitHub roda o `release.yml` **do commit taggeado**, e o
+desses dois commits é a versão antiga, que buildaria e publicaria os três SOs. A guarda do
+job `meta` só vale para o workflow atual (ex.: um `workflow_dispatch` com essas tags). Por
+isso, uma única vez, com o GitHub Actions desligado no repositório inteiro (Settings →
+Actions → General; `gh workflow disable` não serve porque o `release.yml` ainda nem está na
+branch padrão nem rodou, então pode não estar registrado):
+
+```sh
+gh api -X PUT repos/wesleyara/Wttp/actions/permissions -F enabled=false
+git push origin v0.1.0 v0.2.0
+gh api -X PUT repos/wesleyara/Wttp/actions/permissions -F enabled=true
+for v in v0.1.0 v0.2.0; do
+  node scripts/changelog.mjs section "$v" > "/tmp/notes-$v.md"
+  gh release create "$v" --verify-tag --title "$v" --notes-file "/tmp/notes-$v.md"
+done
+```
+
+`v0.3.0` já tem o workflow novo: empurrá-la gera o primeiro release rascunho de verdade,
+com instaladores de Linux e Windows.
 
 ---
 

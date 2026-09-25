@@ -21,5 +21,5 @@ Any workarounds you're using today, or other approaches you thought about.
 
 ## Additional context
 
-Anything else — links to similar features in other tools, related backlog
+Anything else — links to similar features in other tools, related
 items, etc.

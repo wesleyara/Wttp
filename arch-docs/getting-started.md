@@ -87,5 +87,5 @@ Referência completa em [arch-docs/scripting.md](scripting.md).
 ## Próximos passos
 
 - [arch-docs/file-format.md](file-format.md) — o que cada arquivo do workspace guarda.
-- [arch-docs/backlog/README.md](backlog/README.md) — o que já existe e o que vem a seguir.
+- [CHANGELOG.md](../CHANGELOG.md) — o que mudou em cada versão.
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — quer contribuir com código?

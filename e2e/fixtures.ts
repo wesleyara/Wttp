@@ -11,8 +11,8 @@ import { join, resolve } from "node:path";
 export const MAIN_ENTRY = resolve(__dirname, "../out/main/index.js");
 
 /**
- * Este sandbox de dev roda com `ELECTRON_RUN_AS_NODE=1` no ambiente (o próprio Claude
- * Code é um app Electron) — herdado por qualquer processo filho, faz o binário do
+ * Este sandbox de dev roda com `ELECTRON_RUN_AS_NODE=1` no ambiente (o
+ * processo que o lança é um app Electron) — herdado por qualquer processo filho, faz o binário do
  * Electron rodar como Node puro em vez de abrir a app, e todo `--flag` de Chromium
  * (`--no-sandbox`, `--headless=new`, ...) que o Playwright/nós passamos vira "bad
  * option". Sem relação com o app do Wttp; precisa ser removido só na invocação do
@@ -56,7 +56,7 @@ export const test = base.extend<WttpFixtures>({
 
   electronApp: async ({ userDataDir }, use) => {
     // `--headless=new`/`--disable-gpu` só na *invocação de teste* — nunca no
-    // `src/main/index.ts` de produção (arch-docs/backlog/EP-10-qualidade-ci.md). Verificado
+    // `src/main/index.ts` de produção (EP-10-T02). Verificado
     // à parte que esta combinação renderiza sem Xvfb/GPU real neste sandbox.
     const app = await electron.launch({
       args: [MAIN_ENTRY, `--user-data-dir=${userDataDir}`, "--headless=new", "--disable-gpu"],

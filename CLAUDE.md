@@ -37,10 +37,10 @@ de disparar e pede confirmação quando sobra alguma `{{var}}` não resolvida.
 precisou mudar. A verificação visual de EP-02/EP-03/EP-05/EP-06 (dois temas, interações
 reais numa janela) ainda não foi feita — este ambiente de desenvolvimento não tem
 `xvfb`/`sudo` para abrir uma; pendente antes de considerar qualquer um dos quatro
-épicos fechado de fato. Ver nota no topo de [EP-02](arch-docs/backlog/EP-02-design-system.md)
-e as notas por task em [EP-03](arch-docs/backlog/EP-03-nucleo-http.md),
-[EP-05](arch-docs/backlog/EP-05-workspaces-collections.md) e
-[EP-06](arch-docs/backlog/EP-06-environments-variaveis.md).
+épicos fechado de fato. Ver nota no topo de EP-02
+e as notas por task em EP-03,
+EP-05 e
+EP-06.
 
 **EP-07** (Autenticação) também está pronto: `AuthConfig` (`@shared`) como union por
 `type` — `none`/`inherit`/`bearer`/`basic`/`apikey` — já existia desde a preparação de
@@ -62,7 +62,7 @@ auth (própria ou herdada) depende de `{{var}}` não resolvida — o mesmo fluxo
 confirmação de EP-06-T05 cobre isso antes do envio, sem UI nova. Os três tipos de auth
 foram verificados só por teste unitário, não contra um servidor de teste real — não há
 harness de servidor HTTP de integração no repo, registrado como pendência em
-[EP-07](arch-docs/backlog/EP-07-autenticacao.md). Mesma pendência de verificação visual das
+EP-07. Mesma pendência de verificação visual das
 notas acima.
 
 **EP-06.1** (não planejado, aberto após feedback de uso real) também está pronto:
@@ -175,7 +175,7 @@ index.js` (build de produção, `playwright.config.ts` na raiz) — não um Chro
 à parte, então `playwright install` nunca foi necessário. `e2e/fixtures.ts` isola cada
 teste num `userDataDir`/workspace próprios (`node:fs.mkdtempSync`) e remove
 `ELECTRON_RUN_AS_NODE` do `env` do processo lançado — só um problema deste sandbox de
-dev (herdado do próprio Claude Code, que também é Electron), sem relação com o app;
+dev (herdado do processo host, ele mesmo Electron), sem relação com o app;
 `--headless=new`/`--disable-gpu` entram só nesse `args` de teste, nunca em `src/main/
 index.ts`. Os quatro fluxos do escopo (criar → enviar → salvar → fechar → reabrir;
 trocar environment e reenviar; importar Postman; request com script de teste) vivem em
@@ -211,7 +211,7 @@ configuração do repositório no GitHub (Settings → Branches), não um arquiv
 mudar controle de acesso compartilhado não é algo que um agente deva fazer sem um humano
 decidindo; os passos exatos (quais status checks marcar como obrigatórios, com os nomes
 que saem do workflow) ficam documentados em
-[EP-10](arch-docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci) como pendência
+EP-10 como pendência
 explícita do dono do repositório. "PR roda em menos de 10 minutos" também não foi
 verificado com um run real do GitHub Actions (sem `gh` CLI neste sandbox) — só por um
 proxy local (`lint`+`typecheck`+`test`+`build` sequencial, ~20s neste sandbox Linux),
@@ -220,9 +220,8 @@ registrado no épico com a mesma ressalva.
 **EP-10-T04** (Onboarding de contribuidores), a última task do épico, também está
 pronto: `CONTRIBUTING.md` na raiz leva um contribuidor novo de `git clone` a `yarn dev`
 sem depender de nada fora do próprio arquivo, lista os comandos (`lint`/`typecheck`/
-`test`/`test:coverage`/`test:e2e`/`build`), explica como escolher uma task `Pendente`
-com dependências `Concluída` em `arch-docs/backlog/README.md` e ler o épico inteiro
-(objetivo/escopo/critérios/**fora de escopo**) antes de codar, resume as regras de
+`test`/`test:coverage`/`test:e2e`/`build`), explica como escolher o que fazer (hoje via GitHub Issues; antes, o backlog
+removido) e ler o escopo inteiro — inclusive o **fora de escopo** — antes de codar, resume as regras de
 `arch-docs/conventions.md` que mais pegam quem chega de fora (renderer nunca importa
 `node:*`/`electron`, só tokens semânticos de cor, YAML é contrato público, docs em
 PT-BR e código/commits/PRs em inglês) e fecha com a Definition of Done. Templates novos
@@ -235,7 +234,7 @@ os critérios de aceite da task. `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1)
 Com isso **EP-10 está concluído**, com uma única pendência explícita e fora do alcance
 de qualquer agente neste ambiente: a proteção de branch do GitHub (EP-10-T03) precisa
 ser aplicada manualmente pelo dono do repositório, passos documentados em
-[EP-10](arch-docs/backlog/EP-10-qualidade-ci.md#ep-10-t03--pipeline-de-ci).
+EP-10.
 
 **EP-11** (Empacotamento e distribuição) também está pronto, com pendências explícitas
 fora do alcance de qualquer agente neste ambiente. `electron-builder.yml` preenchido de
@@ -264,7 +263,7 @@ pelo workflow de release, sempre `--publish always`. `examples/postman-echo-demo
 workspace de exemplo de verdade (não fixture) exercitando collections, environments,
 auth herdada e um fluxo login→bearer via scripts, verificado rodando as cinco requests
 de verdade contra `postman-echo.com`; as duas screenshots do `README.md`
-(`arch-docs/screenshots/`) são capturas reais do app rodando (`Page.screenshot()` do
+(`arch-docs/screenshots/`, removidas depois do README) eram capturas reais do app rodando (`Page.screenshot()` do
 Playwright contra o Chromium headless empacotado, tema trocado pelo botão de verdade da
 UI) — descoberta importante: ao contrário do que as notas de EP-02/EP-03/EP-05/EP-06/
 EP-07 registram, o Chromium headless do Electron renderiza e tira screenshot sem X11
@@ -275,7 +274,7 @@ release real, ainda que rascunho — decisão do dono do repositório), então "
 ponta a ponta com release real" e "pipeline de release disparado de verdade" seguem
 não verificados; e instalação/abertura limpa em Windows e macOS segue impossível neste
 sandbox só-Linux, mesma pendência multi-SO já registrada em EP-10. Detalhes por task em
-[EP-11](arch-docs/backlog/EP-11-distribuicao.md).
+EP-11.
 
 **EP-08.1-T06/T07** (i18n e documentação de usuário, fecham o EP-08.1) também estão
 prontos. `vue-i18n` com `en` (fonte e fallback) e `pt-BR` (`src/renderer/src/i18n/`,
@@ -297,7 +296,7 @@ num Electron headless (`e2e/language-and-docs.spec.ts`). `vitepress` foi para
 ative Settings → Pages → Source "GitHub Actions" (o link online das Preferências dá 404 até
 lá); verificação visual de pt-BR nos dois temas e um `build:linux` completo com a doc
 dentro do instalador não foram feitos. Detalhes em
-[EP-08.1](arch-docs/backlog/EP-08.1-sessao-historico-docs.md).
+EP-08.1.
 
 **EP-13** (Collection Runner e CLI, pós-MVP, v0.2) também está pronto, feito pelo card #32
 do ClickLocal. Núcleo de execução em `src/main/runner/` (sem Electron: envio, scripts e
@@ -316,11 +315,22 @@ CI; `action.yml` na raiz é a GitHub Action; doc de usuário em `docs/guia/runne
 **Pendências reais:** publicar `wttp-cli` no npm e a Action (tag `v1`), e testar JUnit/Action
 num CI real — ações do dono do repositório.
 
+**Card #63** (changelog e releases, abertura como open source) também está pronto.
+Histórico reescrito sem os trailers `Co-Authored-By`/`Claude-Session` e com autor único;
+versões retroativas por tag anotada — `v0.1.0` (fim do MVP), `v0.2.0` (Runner/CLI) e
+`v0.3.0` (primeiro `chore(release)`) — e `CHANGELOG.md` na raiz, em inglês, com essas três
+seções curadas à mão e as próximas geradas pelo git-cliff (`cliff.toml`) via
+`yarn release <versão>` (`scripts/release.mjs`, `scripts/changelog.mjs`). O site de docs
+mostra o mesmo arquivo em `/changelog` e `/en/changelog`; `release.yml` usa a seção da
+versão como corpo do release, builda Linux+Windows (macOS só via `workflow_dispatch`) e
+tem guarda para as tags retroativas — que mesmo assim precisam ser empurradas com o Actions
+desligado, porque o push de tag roda o workflow antigo do commit taggeado. Fluxo em [arch-docs/release.md](arch-docs/release.md).
+
 Com isso o **MVP (v0.1) está funcionalmente completo** — EP-01 a EP-11 prontos, com as
 pendências de verificação (visual multi-tema numa janela de verdade, multi-SO, e a
 primeira release real) explicitamente registradas em cada épico, não escondidas.
-Trabalho corrente: [arch-docs/backlog/README.md](arch-docs/backlog/README.md) → os próximos
-épicos (EP-12 em diante) são pós-MVP, v0.2+.
+Trabalho corrente: board "Wttp mcp" do ClickLocal (o `arch-docs/backlog/` foi removido; os IDs
+`EP-XX` citados acima são históricos, sem arquivo correspondente).
 
 ---
 
@@ -334,7 +344,7 @@ src/
 ├── shared/      tipos do contrato IPC (sem runtime)
 └── cli/         `wttp run` (EP-13-T02) — Node puro, reusa src/main/runner
 cli/             pacote npm `wttp-cli` (dist gerado por `yarn build:cli`)
-arch-docs/       referência técnica e backlog (engenharia; nunca vai pro site)
+arch-docs/       referência técnica (engenharia; nunca vai pro site)
 docs/            site de documentação de usuário (VitePress, só produto)
 .claude/skills/  skills dos fluxos repetitivos
 ```
@@ -355,6 +365,7 @@ yarn test            # Vitest
 yarn build           # bundle dos três processos
 yarn build:linux     # instalador (também :win, :mac)
 yarn build:cli       # CLI `wttp run` → cli/dist (smoke: node scripts/cli-smoke.mjs)
+yarn release 0.4.0   # CHANGELOG.md + bump + commit + tag (ver arch-docs/release.md)
 ```
 
 ---
@@ -367,6 +378,7 @@ yarn build:cli       # CLI `wttp run` → cli/dist (smoke: node scripts/cli-smok
 4. **Segredos nunca em YAML.** Keychain do SO, com fallback em `.wttp/` (gitignored).
 5. **Scripts de usuário rodam isolados** em `utilityProcess` + `node:vm` com timeout. Nunca no main, nunca no renderer.
 6. **Docs em PT-BR, código e UI em inglês.**
+7. **Commits sem trailers de ferramenta.** Nada de `Co-Authored-By: Claude`/`Claude-Session` — o histórico foi limpo para a abertura open source. O assunto do commit vira linha do `CHANGELOG.md`: escreva para o usuário.
 
 ---
 
@@ -381,7 +393,6 @@ yarn build:cli       # CLI `wttp run` → cli/dist (smoke: node scripts/cli-smok
 | [arch-docs/design-system.md](arch-docs/design-system.md)     | paleta, tokens, tipografia, componentes base      |
 | [arch-docs/conventions.md](arch-docs/conventions.md)         | código, estado, lint, testes, git                 |
 | [arch-docs/release.md](arch-docs/release.md)                 | assinatura, notarização e processo de release     |
-| [arch-docs/backlog/README.md](arch-docs/backlog/README.md)   | épicos e tasks                                    |
 
 ## Skills
 

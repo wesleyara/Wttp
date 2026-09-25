@@ -8,18 +8,23 @@ Local-first · Git-friendly · Free forever
 
 </div>
 
-<p align="center">
-  <img src="arch-docs/screenshots/dark.png" alt="Wttp — dark theme" width="49%">
-  <img src="arch-docs/screenshots/light.png" alt="Wttp — light theme" width="49%">
-</p>
-
 ---
 
-> **Status.** The core app — HTTP engine, workspaces, environments, auth, scripts,
-> importers — is feature-complete and covered by an automated test suite (see the
-> [backlog](arch-docs/backlog/README.md)). Packaging and release automation are landing now
-> ([EP-11](arch-docs/backlog/EP-11-distribuicao.md)); until the first tagged release exists,
-> run it from source with `yarn dev` (see [Development](#development) below).
+> **Status.** Pre-1.0 (`0.x`): the app is usable day to day and covered by an automated
+> test suite, but the file format and features may still change between minor versions.
+> See the [changelog](CHANGELOG.md) for what changed in each version.
+
+## Download
+
+Installers for Linux (`.AppImage`, `.deb`) and Windows (`.exe`) are attached to each
+version on [GitHub Releases](https://github.com/wesleyara/Wttp/releases). Each release
+also includes `SHA256SUMS-<OS>.txt` so you can verify your download.
+
+- **Windows:** installers are not code-signed yet, so SmartScreen may warn on first run.
+- **macOS:** builds are not published by default. The app is not signed or notarized
+  (Gatekeeper will block it), so for now run it from source (see [Development](#development)).
+
+User documentation (English and Portuguese): <https://wesleyara.github.io/Wttp>.
 
 ## What is Wttp?
 
@@ -41,6 +46,8 @@ and Bruno, with two commitments:
 | **Auth**         | Bearer, Basic and API Key, inheritable from folder or collection            |
 | **Scripts**      | Pre-request and test scripts in a sandboxed JS runtime                      |
 | **Import**       | Postman v2.1, Insomnia v4, OpenAPI 3.x and cURL commands                    |
+| **Runner & CLI** | Run collections in the app or in CI with `wttp run` (JUnit/JSON reporters)  |
+| **Git**          | Status, field-by-field diffs, commit and branches without leaving the app   |
 | **Auto-update**  | Checks in the background, asks before installing (skipped on `.deb`)        |
 | **Docs**         | Markdown documentation per request, exportable _(planned)_                  |
 
@@ -82,8 +89,8 @@ releases get signed, packaged and published.
 
 ## Contributing
 
-Contributions are welcome. Start with [arch-docs/backlog/README.md](arch-docs/backlog/README.md)
-to find something to work on, and read [CONTRIBUTING.md](CONTRIBUTING.md) and
+Contributions are welcome. Look at the open
+[issues](https://github.com/wesleyara/Wttp/issues) to find something to work on, and read [CONTRIBUTING.md](CONTRIBUTING.md) and
 [arch-docs/conventions.md](arch-docs/conventions.md) before opening a pull request.
 
 Engineering documentation under `arch-docs/` is written in Portuguese; code, UI strings and commit
@@ -91,4 +98,4 @@ messages are in English.
 
 ## License
 
-MIT
+[MIT](LICENSE)

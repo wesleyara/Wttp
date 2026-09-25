@@ -8,7 +8,7 @@ Regras de código do Wttp. Curtas e verificáveis — o que não estiver aqui se
 
 | Onde                                                         | Idioma     |
 | ------------------------------------------------------------ | ---------- |
-| `docs/`, backlog, comentários explicativos longos            | **PT-BR**  |
+| `arch-docs/`, comentários explicativos longos                | **PT-BR**  |
 | Código, tipos, nomes de arquivo, strings de UI, commits, PRs | **Inglês** |
 
 O produto é open source e a UI precisa ser acessível a contribuidores de fora. A documentação interna é em português porque é onde o time pensa.
@@ -136,6 +136,7 @@ Prettier: aspas duplas, 2 espaços, ponto e vírgula, `printWidth: 100`, `traili
 ## Git
 
 - **Conventional Commits** em inglês: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
-- Branch por task: `feat/EP-03-T02-http-engine`.
-- Referenciar a task no corpo do commit: `Refs EP-03-T02`.
+- Branch por mudança, com o tipo na frente: `feat/http2-engine`, `fix/tree-menu-close`.
+- Referenciar a issue no corpo do commit quando houver: `Refs #42`.
+- O assunto do commit vira linha do [CHANGELOG.md](../CHANGELOG.md) (`feat:` → Added, `fix:` → Fixed) — escreva para quem usa o app.
 - Um commit não deixa o repositório com lint ou typecheck quebrado.

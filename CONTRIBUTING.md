@@ -32,21 +32,13 @@ yarn build       # bundle all three processes
 
 ## Finding something to work on
 
-Work is tracked as tasks in [arch-docs/backlog/](arch-docs/backlog/README.md), grouped
-into epics (`EP-01`, `EP-02`, ...). Each task has an ID like `EP-03-T02`, a
-status (`Pendente` / `Em andamento` / `Concluída` / `Bloqueada` / `Cancelada`),
-a size estimate, and its dependencies.
+Work is tracked in [GitHub Issues](https://github.com/wesleyara/Wttp/issues).
 
-1. Open [arch-docs/backlog/README.md](arch-docs/backlog/README.md) and pick a task
-   marked `Pendente` whose dependencies are already `Concluída`.
-2. Open the epic file it belongs to and read the whole task: objective,
-   scope, acceptance criteria, and — just as important — what's explicitly
-   **out of scope**. That boundary exists so the task stays a reviewable
-   size; work that belongs to a different task should go there instead.
-3. If you're new to the project, prefer a task sized `P` (half a day or
-   less) for your first PR.
-4. Comment on the relevant issue (or open one referencing the task ID) to
-   avoid duplicate work before you start.
+1. Pick an open issue, or open one describing the bug or feature first.
+2. Read the whole issue: what's asked, the acceptance criteria if any, and
+   what's explicitly **out of scope**. Keep the change inside that boundary so
+   it stays a reviewable size.
+3. Comment on the issue before you start, to avoid duplicate work.
 
 ## Before you write code
 
@@ -62,43 +54,53 @@ document. A few rules that surprise newcomers:
 - The on-disk YAML format is a public contract — see
   [arch-docs/file-format.md](arch-docs/file-format.md) before changing anything
   workspace files read or write.
-- Engineering documentation under `arch-docs/` (including the backlog) is written in
+- Engineering documentation under `arch-docs/` is written in
   Portuguese; code, UI strings, commit messages and PR descriptions are in
   English.
 
 ## Making the change
 
-- Branch per task: `feat/EP-03-T02-http-engine`.
-- Keep the diff inside the task's scope. If you discover extra work that's
+- One branch per change, prefixed with its type: `feat/http2-engine`, `fix/tree-menu-close`.
+- Keep the diff inside the issue's scope. If you discover extra work that's
   genuinely needed, either mention it explicitly in your PR description (if
-  small) or open it as a new task in the appropriate epic (if not) — never
+  small) or open a new issue for it (if not) — never
   fold it in silently.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org)
   in English (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`), with
-  the task ID in the body: `Refs EP-03-T02`.
+  the issue in the body when there is one: `Refs #42`. The subject line ends up in the
+  [changelog](CHANGELOG.md) (`feat:` → Added, `fix:` → Fixed, `refactor:` →
+  Changed), so write it for users: "fix: history tab stale after send", not
+  "fix: adjust history". `chore:`/`test:`/`ci:` never appear there.
 - `yarn lint` and `yarn typecheck` must pass before every commit — no
   "fix it later".
 
 ## Before opening a pull request
 
-Definition of Done for any task ([full list](arch-docs/backlog/README.md)):
+Definition of Done for any change:
 
 - [ ] `yarn lint` and `yarn typecheck` pass
 - [ ] `yarn test` passes; new logic under `main/` has a test
 - [ ] New UI is checked in both dark and light themes
 - [ ] Affected documentation (`arch-docs/`, `docs/`, `CLAUDE.md`) is updated in the same commit
-- [ ] Task status updated in the backlog (epic file and `arch-docs/backlog/README.md`)
 
-Go through the task's acceptance criteria one by one and verify each for
+Go through the issue's acceptance criteria one by one and verify each for
 real — run it, write a test for it, or inspect the generated file. Don't
-check off what you haven't actually verified; a half-finished task marked
+check off what you haven't actually verified; a half-finished change marked
 done is worse than one left pending.
 
 ## Opening the pull request
 
-Use the PR template — it asks for the task ID, a summary of what changed,
+Use the PR template — it asks for the related issue, a summary of what changed,
 and the same Definition of Done checklist above. CI runs lint, typecheck,
 test and a build on Linux, macOS and Windows; all must pass before merge.
 
 A maintainer will review, may ask for changes, and merges once everything's
 green.
+
+## Releases
+
+Maintainers cut a version with `yarn release <version>`, which updates
+[CHANGELOG.md](CHANGELOG.md) from the commits since the last tag, bumps the
+version, and creates a `chore(release)` commit and tag. Pushing the tag builds
+the installers into a draft GitHub Release. Details in
+[arch-docs/release.md](arch-docs/release.md).

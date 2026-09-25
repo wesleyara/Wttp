@@ -1,29 +1,96 @@
 name: Release
 
-# EP-11-T04: publicar uma versão é criar uma tag `v*` e dar `git push --tags` — o resto
-# é automático. `quality` roda de novo aqui (não confia só no `ci.yml` de quando a tag
-# foi criada — alguém pode taguear um commit que nunca passou pela `main`), os três SOs
-# empacotam e sobem pro mesmo release do GitHub (por tag, `electron-builder` cuida de
-# criar/reaproveitar), e o release sai como rascunho (`releaseType: draft` em
-# `electron-builder.yml`) até revisão manual — nunca publicado sozinho.
+# Publicar uma versão: `yarn release <versão>` (scripts/release.mjs) cria o commit
+# `chore(release)` com o CHANGELOG.md atualizado e a tag `v<versão>`; empurrar a tag
+# dispara este workflow. `quality` roda de novo aqui (alguém pode taguear um commit que
+# nunca passou pela `main`), Linux e Windows empacotam e sobem pro mesmo release do GitHub
+# (por tag, `electron-builder` cuida de criar/reaproveitar), e o release sai como rascunho
+# (`releaseType: draft` em `electron-builder.yml`) até revisão manual.
+#
+# macOS é opcional (card #63): sem certificado Developer ID o `.dmg` abre com aviso do
+# Gatekeeper, e o runner macOS é o mais caro. Para incluí-lo, rode este workflow à mão
+# (Actions → Release → Run workflow) com a tag e `macos` marcado — ele reaproveita o mesmo
+# release rascunho.
+#
+# As notas do release vêm da seção da versão no CHANGELOG.md versionado
+# (`scripts/changelog.mjs`), não de uma geração nova a partir dos commits — o changelog
+# pode ter sido editado à mão antes da tag, e é ele que o site de documentação mostra.
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build (e.g. v0.4.0)"
+        required: true
+        type: string
+      macos:
+        description: "Also build the macOS installer"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 env:
   NODE_VERSION: "22"
 
 jobs:
+  meta:
+    name: Resolve tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      matrix: ${{ steps.resolve.outputs.matrix }}
+      skip: ${{ steps.resolve.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      # `v0.1.0`/`v0.2.0` foram criadas depois, retroativamente, sobre commits antigos do
+      # histórico — existem para o changelog e o GitHub Releases terem versões, não para
+      # gerar instaladores de código que nunca foi distribuído. Atenção: num push de tag
+      # o GitHub roda o workflow *do commit taggeado*, e o desses dois commits é a versão
+      # antiga (sem esta guarda) — por isso elas são empurradas com o Actions desligado
+      # (arch-docs/release.md). A guarda aqui cobre o `workflow_dispatch` com essas tags.
+      - name: Resolve tag and build matrix
+        id: resolve
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          MACOS: ${{ inputs.macos || false }}
+        run: |
+          case "$TAG" in
+            v0.1.0|v0.2.0)
+              echo "::notice::$TAG is a retroactive tag; its release has notes only, no installers."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0 ;;
+          esac
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::package.json version ($version) does not match tag $TAG."
+            exit 1
+          fi
+          matrix='[{"os":"ubuntu-latest","script":"release:linux"},{"os":"windows-latest","script":"release:win"}'
+          if [ "$MACOS" = "true" ]; then
+            matrix="$matrix"',{"os":"macos-latest","script":"release:mac"}'
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "matrix=$matrix]" >> "$GITHUB_OUTPUT"
+
   quality:
     name: Quality
+    needs: meta
+    if: needs.meta.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
 
       - uses: actions/setup-node@v4
         with:
@@ -38,43 +105,18 @@ jobs:
 
       - run: yarn test
 
-  changelog:
-    name: Changelog
-    needs: quality
-    runs-on: ubuntu-latest
-    outputs:
-      changelog: ${{ steps.build_changelog.outputs.changelog }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Histórico inteiro — a action precisa achar a tag anterior para delimitar
-          # o intervalo de commits, um checkout raso não tem essa informação.
-          fetch-depth: 0
-
-      - name: Build changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v5
-        with:
-          configuration: .github/changelog-config.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build:
     name: Build and publish (${{ matrix.os }})
-    needs: quality
+    needs: [meta, quality]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            script: release:linux
-          - os: macos-latest
-            script: release:mac
-          - os: windows-latest
-            script: release:win
+        include: ${{ fromJSON(needs.meta.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
 
       - uses: actions/setup-node@v4
         with:
@@ -112,26 +154,33 @@ jobs:
 
       - name: Upload checksums to release
         if: hashFiles('dist/SHA256SUMS-*.txt') != ''
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.ref_name }}" dist/SHA256SUMS-*.txt --clobber
+        run: gh release upload "${{ needs.meta.outputs.tag }}" dist/SHA256SUMS-*.txt --clobber
 
   finalize:
-    name: Attach changelog
-    needs: [changelog, build]
+    name: Attach release notes
+    needs: [meta, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
 
-      # `env:` em vez de interpolar `${{ needs.changelog.outputs.changelog }}` direto
-      # no `run:` — o conteúdo vem de mensagens de commit, texto não confiável o
-      # bastante para colar cru dentro de um heredoc de shell.
-      - name: Write changelog to file
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Falha se o CHANGELOG.md não tiver a seção da versão — um release sem notas é
+      # sinal de que a tag não veio de `yarn release`.
+      - name: Extract release notes from CHANGELOG.md
         env:
-          CHANGELOG: ${{ needs.changelog.outputs.changelog }}
-        run: printf '%s\n' "$CHANGELOG" > /tmp/release-notes.md
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: node scripts/changelog.mjs section "$TAG" > "$RUNNER_TEMP/release-notes.md"
 
       - name: Set release notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ github.ref_name }}" --notes-file /tmp/release-notes.md --draft
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: gh release edit "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md" --draft

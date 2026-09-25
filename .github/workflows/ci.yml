@@ -117,7 +117,7 @@ jobs:
       - run: npx playwright install-deps chromium
 
       # e2e/*.spec.ts drive `out/main/index.js`, the production build — not
-      # the dev server (see arch-docs/backlog/EP-10-qualidade-ci.md, EP-10-T02).
+      # the dev server (EP-10-T02).
       - run: yarn build
 
       - run: yarn test:e2e

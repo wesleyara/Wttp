@@ -1,6 +1,6 @@
-## Task
+## Issue
 
-Refs <!-- EP-XX-TYY -->
+Refs #<!-- issue number -->
 
 ## Summary
 
@@ -12,11 +12,10 @@ Refs <!-- EP-XX-TYY -->
 - [ ] `yarn test` passes; new logic under `main/` has a test
 - [ ] New UI is checked in both dark and light themes
 - [ ] Affected documentation (`arch-docs/`, `docs/`, `CLAUDE.md`) is updated in this PR
-- [ ] Task status updated in the backlog (epic file and `arch-docs/backlog/README.md`)
 
 ## Acceptance criteria
 
-<!-- Copy the task's acceptance criteria here and check off only what you
+<!-- Copy the issue's acceptance criteria here and check off only what you
 actually verified — ran it, tested it, or inspected the result. -->
 
 -

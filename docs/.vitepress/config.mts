@@ -67,6 +67,7 @@ export default defineConfig({
         nav: [
           { text: "Guia", link: "/guia/instalacao" },
           { text: "API de scripts", link: "/guia/api-de-scripts" },
+          { text: "Novidades", link: "/changelog" },
         ],
         sidebar: [
           {
@@ -103,6 +104,10 @@ export default defineConfig({
             text: "Personalização",
             items: [{ text: "Atalhos de teclado", link: "/guia/atalhos" }],
           },
+          {
+            text: "Projeto",
+            items: [{ text: "Novidades", link: "/changelog" }],
+          },
         ],
         outline: { label: "Nesta página" },
         docFooter: { prev: "Anterior", next: "Próxima" },
@@ -121,6 +126,7 @@ export default defineConfig({
         nav: [
           { text: "Guide", link: "/en/guide/installation" },
           { text: "Scripting API", link: "/en/guide/scripting-api" },
+          { text: "Changelog", link: "/en/changelog" },
         ],
         sidebar: [
           {
@@ -156,6 +162,10 @@ export default defineConfig({
           {
             text: "Customization",
             items: [{ text: "Keyboard shortcuts", link: "/en/guide/shortcuts" }],
+          },
+          {
+            text: "Project",
+            items: [{ text: "Changelog", link: "/en/changelog" }],
           },
         ],
       },
