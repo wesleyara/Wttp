@@ -5,6 +5,7 @@ import ChangesPanel from "@renderer/components/ChangesPanel.vue";
 import CommandPalette from "@renderer/components/CommandPalette.vue";
 import EnvironmentsPanel from "@renderer/components/EnvironmentsPanel.vue";
 import FolderConfigTabs from "@renderer/components/FolderConfigTabs.vue";
+import GenerateCodeModal from "@renderer/components/GenerateCodeModal.vue";
 import ImportModal from "@renderer/components/ImportModal.vue";
 import MoveCopyModal from "@renderer/components/MoveCopyModal.vue";
 import PreferencesModal from "@renderer/components/PreferencesModal.vue";
@@ -25,6 +26,7 @@ import WSplitPane from "@renderer/components/WSplitPane.vue";
 import WToast from "@renderer/components/WToast.vue";
 import WTree, { type TreeDecoration } from "@renderer/components/WTree.vue";
 import { useChangesStore } from "@renderer/stores/changes";
+import { useCodegenStore } from "@renderer/stores/codegen";
 import { GIT_STATUS_LETTER, useGitStore } from "@renderer/stores/git";
 import { useImportStore } from "@renderer/stores/import";
 import { useMenuStore } from "@renderer/stores/menu";
@@ -45,6 +47,7 @@ const menu = useMenuStore();
 const workspace = useWorkspaceStore();
 const tree = useTreeStore();
 const requestTabs = useRequestTabsStore();
+const codegen = useCodegenStore();
 const runner = useRunnerStore();
 const git = useGitStore();
 const changes = useChangesStore();
@@ -176,6 +179,11 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
         label: t("codegen.copyAsCurlWithSecrets"),
         icon: "shield-alert",
         action: () => void requestTabs.copyAsCurl(node.path, true),
+      },
+      {
+        label: t("codegen.generate"),
+        icon: "code",
+        action: () => codegen.open(node.path),
       },
     );
   }
@@ -441,6 +449,7 @@ onUnmounted(() => {
     <ImportModal :open="importModalOpen" @close="onCloseImportModal" />
 
     <MoveCopyModal />
+    <GenerateCodeModal />
 
     <WToast />
 

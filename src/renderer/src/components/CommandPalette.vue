@@ -7,6 +7,7 @@ import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import WModal from "@renderer/components/WModal.vue";
 import { fuzzySearch } from "@renderer/lib/fuzzyMatch";
 import { useChangesStore } from "@renderer/stores/changes";
+import { useCodegenStore } from "@renderer/stores/codegen";
 import { useGitStore } from "@renderer/stores/git";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useRunnerStore } from "@renderer/stores/runner";
@@ -25,6 +26,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const workspace = useWorkspaceStore();
 const tabs = useRequestTabsStore();
+const codegen = useCodegenStore();
 const runner = useRunnerStore();
 const git = useGitStore();
 const changesStore = useChangesStore();
@@ -109,6 +111,13 @@ const commands = computed<CommandEntry[]>(() => {
       name: t("codegen.copyAsCurlWithSecrets"),
       icon: "shield-alert",
       run: () => void tabs.copyAsCurl(active.path, true),
+    },
+    {
+      kind: "command",
+      id: "generate-code",
+      name: t("codegen.generate"),
+      icon: "code",
+      run: () => codegen.open(active.path),
     },
   ];
 });

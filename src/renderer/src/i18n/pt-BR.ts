@@ -96,6 +96,22 @@ export const ptBR: MessageSchema = {
   codegen: {
     copyAsCurl: "Copiar como cURL",
     copyAsCurlWithSecrets: "Copiar como cURL (com segredos)",
+    generate: "Gerar código…",
+    title: "Gerar código",
+    languages: {
+      curl: "cURL",
+      fetch: "JavaScript (fetch)",
+      axios: "JavaScript (axios)",
+      python: "Python (requests)",
+      go: "Go (net/http)",
+      httpie: "HTTPie",
+    },
+    includeSecrets: "Incluir segredos",
+    masked:
+      "Segredos e credenciais saem mascarados como ****. Ligue “Incluir segredos” para copiar os valores reais.",
+    unresolved: "Variáveis não resolvidas ficam como estão no snippet: {names}",
+    copy: "Copiar",
+    copied: "Código copiado",
   },
   tabs: {
     closeTab: "Fechar aba",

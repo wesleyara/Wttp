@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCodegenStore } from "@renderer/stores/codegen";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -8,6 +9,7 @@ import WIcon from "./WIcon.vue";
 import WMethodBadge from "./WMethodBadge.vue";
 
 const tabs = useRequestTabsStore();
+const codegen = useCodegenStore();
 const { t } = useI18n();
 
 const DRAG_START_THRESHOLD_PX = 4;
@@ -76,6 +78,11 @@ const tabContextMenuItems = computed<ContextMenuItem[]>(() => {
         label: t("codegen.copyAsCurlWithSecrets"),
         icon: "shield-alert",
         action: () => void tabs.copyAsCurl(tab.path, true),
+      },
+      {
+        label: t("codegen.generate"),
+        icon: "code",
+        action: () => codegen.open(tab.path),
       },
     );
   }

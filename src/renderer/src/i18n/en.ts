@@ -95,6 +95,22 @@ export const en = {
   codegen: {
     copyAsCurl: "Copy as cURL",
     copyAsCurlWithSecrets: "Copy as cURL (with secrets)",
+    generate: "Generate code…",
+    title: "Generate code",
+    languages: {
+      curl: "cURL",
+      fetch: "JavaScript (fetch)",
+      axios: "JavaScript (axios)",
+      python: "Python (requests)",
+      go: "Go (net/http)",
+      httpie: "HTTPie",
+    },
+    includeSecrets: "Include secrets",
+    masked:
+      "Secrets and credentials are masked as ****. Turn on “Include secrets” to copy the real values.",
+    unresolved: "Unresolved variables are left as-is in the snippet: {names}",
+    copy: "Copy",
+    copied: "Code copied",
   },
   tabs: {
     closeTab: "Close tab",

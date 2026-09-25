@@ -13,6 +13,7 @@ import { computed, ref, watch } from "vue";
 export const useSettingsStore = defineStore("settings", () => {
   const theme = ref<AppSettings["theme"]>("system");
   const language = ref<AppSettings["language"]>("system");
+  const codegenLanguage = ref<string | undefined>(undefined);
   const workspacesRootDir = ref<string | undefined>(undefined);
   /** `undefined` (settings ainda não carregadas, ou salvas antes deste campo existir) se comporta como `true` — mesma regra de `AppSettings.autoUpdateEnabled` (EP-11-T03). */
   const autoUpdateEnabled = ref<boolean>(true);
@@ -48,6 +49,7 @@ export const useSettingsStore = defineStore("settings", () => {
     ]);
     theme.value = settings.theme;
     language.value = settings.language ?? "system";
+    codegenLanguage.value = settings.codegenLanguage;
     workspacesRootDir.value = settings.workspacesRootDir;
     autoUpdateEnabled.value = settings.autoUpdateEnabled !== false;
     shortcuts.value = settings.shortcuts ?? {};
@@ -101,6 +103,11 @@ export const useSettingsStore = defineStore("settings", () => {
     void window.wttp.settings.set({ language: next });
   }
 
+  function setCodegenLanguage(next: string): void {
+    codegenLanguage.value = next;
+    void window.wttp.settings.set({ codegenLanguage: next });
+  }
+
   function setWorkspacesRootDir(next: string | undefined): void {
     workspacesRootDir.value = next;
     void window.wttp.settings.set({ workspacesRootDir: next });
@@ -115,6 +122,7 @@ export const useSettingsStore = defineStore("settings", () => {
     const settings = await window.wttp.settings.reset();
     theme.value = settings.theme;
     language.value = settings.language ?? "system";
+    codegenLanguage.value = settings.codegenLanguage;
     workspacesRootDir.value = settings.workspacesRootDir;
     autoUpdateEnabled.value = settings.autoUpdateEnabled !== false;
     shortcuts.value = settings.shortcuts ?? {};
@@ -131,6 +139,8 @@ export const useSettingsStore = defineStore("settings", () => {
   return {
     theme,
     language,
+    codegenLanguage,
+    setCodegenLanguage,
     resolvedTheme,
     workspacesRootDir,
     workspacesContainerDir,

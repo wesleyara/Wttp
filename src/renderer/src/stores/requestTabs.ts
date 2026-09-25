@@ -19,7 +19,7 @@ import type {
 } from "@shared";
 
 import { i18n } from "@renderer/i18n";
-import { toCurl } from "@renderer/lib/codegen/curl";
+import { type CurlRequest, toCurl } from "@renderer/lib/codegen/curl";
 import { suggestedFileName } from "@renderer/lib/content-type";
 import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/scriptChain";
 import { useEnvironmentStore } from "@renderer/stores/environment";
@@ -1232,15 +1232,17 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   }
 
   /**
-   * "Copy as cURL" (ClickLocal #44) da request em `path`: a aba aberta, com edições
-   * ainda não salvas, ou o arquivo em disco quando ela não está aberta (menu da
-   * árvore). Resolve pelo mesmo caminho de `send()`, sem rodar scripts de pre-request
-   * — eles podem ter efeito colateral (gravar variável, gerar token) e copiar não é
-   * enviar. Segredos e auth saem mascarados, a não ser com `withSecrets`.
+   * A request em `path` já resolvida, no formato dos geradores de código (cURL, #44, e os
+   * snippets de linguagem, #46), mais os valores de segredos usados — a aba aberta (com
+   * edições não salvas) ou o arquivo em disco. Não roda pre-request: gerar código não é enviar.
    */
-  async function copyAsCurl(path: string, withSecrets = false): Promise<void> {
+  async function codegenInputFor(path: string): Promise<{
+    request: CurlRequest;
+    secrets: string[];
+    unresolved: string[];
+  } | null> {
     const root = workspace.root;
-    if (!root) return;
+    if (!root) return null;
 
     let tab = tabs.value.find(
       (candidate): candidate is RequestTabState =>
@@ -1248,13 +1250,13 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     );
     if (!tab) {
       const node = (await window.wttp.node.read({ root, path })) as RequestNode;
-      if (!node.data) return;
+      if (!node.data) return null;
       tab = buildTab(node, false);
     }
 
     const resolved = await resolveTabRequest(tab);
-    const command = toCurl(
-      {
+    return {
+      request: {
         method: tab.method,
         url: resolved.url,
         query: resolved.query,
@@ -1262,8 +1264,22 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         auth: resolved.auth,
         body: resolved.body,
       },
-      { maskSecrets: !withSecrets, secrets: secretsUsedIn(resolved) },
-    );
+      secrets: secretsUsedIn(resolved),
+      unresolved: resolved.unresolved,
+    };
+  }
+
+  /**
+   * "Copy as cURL" (ClickLocal #44) da request em `path`: a aba aberta, com edições
+   * ainda não salvas, ou o arquivo em disco quando ela não está aberta (menu da
+   * árvore). Resolve pelo mesmo caminho de `send()`, sem rodar scripts de pre-request
+   * — eles podem ter efeito colateral (gravar variável, gerar token) e copiar não é
+   * enviar. Segredos e auth saem mascarados, a não ser com `withSecrets`.
+   */
+  async function copyAsCurl(path: string, withSecrets = false): Promise<void> {
+    const input = await codegenInputFor(path);
+    if (!input) return;
+    const command = toCurl(input.request, { maskSecrets: !withSecrets, secrets: input.secrets });
 
     try {
       await navigator.clipboard.writeText(command);
@@ -1272,9 +1288,9 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       return;
     }
 
-    if (resolved.unresolved.length > 0) {
+    if (input.unresolved.length > 0) {
       toast.push(
-        i18n.global.t("toast.curlCopiedUnresolved", { names: resolved.unresolved.join(", ") }),
+        i18n.global.t("toast.curlCopiedUnresolved", { names: input.unresolved.join(", ") }),
         "warning",
       );
     } else {
@@ -1420,6 +1436,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     preRequestScriptCount,
     cancelTab,
     copyAsCurl,
+    codegenInputFor,
     cancel,
     saveResponseToFile,
     restoreSession,

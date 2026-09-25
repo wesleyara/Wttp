@@ -41,13 +41,13 @@ export function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-function maskText(text: string, secrets: string[]): string {
+export function maskText(text: string, secrets: string[]): string {
   let result = text;
   for (const secret of secrets) result = result.split(secret).join(SECRET_MASK);
   return result;
 }
 
-function maskEntries(entries: KeyValueEntry[], secrets: string[]): KeyValueEntry[] {
+export function maskEntries(entries: KeyValueEntry[], secrets: string[]): KeyValueEntry[] {
   return entries.map(entry => ({
     ...entry,
     name: maskText(entry.name, secrets),
@@ -55,7 +55,7 @@ function maskEntries(entries: KeyValueEntry[], secrets: string[]): KeyValueEntry
   }));
 }
 
-function maskBody(body: RequestBody, secrets: string[]): RequestBody {
+export function maskBody(body: RequestBody, secrets: string[]): RequestBody {
   switch (body.type) {
     case "json":
       return { ...body, json: maskText(body.json, secrets) };
@@ -81,7 +81,7 @@ function maskBody(body: RequestBody, secrets: string[]): RequestBody {
  * key continuam visíveis — a não ser que venham de uma variável secreta, como qualquer
  * outro texto do comando.
  */
-function maskAuth(auth: AuthConfig, secrets: string[]): AuthConfig {
+export function maskAuth(auth: AuthConfig, secrets: string[]): AuthConfig {
   const hide = (value: string): string => (value ? SECRET_MASK : value);
   switch (auth.type) {
     case "bearer":
@@ -151,7 +151,7 @@ function authArgs(auth: AuthConfig, headers: KeyValueEntry[], query: KeyValueEnt
  * `URL` a teria percent-encoded (`%7B%7Bid%7D%7D`) — e, como `{}`/`[]` são glob no
  * `curl`, quem chama liga `--globoff` quando algum sobra no texto.
  */
-function buildUrl(url: string, query: KeyValueEntry[]): string {
+export function buildUrl(url: string, query: KeyValueEntry[]): string {
   const search = new URLSearchParams(
     query.filter(entry => entry.enabled).map(entry => [entry.name, entry.value]),
   ).toString();
@@ -172,7 +172,7 @@ function buildUrl(url: string, query: KeyValueEntry[]): string {
   return full.replace(/%7B%7B([\w.$-]+?)%7D%7D/gi, "{{$1}}");
 }
 
-function hasEnabledHeader(headers: KeyValueEntry[], name: string): boolean {
+export function hasEnabledHeader(headers: KeyValueEntry[], name: string): boolean {
   return headers.some(header => header.enabled && header.name.toLowerCase() === name);
 }
 

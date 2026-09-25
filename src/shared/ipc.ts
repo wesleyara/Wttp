@@ -105,6 +105,8 @@ export interface AppSettings {
    * como `"system"`.
    */
   language?: "system" | "en" | "pt-BR";
+  /** Última linguagem escolhida no modal "Generate code" (ClickLocal #46) — id de `CODEGEN_LANGUAGES`; valor desconhecido cai no padrão. */
+  codegenLanguage?: string;
 }
 
 /**
