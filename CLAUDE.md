@@ -326,6 +326,14 @@ versão como corpo do release, builda Linux+Windows (macOS só via `workflow_dis
 tem guarda para as tags retroativas — que mesmo assim precisam ser empurradas com o Actions
 desligado, porque o push de tag roda o workflow antigo do commit taggeado. Fluxo em [arch-docs/release.md](arch-docs/release.md).
 
+**Card #64** (CRLF no Windows): toda escrita de YAML do storage passa por
+`writeYamlAtomic` (`src/main/storage/eol.ts`), que regrava um arquivo existente com a
+quebra de linha que ele já tinha (CRLF se a primeira linha termina em `\r\n`) e cria
+arquivos novos em LF; duplicar herda a do original. Cobre o checkout do Windows com
+`core.autocrlf=true` sem quebrar "salvar sem alterar produz bytes idênticos"
+(arch-docs/file-format.md §6.2). O parser já normalizava CRLF na leitura. Não cria
+`.gitattributes` nos workspaces do usuário (opção 2 do card, fora de escopo).
+
 Com isso o **MVP (v0.1) está funcionalmente completo** — EP-01 a EP-11 prontos, com as
 pendências de verificação (visual multi-tema numa janela de verdade, multi-SO, e a
 primeira release real) explicitamente registradas em cada épico, não escondidas.

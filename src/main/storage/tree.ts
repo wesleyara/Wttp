@@ -24,7 +24,7 @@ import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { DomainError } from "../ipc/errors";
-import { writeFileAtomic } from "./fsAtomic";
+import { writeYamlAtomic } from "./eol";
 import { ensureGitignore } from "./gitignore";
 import { CURRENT_SCHEMA_VERSION } from "./migrations/registry";
 import { resolveWorkspacePath } from "./paths";
@@ -238,7 +238,7 @@ export async function createEnvironment(root: string, name: string): Promise<Env
   const path = uniqueSlugName(name, ENVIRONMENT_SUFFIX, candidate => existingNames.has(candidate));
 
   const data: EnvironmentFile = { wttp: CURRENT_SCHEMA_VERSION, name, variables: [] };
-  await writeFileAtomic(environmentAbsPath(root, path), serializeEnvironment(data));
+  await writeYamlAtomic(environmentAbsPath(root, path), serializeEnvironment(data));
   return { path, data };
 }
 
@@ -254,7 +254,7 @@ export async function writeEnvironment(
 ): Promise<EnvironmentListItem> {
   const absPath = environmentAbsPath(root, path);
   await assertNoConflict(absPath, `${ENVIRONMENTS_DIR}/${path}`);
-  await writeFileAtomic(absPath, serializeEnvironment(environment));
+  await writeYamlAtomic(absPath, serializeEnvironment(environment));
   return { path, data: environment };
 }
 
@@ -302,7 +302,11 @@ export async function duplicateEnvironment(
     ),
   };
 
-  await writeFileAtomic(environmentAbsPath(root, newPath), serializeEnvironment(data));
+  await writeYamlAtomic(
+    environmentAbsPath(root, newPath),
+    serializeEnvironment(data),
+    environmentAbsPath(root, path),
+  );
   return { path: newPath, data };
 }
 
@@ -388,9 +392,9 @@ export async function writeNode(root: string, relPath: string, node: WorkspaceNo
   await assertNoConflict(path, relPath);
 
   if (node.kind === "folder") {
-    await writeFileAtomic(path, serializeFolder(node.data as FolderFile));
+    await writeYamlAtomic(path, serializeFolder(node.data as FolderFile));
   } else {
-    await writeFileAtomic(path, serializeRequest(node.data as RequestFile));
+    await writeYamlAtomic(path, serializeRequest(node.data as RequestFile));
   }
 }
 
@@ -475,7 +479,7 @@ export async function initWorkspace(root: string, name: string): Promise<Workspa
   await ensureGitignore(root);
 
   const workspaceFile: WorkspaceFile = { wttp: CURRENT_SCHEMA_VERSION, name };
-  await writeFileAtomic(join(root, WORKSPACE_FILE), serializeWorkspace(workspaceFile));
+  await writeYamlAtomic(join(root, WORKSPACE_FILE), serializeWorkspace(workspaceFile));
 
   return scanWorkspace(root);
 }
@@ -497,7 +501,7 @@ export async function updateWorkspaceVariables(
 
   await assertNoConflict(manifestPath, WORKSPACE_FILE);
   const next: WorkspaceFile = { ...result.value, variables };
-  await writeFileAtomic(manifestPath, serializeWorkspace(next));
+  await writeYamlAtomic(manifestPath, serializeWorkspace(next));
 
   return scanWorkspace(root);
 }
@@ -531,12 +535,12 @@ export async function createNode(
   if (kind === "folder") {
     const data: FolderFile = { wttp: CURRENT_SCHEMA_VERSION, name, seq };
     await fs.mkdir(join(absParent, slug), { recursive: true });
-    await writeFileAtomic(join(absParent, slug, FOLDER_FILE), serializeFolder(data));
+    await writeYamlAtomic(join(absParent, slug, FOLDER_FILE), serializeFolder(data));
     return { kind: "folder", path: relPath, name, seq, data, children: [] };
   }
 
   const data: RequestFile = { wttp: CURRENT_SCHEMA_VERSION, name, seq, method: "GET", url: "" };
-  await writeFileAtomic(join(absParent, slug), serializeRequest(data));
+  await writeYamlAtomic(join(absParent, slug), serializeRequest(data));
   return { kind: "request", path: relPath, name, seq, data };
 }
 
@@ -609,11 +613,11 @@ export async function duplicateNode(root: string, path: string): Promise<Workspa
     await fs.cp(absFrom, absTo, { recursive: true });
     if (node.data) {
       const updated: FolderFile = { ...node.data, name: candidateName };
-      await writeFileAtomic(join(absTo, FOLDER_FILE), serializeFolder(updated));
+      await writeYamlAtomic(join(absTo, FOLDER_FILE), serializeFolder(updated));
     }
   } else {
     const updated: RequestFile = { ...(node.data as RequestFile), name: candidateName };
-    await writeFileAtomic(absTo, serializeRequest(updated));
+    await writeYamlAtomic(absTo, serializeRequest(updated), absFrom);
   }
 
   // Insere logo depois do original e renumera só quem precisa — mesma lógica de

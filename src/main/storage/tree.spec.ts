@@ -1,6 +1,6 @@
 import type { FolderNode, RequestNode } from "@shared";
 
-import { promises as fs } from "node:fs";
+import { promises as fs, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -651,5 +651,90 @@ describe("duplicateEnvironment", () => {
 
   it("lança ENOENT ao duplicar um path inexistente", async () => {
     await expect(duplicateEnvironment(root, "missing.yaml")).rejects.toThrow();
+  });
+});
+
+/**
+ * Card #64: num checkout do Windows com `core.autocrlf=true` o workspace chega em CRLF.
+ * Regravar tem que manter a quebra de linha do arquivo — senão o primeiro save troca
+ * todas as linhas em disco (arch-docs/file-format.md §6.2).
+ */
+describe("quebra de linha CRLF", () => {
+  const crlf = (text: string): string => text.replace(/\n/g, "\r\n");
+  const readRaw = (relPath: string): Promise<string> => fs.readFile(join(root, relPath), "utf-8");
+
+  it("salvar uma request CRLF sem alterar nada produz bytes idênticos", async () => {
+    const fixture = crlf(readFileSync(join(__dirname, "__fixtures__", "request.yaml"), "utf-8"));
+    await writeYaml("wttp.yaml", crlf(workspaceYaml));
+    await writeYaml("login.req.yaml", fixture);
+
+    const node = (await readNode(root, "login.req.yaml")) as RequestNode;
+    await writeNode(root, "login.req.yaml", node);
+
+    expect(await readRaw("login.req.yaml")).toBe(fixture);
+  });
+
+  it("uma request LF continua LF", async () => {
+    await writeYaml("wttp.yaml", workspaceYaml);
+    await writeYaml("login.req.yaml", requestYaml("Login", 1));
+
+    const node = (await readNode(root, "login.req.yaml")) as RequestNode;
+    await writeNode(root, "login.req.yaml", node);
+
+    expect(await readRaw("login.req.yaml")).toBe(requestYaml("Login", 1));
+  });
+
+  it("reordenar reescreve os seq mantendo CRLF nos irmãos", async () => {
+    await writeYaml("wttp.yaml", crlf(workspaceYaml));
+    await writeYaml("a.req.yaml", crlf(requestYaml("A", 1)));
+    await writeYaml("b.req.yaml", crlf(requestYaml("B", 2)));
+
+    await moveNode(root, "b.req.yaml", "b.req.yaml", 1);
+
+    expect(await readRaw("a.req.yaml")).toBe(crlf(requestYaml("A", 2)));
+    expect(await readRaw("b.req.yaml")).toBe(crlf(requestYaml("B", 1)));
+  });
+
+  it("duplicar herda a quebra de linha do original (request e pasta)", async () => {
+    await writeYaml("wttp.yaml", crlf(workspaceYaml));
+    await writeYaml("a.req.yaml", crlf(requestYaml("A", 1)));
+    await writeYaml("auth/folder.yaml", crlf(folderYaml("Auth", 2)));
+
+    const request = await duplicateNode(root, "a.req.yaml");
+    const folder = await duplicateNode(root, "auth");
+
+    expect(await readRaw(request.path)).toContain("\r\n");
+    expect(await readRaw(request.path)).not.toMatch(/[^\r]\n/);
+    expect(await readRaw(`${folder.path}/folder.yaml`)).not.toMatch(/[^\r]\n/);
+  });
+
+  it("environment: regravar e duplicar mantêm CRLF", async () => {
+    await writeYaml("environments/dev.yaml", crlf("wttp: 1\nname: Dev\nvariables: []\n"));
+
+    await writeEnvironment(root, "dev.yaml", { wttp: 1, name: "Dev", variables: [] });
+    const duplicate = await duplicateEnvironment(root, "dev.yaml");
+
+    expect(await readRaw("environments/dev.yaml")).toBe(
+      crlf("wttp: 1\nname: Dev\nvariables: []\n"),
+    );
+    expect(await readRaw(`environments/${duplicate.path}`)).not.toMatch(/[^\r]\n/);
+  });
+
+  it("manifesto do workspace: atualizar variáveis mantém CRLF", async () => {
+    await writeYaml("wttp.yaml", crlf(workspaceYaml));
+
+    await updateWorkspaceVariables(root, [{ name: "v", value: "1", enabled: true }]);
+
+    const raw = await readRaw("wttp.yaml");
+    expect(raw).toContain("name: v");
+    expect(raw).not.toMatch(/[^\r]\n/);
+  });
+
+  it("arquivo novo num workspace CRLF sai em LF", async () => {
+    await writeYaml("wttp.yaml", crlf(workspaceYaml));
+
+    const created = await createNode(root, "", "request", "New");
+
+    expect(await readRaw(created.path)).not.toContain("\r");
   });
 });

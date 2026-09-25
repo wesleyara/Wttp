@@ -181,6 +181,8 @@ Estas regras existem porque o arquivo é versionado por humanos. Quebrar qualque
 
 2. **Serialização determinística.** Ordem de chaves fixa, definida em código — não a ordem de inserção do objeto. Abrir uma request e salvá-la sem alterar nada deve produzir **bytes idênticos**. Isto é coberto por teste de round-trip e é o que impede o Wttp de poluir o `git diff` do usuário.
 
+   **Quebra de linha.** Arquivos criados pelo Wttp usam LF (`\n`). Ao regravar um arquivo que já existe, o Wttp mantém a quebra de linha que ele tem: se a primeira linha termina em CRLF (`\r\n`), o arquivo inteiro é gravado em CRLF. É o caso comum no Windows, onde o Git vem com `core.autocrlf=true` e entrega o working tree em CRLF — sem isso, o primeiro save trocaria todas as linhas do arquivo em disco. Duplicar um nó ou um environment herda a quebra de linha do original. O conteúdo lido é o mesmo nos dois casos: o parser normaliza CRLF, então valores de blocos literais (`|`) nunca carregam `\r`.
+
 3. **`seq` manda na ordenação.** Nunca inferir ordem do nome do arquivo ou do `readdir`. Reordenar na UI reescreve os `seq` das linhas afetadas.
 
 4. **`enabled: false` preserva a linha.** Desabilitar um header o mantém no arquivo. Apagar a linha é uma ação distinta, explícita.

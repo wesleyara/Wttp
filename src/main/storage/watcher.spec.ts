@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { writeYamlAtomic } from "./eol";
 import { writeFileAtomic } from "./fsAtomic";
 import { watchWorkspace, type WorkspaceWatcher } from "./watcher";
 
@@ -103,6 +104,30 @@ describe("watchWorkspace", () => {
 
     await fs.mkdir(join(root, ".wttp"), { recursive: true });
     await fs.writeFile(join(root, ".wttp", "ui-state.json"), "{}", "utf-8");
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  // Card #64: trocar só a quebra de linha é uma mudança real em disco. Vinda de fora
+  // (editor, `git checkout` com autocrlf), recarrega; vinda do próprio app (que preserva a
+  // quebra de linha do arquivo ao salvar), não.
+  it("recarrega quando algo de fora troca só a quebra de linha", async () => {
+    const onChange = vi.fn<(event: WorkspaceChangedEvent) => void>();
+    watcher = watchWorkspace(root, onChange);
+
+    await fs.writeFile(join(root, "wttp.yaml"), "wttp: 1\r\nname: My API\r\n", "utf-8");
+
+    await waitForChange(onChange);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0][0].changedPaths).toContain("wttp.yaml");
+  });
+
+  it("não emite evento quando o app regrava preservando a quebra de linha", async () => {
+    const onChange = vi.fn<(event: WorkspaceChangedEvent) => void>();
+    watcher = watchWorkspace(root, onChange);
+
+    await writeYamlAtomic(join(root, "wttp.yaml"), "wttp: 1\nname: Renamed\n");
 
     await new Promise(resolve => setTimeout(resolve, 500));
     expect(onChange).not.toHaveBeenCalled();
