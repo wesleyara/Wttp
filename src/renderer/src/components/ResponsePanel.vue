@@ -15,6 +15,7 @@ import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from 
 import { useI18n } from "vue-i18n";
 
 import HistoryPanel from "./HistoryPanel.vue";
+import ResponseJsonTree from "./ResponseJsonTree.vue";
 import ResponseStatusBar from "./ResponseStatusBar.vue";
 import ScriptResultsPanel from "./ScriptResultsPanel.vue";
 import WButton from "./WButton.vue";
@@ -187,7 +188,7 @@ watch(failureResult, result => {
   if (result) mainTab.value = "error";
 });
 
-const bodyViewMode = ref<"pretty" | "raw" | "preview">("pretty");
+const bodyViewMode = ref<"pretty" | "raw" | "preview" | "tree">("pretty");
 const bodyViewOptions = computed(() => {
   const options = [
     { value: "pretty", label: t("response.view.pretty") },
@@ -195,6 +196,9 @@ const bodyViewOptions = computed(() => {
   ];
   if (isImage(contentType.value) || isHtml(contentType.value) || isPdf(contentType.value)) {
     options.push({ value: "preview", label: t("response.view.preview") });
+  }
+  if (editorLanguage.value === "json") {
+    options.push({ value: "tree", label: t("response.view.tree") });
   }
   return options;
 });
@@ -234,6 +238,21 @@ const editorLanguage = computed(() => {
   if (type === "application/xml" || type === "text/xml" || type.endsWith("+xml")) return "xml";
   if (type === "application/javascript" || type === "text/javascript") return "javascript";
   return "text";
+});
+
+/**
+ * Documento da árvore clicável (#47): parseia o corpo inteiro, não o `decodedBody`
+ * truncado em 2MB — `JSON.parse` de alguns MB é rápido; o custo de UI é da árvore, que
+ * só monta as linhas visíveis. Só roda com a visão Tree aberta.
+ */
+const treeDocument = computed(() => {
+  const result = successResult.value;
+  if (bodyViewMode.value !== "tree" || !result || editorLanguage.value !== "json") return null;
+  try {
+    return { data: JSON.parse(new TextDecoder(result.charset || "utf-8").decode(result.body)) };
+  } catch {
+    return { data: undefined };
+  }
 });
 
 const prettyBody = computed(() => {
@@ -452,7 +471,7 @@ async function saveBody(): Promise<void> {
             <WSelect v-model="bodyViewMode" :options="bodyViewOptions" />
           </div>
           <span
-            v-if="bodyViewMode !== 'preview'"
+            v-if="bodyViewMode !== 'preview' && bodyViewMode !== 'tree'"
             :title="isJsonBody ? t('response.filter.open') : t('response.filter.jsonOnly')"
           >
             <WButton
@@ -471,7 +490,7 @@ async function saveBody(): Promise<void> {
         </div>
 
         <div
-          v-if="filterOpen && isJsonBody && bodyViewMode !== 'preview'"
+          v-if="filterOpen && isJsonBody && bodyViewMode !== 'preview' && bodyViewMode !== 'tree'"
           ref="filterRow"
           class="flex flex-col gap-1"
           @keydown.esc.stop="closeFilter"
@@ -520,7 +539,7 @@ async function saveBody(): Promise<void> {
           {{ prettyWarning }}
         </p>
         <p
-          v-if="decodedBody.truncated && bodyViewMode !== 'preview'"
+          v-if="decodedBody.truncated && bodyViewMode !== 'preview' && bodyViewMode !== 'tree'"
           class="rounded-md bg-status-3xx/10 px-2 py-1 font-inter text-xs text-status-3xx"
         >
           {{
@@ -551,6 +570,11 @@ async function saveBody(): Promise<void> {
             type="application/pdf"
             class="size-full"
           />
+        </div>
+
+        <div v-else-if="bodyViewMode === 'tree'" class="min-h-0 flex-1">
+          <ResponseJsonTree v-if="treeDocument?.data !== undefined" :data="treeDocument.data" />
+          <p v-else class="px-2 font-inter text-sm text-muted">{{ t("response.tree.invalid") }}</p>
         </div>
 
         <div v-else class="min-h-0 flex-1">
