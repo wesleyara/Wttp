@@ -20,6 +20,8 @@ const props = defineProps<{
   /** A execução mais antiga — a base. */
   before: HistoryEntry;
   after: HistoryEntry;
+  /** Sem o botão "Back" — quando a comparação não é uma tela empilhada (aba Watch, #50). */
+  hideBack?: boolean;
 }>();
 
 const emit = defineEmits<{ back: [] }>();
@@ -94,7 +96,7 @@ const menuItems = computed<ContextMenuItem[]>(() => {
 <template>
   <div class="flex min-h-0 flex-1 flex-col" data-testid="history-compare">
     <div class="flex h-8 shrink-0 items-center gap-2 border-b border-subtle px-2">
-      <WButton size="sm" variant="ghost" @click="emit('back')">
+      <WButton v-if="!hideBack" size="sm" variant="ghost" @click="emit('back')">
         <WIcon name="arrow-left" size="3.5" />
         {{ t("history.back") }}
       </WButton>

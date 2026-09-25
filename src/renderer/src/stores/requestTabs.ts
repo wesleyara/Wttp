@@ -71,6 +71,12 @@ export interface ScriptRunSummary {
   preRequestError?: { source: string; error: WttpError };
 }
 
+/** O que uma iteração enviou de fato — o que falta para gravá-la no histórico depois (#50). */
+export interface DispatchOutcome {
+  sentSpec: HttpRequestSpec;
+  resolved: ResolveRequestResultPayload;
+}
+
 export interface RequestTabState {
   kind: "request";
   /** Igual a `path` — muda junto quando a request é renomeada (`renamePath`). */
@@ -395,9 +401,13 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   }
 
   /** Edição em qualquer campo marca suja e promove uma aba de preview a fixa (não-op para pasta, sempre fixa). */
+  /** Última edição feita numa aba — o modo watch (#50) para quando a request muda por baixo dele. */
+  const lastEdit = ref<{ tabId: string; revision: number }>({ tabId: "", revision: 0 });
+
   function markActiveDirty(): void {
     const tab = active.value;
     if (!tab) return;
+    lastEdit.value = { tabId: tab.id, revision: lastEdit.value.revision + 1 };
     tab.dirty = true;
     if (!tab.pinned) {
       tab.pinned = true;
@@ -1000,10 +1010,35 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     return [...new Set(values)];
   }
 
+  /** Grava a resposta atual da aba no histórico (EP-08.1-T03). Best-effort: falhar aqui nunca derruba o envio. */
+  async function recordHistory(tab: RequestTabState, outcome: DispatchOutcome): Promise<void> {
+    if (!tab.lastResult || !workspace.root) return;
+    try {
+      // `deepToRaw`, não `unwrap` — `tab.lastResult.body` é um `Uint8Array`, que um
+      // round-trip de JSON corromperia (mesmo motivo de `req`/`res` em `script:run`).
+      await window.wttp.history.append({
+        root: workspace.root,
+        path: tab.path,
+        request: deepToRaw(outcome.sentSpec),
+        response: deepToRaw(tab.lastResult),
+        secrets: secretsUsedIn(outcome.resolved),
+      });
+    } catch (error) {
+      console.error("wttp: failed to persist history entry", error);
+    }
+  }
+
+  /**
+   * `recordHistory: false` é o modo watch (#50): cada iteração só vive em memória e a
+   * sessão grava uma única entrada, a final. Devolve o que foi enviado, ou `null` quando
+   * nada foi (pre-request abortou, ou o envio foi cancelado).
+   */
   async function dispatch(
     tab: RequestTabState,
     resolved: ResolveRequestResultPayload,
-  ): Promise<void> {
+    options: { recordHistory?: boolean } = {},
+  ): Promise<DispatchOutcome | null> {
+    const shouldRecord = options.recordHistory ?? true;
     const id = crypto.randomUUID();
     tab.requestId = id;
     tab.sending = true;
@@ -1042,7 +1077,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
           }),
           "error",
         );
-        return;
+        return null;
       }
 
       sentSpec = preRequest.spec;
@@ -1053,7 +1088,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         sentSpec = null;
         tab.lastResult = previousResult;
         tab.scriptRun = previousScriptRun;
-        return;
+        return null;
       }
       tab.lastResult = result;
 
@@ -1072,19 +1107,11 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         // o pre-request abortou o envio, o que rodou antes da falha ainda vale.
         await persistEnvVars(scope.envVars);
         await persistCollectionVars(tab.path, scope.collectionVars);
-        if (sentSpec && tab.lastResult && workspace.root) {
+        if (shouldRecord && sentSpec) {
           // Antes de `tab.sending = false` — `ResponsePanel` recarrega o histórico assim
           // que `sending` vira `false` (EP-08.1-T04); virar antes daqui é uma corrida que
           // recarrega a lista antes desta entrada existir em disco.
-          // `deepToRaw`, não `unwrap` — `tab.lastResult.body` é um `Uint8Array`, que um
-          // round-trip de JSON corromperia (mesmo motivo de `req`/`res` em `script:run`).
-          await window.wttp.history.append({
-            root: workspace.root,
-            path: tab.path,
-            request: deepToRaw(sentSpec),
-            response: deepToRaw(tab.lastResult),
-            secrets: secretsUsedIn(resolved),
-          });
+          await recordHistory(tab, { sentSpec, resolved });
         }
       } catch (error) {
         // Histórico é best-effort — perder uma entrada não pode derrubar o envio, que
@@ -1094,6 +1121,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
         tab.sending = false;
       }
     }
+
+    return sentSpec ? { sentSpec, resolved } : null;
   }
 
   /**
@@ -1141,6 +1170,55 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     }
 
     await dispatch(tab, resolved);
+  }
+
+  // --- Modo watch (#50) --------------------------------------------------------------
+  // O laço e os timers vivem em `stores/watch.ts`; aqui só o que precisa enxergar o
+  // interior da aba: uma iteração de envio sem histórico, a gravação da iteração final
+  // e o cancelamento por id (a aba pode não ser a ativa).
+
+  function requestTabById(id: string): RequestTabState | null {
+    const tab = tabs.value.find(candidate => candidate.id === id);
+    return isRequestTab(tab) ? tab : null;
+  }
+
+  type WatchSendResult =
+    | { kind: "sent"; outcome: DispatchOutcome }
+    | { kind: "unresolved"; names: string[] }
+    /** Cancelado, aba fechada ou pre-request abortou — não há resposta nova. */
+    | { kind: "skipped"; preRequestFailed: boolean };
+
+  async function sendForWatch(tabId: string): Promise<WatchSendResult> {
+    const tab = requestTabById(tabId);
+    if (!tab || tab.sending) return { kind: "skipped", preRequestFailed: false };
+    const resolved = await resolveTabRequest(tab);
+    // Sem o "Send anyway" do envio avulso: repetir uma request quebrada a cada N segundos não ajuda ninguém.
+    if (resolved.unresolved.length > 0) return { kind: "unresolved", names: resolved.unresolved };
+    const outcome = await dispatch(tab, resolved, { recordHistory: false });
+    if (outcome) return { kind: "sent", outcome };
+    return { kind: "skipped", preRequestFailed: Boolean(tab.scriptRun?.preRequestError) };
+  }
+
+  /** A iteração final de uma sessão de watch — a única que vai para o histórico. */
+  async function recordWatchIteration(tabId: string, outcome: DispatchOutcome): Promise<void> {
+    const tab = requestTabById(tabId);
+    if (tab) await recordHistory(tab, outcome);
+  }
+
+  /** Quantos scripts de pre-request rodariam a cada iteração (request, pastas e collection). */
+  function preRequestScriptCount(tabId: string): number {
+    const tab = requestTabById(tabId);
+    if (!tab) return 0;
+    return linksWithCode(
+      orderForPhase(buildScriptChain(tab.scripts, variables.folderChain(tab.path)), "preRequest"),
+      "preRequest",
+    ).length;
+  }
+
+  function cancelTab(tabId: string): void {
+    const tab = requestTabById(tabId);
+    if (!tab?.sending || !tab.requestId) return;
+    void window.wttp.http.cancel(tab.requestId);
   }
 
   /** Usuário confirmou enviar mesmo com variável não resolvida — o placeholder original (`{{nome}}`) vai literal na request. */
@@ -1335,6 +1413,12 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     unresolvedSendNames,
     confirmSendUnresolved,
     cancelSendUnresolved,
+    lastEdit,
+    requestTabById,
+    sendForWatch,
+    recordWatchIteration,
+    preRequestScriptCount,
+    cancelTab,
     copyAsCurl,
     cancel,
     saveResponseToFile,

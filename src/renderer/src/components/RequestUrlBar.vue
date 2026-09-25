@@ -6,10 +6,12 @@ import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { methodToken } from "@renderer/lib/http-tokens";
 import { useRequestStore } from "@renderer/stores/request";
 import { useVariablesStore } from "@renderer/stores/variables";
+import { useWatchStore } from "@renderer/stores/watch";
 import { storeToRefs } from "pinia";
 import { computed, ref, useTemplateRef } from "vue";
 import { useI18n } from "vue-i18n";
 
+import WatchControl from "./WatchControl.vue";
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WIcon from "./WIcon.vue";
@@ -18,6 +20,8 @@ import WMethodPicker from "./WMethodPicker.vue";
 const { t } = useI18n();
 const store = useRequestStore();
 const { method, url, pathParams, query, sending, path } = storeToRefs(store);
+const tabId = computed(() => store.tabId);
+const watching = computed(() => useWatchStore().sessionFor(tabId.value)?.running === true);
 const variablesStore = useVariablesStore();
 
 // Realce/tooltip/autocomplete de `{{var}}` na URL (EP-06.1) — mesmo motor do body,
@@ -114,7 +118,13 @@ function onPasteUrl(event: ClipboardEvent): void {
         @paste.capture="onPasteUrl"
       />
     </div>
-    <WButton :variant="sending ? 'danger' : 'primary'" class="w-24 shrink-0" @click="onSend">
+    <WatchControl v-if="tabId" :tab-id="tabId" :disabled="sending" />
+    <WButton
+      :variant="sending ? 'danger' : 'primary'"
+      :disabled="watching"
+      class="w-24 shrink-0"
+      @click="onSend"
+    >
       {{ sending ? t("request.cancel") : t("request.send") }}
     </WButton>
   </div>

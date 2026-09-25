@@ -77,6 +77,9 @@ export const useRequestStore = defineStore("request", () => {
   /** Caminho da request ativa, relativo à raiz do workspace — para resolução de variáveis (EP-06-T05), que precisa saber a cadeia de pastas. Só leitura: renomear é feito pela árvore, não aqui. */
   const path = computed<string>(() => active.value?.path ?? "");
 
+  /** Id da aba de request ativa — o modo watch (#50) guarda a sessão por aba. */
+  const tabId = computed<string>(() => active.value?.id ?? "");
+
   const method = computed<HttpMethod>({
     get: () => active.value?.method ?? "GET",
     set: value => {
@@ -233,6 +236,7 @@ export const useRequestStore = defineStore("request", () => {
 
   return {
     path,
+    tabId,
     method,
     url,
     pathParams,

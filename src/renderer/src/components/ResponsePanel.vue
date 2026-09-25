@@ -10,10 +10,12 @@ import { describeRequestError } from "@renderer/lib/response-error";
 import { useHistoryStore } from "@renderer/stores/history";
 import { useRequestStore } from "@renderer/stores/request";
 import { useUiStore } from "@renderer/stores/ui";
+import { useWatchStore } from "@renderer/stores/watch";
 import { storeToRefs } from "pinia";
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
+import HistoryCompare from "./HistoryCompare.vue";
 import HistoryPanel from "./HistoryPanel.vue";
 import ResponseJsonTree from "./ResponseJsonTree.vue";
 import ResponseStatusBar from "./ResponseStatusBar.vue";
@@ -41,7 +43,21 @@ const MAX_DISPLAY_BYTES = 2_000_000;
 
 const { t } = useI18n();
 const store = useRequestStore();
-const { sending, lastResult, scriptRun, path } = storeToRefs(store);
+const { sending, lastResult, scriptRun, path, tabId } = storeToRefs(store);
+
+// --- Watch (ClickLocal #50) ----------------------------------------------------------
+const watchStore = useWatchStore();
+const watchSession = computed(() => watchStore.sessionFor(tabId.value));
+const watchStatusText = computed(() => {
+  const session = watchSession.value;
+  if (!session) return "";
+  return session.running
+    ? t("watch.tabRunning", { count: session.iteration })
+    : t("watch.tabStopped", {
+        reason: t(`watch.reason.${session.stopReason ?? "user"}`),
+        count: session.iteration,
+      });
+});
 
 // --- Layout (EP-08.1-T05) --------------------------------------------------------------
 // Lateralizado dá pouca largura ao painel de resposta — status/tempo/tamanho/Copy/Save
@@ -136,7 +152,7 @@ const cookies = computed(() => {
     .map(h => parseSetCookieHeader(h.value));
 });
 
-const mainTab = ref<"error" | "body" | "headers" | "cookies" | "history" | "tests">(
+const mainTab = ref<"error" | "body" | "headers" | "cookies" | "history" | "tests" | "watch">(
   failureResult.value ? "error" : "body",
 );
 const mainTabs = computed(() => {
@@ -171,6 +187,13 @@ const mainTabs = computed(() => {
       warning: failedAssertionCount.value > 0,
     });
   }
+  if (watchSession.value) {
+    tabs.push({
+      value: "watch",
+      label: t("watch.tab"),
+      count: watchSession.value.iteration,
+    });
+  }
   return tabs;
 });
 
@@ -185,7 +208,7 @@ watch(mainTabs, tabs => {
 // Uma falha nova (ou a do histórico ao reabrir o app) abre direto na aba Erro — pelo mesmo
 // motivo do watcher de `successResult` abaixo: sem isso ela ficaria atrás da aba History.
 watch(failureResult, result => {
-  if (result) mainTab.value = "error";
+  if (result && !watchSession.value?.running) mainTab.value = "error";
 });
 
 const bodyViewMode = ref<"pretty" | "raw" | "preview" | "tree">("pretty");
@@ -211,6 +234,9 @@ const bodyViewOptions = computed(() => {
 // tinha motivo pra mexer nela.
 watch(successResult, result => {
   if (!result) return;
+  // Durante um watch cada iteração traz uma resposta nova — mexer nas abas/visões a cada
+  // uma tiraria o usuário do que ele escolheu olhar (#50).
+  if (watchSession.value?.running) return;
   bodyViewMode.value =
     isImage(contentType.value) || isPdf(contentType.value) ? "preview" : "pretty";
   mainTab.value = "body";
@@ -401,7 +427,7 @@ async function saveBody(): Promise<void> {
     </WEmptyState>
 
     <WEmptyState
-      v-else-if="sending"
+      v-else-if="sending && !(watchSession?.running && lastResult)"
       :title="t('response.sending.title')"
       :description="t('response.sending.description')"
     >
@@ -617,6 +643,34 @@ async function saveBody(): Promise<void> {
         :entries="historyEntries"
         @clear="onClearHistory"
       />
+
+      <div
+        v-else-if="mainTab === 'watch' && watchSession"
+        class="flex min-h-0 flex-1 flex-col"
+        data-testid="watch-panel"
+      >
+        <p
+          class="shrink-0 border-b border-subtle px-3 py-1.5 font-inter text-xs text-muted"
+          data-testid="watch-status"
+        >
+          {{ watchStatusText }}
+          <template v-if="watchSession.changeCount !== null">
+            ·
+            {{
+              watchSession.changeCount > 0
+                ? t("watch.changes", { count: watchSession.changeCount })
+                : t("watch.noChanges")
+            }}
+          </template>
+        </p>
+        <HistoryCompare
+          v-if="watchSession.previous && watchSession.current"
+          hide-back
+          :before="watchSession.previous"
+          :after="watchSession.current"
+        />
+        <p v-else class="p-3 font-inter text-sm text-muted">{{ t("watch.waiting") }}</p>
+      </div>
 
       <ScriptResultsPanel
         v-else-if="mainTab === 'tests'"

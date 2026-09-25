@@ -13,6 +13,7 @@ import { useMenuStore } from "@renderer/stores/menu";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useSettingsStore } from "@renderer/stores/settings";
 import { useUiStore } from "@renderer/stores/ui";
+import { useWatchStore } from "@renderer/stores/watch";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, ref, useTemplateRef } from "vue";
 import { useI18n } from "vue-i18n";
@@ -27,6 +28,13 @@ const ui = useUiStore();
 const requestTabs = useRequestTabsStore();
 const git = useGitStore();
 const changes = useChangesStore();
+const watchStore = useWatchStore();
+
+/** Watch ativo (#50) — clicar leva à primeira aba observada. */
+function jumpToWatched(): void {
+  const first = watchStore.runningIds[0];
+  if (first) requestTabs.activate(first);
+}
 
 /** Branch atual (ClickLocal #51) — HEAD destacado aparece como o hash curto. */
 const gitBranchLabel = computed(() => {
@@ -193,6 +201,17 @@ function openBranchPicker(): void {
     >
       <WIcon name="settings" size="3.5" />
       {{ t("status.manage") }}
+    </button>
+    <button
+      v-if="watchStore.runningIds.length > 0"
+      type="button"
+      class="flex items-center gap-1 text-accent hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      :title="t('watch.statusBarTitle')"
+      data-testid="status-watching"
+      @click="jumpToWatched"
+    >
+      <WIcon name="eye" size="3.5" />
+      {{ t("watch.statusBar", { count: watchStore.runningIds.length }) }}
     </button>
     <span
       v-if="scriptSummary"
