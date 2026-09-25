@@ -116,7 +116,14 @@ export const responseEn = {
   },
   watch: {
     watch: "Watch",
-    watchOptions: "Watch options",
+    watchOptions: "Send options",
+    mode: {
+      label: "Send mode",
+      send: "Send",
+      sendHint: "Send once",
+      watch: "Watch",
+      watchHint: "Repeat, compare and stop on a condition",
+    },
     stop: "Stop",
     running: "Stop · {count}",
     inFlightHint: "Request in flight",

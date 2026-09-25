@@ -30,7 +30,7 @@ function onChange(event: Event): void {
 
 <template>
   <div
-    class="relative flex h-8 items-center rounded-md border border-subtle bg-surface-2 pl-2 pr-1 transition-colors focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
+    class="relative flex h-8 items-center rounded-md border border-subtle bg-surface-2 pl-2 pr-1 transition-colors focus-within:border-strong focus-within:ring-1 focus-within:ring-inset focus-within:ring-focus"
     :class="{ 'pointer-events-none opacity-50': disabled }"
   >
     <select

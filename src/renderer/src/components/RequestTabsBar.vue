@@ -67,24 +67,12 @@ const tabContextMenuItems = computed<ContextMenuItem[]>(() => {
   ];
   const tab = tabs.tabs.find(candidate => candidate.id === target.id);
   if (isRequestTab(tab)) {
-    items.push(
-      {
-        label: t("codegen.copyAsCurl"),
-        icon: "terminal",
-        separatorBefore: true,
-        action: () => void tabs.copyAsCurl(tab.path),
-      },
-      {
-        label: t("codegen.copyAsCurlWithSecrets"),
-        icon: "shield-alert",
-        action: () => void tabs.copyAsCurl(tab.path, true),
-      },
-      {
-        label: t("codegen.generate"),
-        icon: "code",
-        action: () => codegen.open(tab.path),
-      },
-    );
+    items.push({
+      label: t("codegen.generate"),
+      icon: "code",
+      separatorBefore: true,
+      action: () => codegen.open(tab.path),
+    });
   }
   return items;
 });

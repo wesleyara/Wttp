@@ -125,7 +125,14 @@ export const responsePtBR: typeof responseEn = {
   },
   watch: {
     watch: "Watch",
-    watchOptions: "Opções do watch",
+    watchOptions: "Opções de envio",
+    mode: {
+      label: "Modo de envio",
+      send: "Enviar",
+      sendHint: "Envia uma vez",
+      watch: "Watch",
+      watchHint: "Repete, compara e para numa condição",
+    },
     stop: "Parar",
     running: "Parar · {count}",
     inFlightHint: "Requisição em andamento",

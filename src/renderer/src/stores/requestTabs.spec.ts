@@ -1045,14 +1045,7 @@ describe("useRequestTabsStore", () => {
     });
   });
 
-  describe("copyAsCurl (ClickLocal #44)", () => {
-    const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
-
-    beforeEach(() => {
-      writeText.mockClear();
-      vi.stubGlobal("navigator", { clipboard: { writeText } });
-    });
-
+  describe("codegenInputFor (ClickLocal #44/#46)", () => {
     function resolvedWith(
       overrides: Record<string, unknown>,
     ): Awaited<ReturnType<typeof resolveRequest>> {
@@ -1069,7 +1062,7 @@ describe("useRequestTabsStore", () => {
       } as Awaited<ReturnType<typeof resolveRequest>>;
     }
 
-    it("copies the open tab's unsaved state, resolved like send(), with auth masked", async () => {
+    it("uses the open tab's unsaved state, resolved like send(), without sending", async () => {
       const tabs = useRequestTabsStore();
       await tabs.openPinned("a.req.yaml");
       const tab = tabs.active;
@@ -1077,33 +1070,26 @@ describe("useRequestTabsStore", () => {
       tab.url = "https://example.com/edited";
       resolveRequest.mockResolvedValueOnce(resolvedWith({ url: "https://example.com/edited" }));
 
-      await tabs.copyAsCurl("a.req.yaml");
+      const input = await tabs.codegenInputFor("a.req.yaml");
 
       expect(resolveRequest.mock.calls[0][0].request.url).toBe("https://example.com/edited");
       expect(httpSend).not.toHaveBeenCalled();
-      const command = writeText.mock.calls[0][0];
-      expect(command).toContain("'https://example.com/edited'");
-      expect(command).toContain("Authorization: Bearer ****");
-      expect(command).not.toContain("s3cr3t");
-      expect(useToastStore().items.at(-1)).toMatchObject({
-        message: "Copied as cURL",
-        variant: "success",
-      });
+      expect(input?.request.url).toBe("https://example.com/edited");
+      expect(input?.request.auth).toEqual({ type: "bearer", bearer: { token: "s3cr3t" } });
     });
 
-    it("copies the real values only with the explicit with-secrets action", async () => {
+    it("reads the file from disk when the request isn't open in a tab", async () => {
       resolveRequest.mockResolvedValueOnce(resolvedWith({}));
       const tabs = useRequestTabsStore();
 
-      // Não aberta em aba: lê do disco (menu de contexto da árvore).
-      await tabs.copyAsCurl("a.req.yaml", true);
+      const input = await tabs.codegenInputFor("a.req.yaml");
 
       expect(nodeRead).toHaveBeenCalledWith({ root: ROOT, path: "a.req.yaml" });
       expect(tabs.tabs).toHaveLength(0);
-      expect(writeText.mock.calls[0][0]).toContain("Authorization: Bearer s3cr3t");
+      expect(input?.request.method).toBe("GET");
     });
 
-    it("masks secret environment variables wherever they appear", async () => {
+    it("reports the values of secret environment variables that were used", async () => {
       const environment = useEnvironmentStore();
       environment.items = [
         {
@@ -1116,20 +1102,14 @@ describe("useRequestTabsStore", () => {
         },
       ];
       environment.setActive("environments/dev.yaml");
-      resolveRequest.mockResolvedValueOnce(
-        resolvedWith({
-          auth: { type: "none" },
-          headers: [{ name: "X-Token", value: "s3cr3t", enabled: true }],
-        }),
-      );
-      const tabs = useRequestTabsStore();
+      resolveRequest.mockResolvedValueOnce(resolvedWith({ auth: { type: "none" } }));
 
-      await tabs.copyAsCurl("a.req.yaml");
+      const input = await useRequestTabsStore().codegenInputFor("a.req.yaml");
 
-      expect(writeText.mock.calls[0][0]).toContain("--header 'X-Token: ****'");
+      expect(input?.secrets).toEqual(["s3cr3t"]);
     });
 
-    it("keeps unresolved {{var}} literal and warns in the toast", async () => {
+    it("keeps unresolved {{var}} literal and lists them", async () => {
       resolveRequest.mockResolvedValueOnce(
         resolvedWith({
           url: "https://example.com/users/{{userId}}",
@@ -1137,15 +1117,11 @@ describe("useRequestTabsStore", () => {
           unresolved: ["userId"],
         }),
       );
-      const tabs = useRequestTabsStore();
 
-      await tabs.copyAsCurl("a.req.yaml");
+      const input = await useRequestTabsStore().codegenInputFor("a.req.yaml");
 
-      expect(writeText.mock.calls[0][0]).toContain("/users/{{userId}}");
-      expect(useToastStore().items.at(-1)).toMatchObject({
-        message: "Copied as cURL — unresolved variables left as-is: userId",
-        variant: "warning",
-      });
+      expect(input?.request.url).toContain("/users/{{userId}}");
+      expect(input?.unresolved).toEqual(["userId"]);
     });
   });
 

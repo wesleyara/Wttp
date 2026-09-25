@@ -186,7 +186,7 @@ const LINE_PREFIX: Record<string, string> = { same: " ", added: "+", removed: "â
           <textarea
             v-model="commitMessage"
             rows="3"
-            class="w-full resize-y rounded-md border border-subtle bg-surface-2 px-2 py-1.5 font-inter text-sm text-1 placeholder:text-faint focus-visible:border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            class="w-full resize-y rounded-md border border-subtle bg-surface-2 px-2 py-1.5 font-inter text-sm text-1 placeholder:text-faint focus-visible:border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
             :placeholder="t('changes.commitPlaceholder')"
             :aria-label="t('changes.commitPlaceholder')"
             data-testid="commit-message"

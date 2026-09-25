@@ -159,7 +159,7 @@ const selectedContentType = computed(() => {
           <button
             v-if="index === 0 && entries.length > 1"
             type="button"
-            class="mr-1 flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            class="mr-1 flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
             :title="t('history.compare.withPrevious')"
             :aria-label="t('history.compare.withPrevious')"
             data-testid="history-compare-previous"

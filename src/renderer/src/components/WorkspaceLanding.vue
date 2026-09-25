@@ -161,7 +161,7 @@ function onOpenImportModal(): void {
         <span>{{ t("landing.noRootFolder") }}</span>
         <button
           type="button"
-          class="text-accent hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          class="text-accent hover:text-accent-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
           @click="emit('open-preferences')"
         >
           {{ t("landing.setIt") }}
@@ -178,7 +178,7 @@ function onOpenImportModal(): void {
             :key="entry.path"
             tabindex="0"
             role="button"
-            class="flex cursor-pointer items-center justify-between gap-3 px-3 py-2 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            class="flex cursor-pointer items-center justify-between gap-3 px-3 py-2 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
             :class="{ 'opacity-60': !entry.valid }"
             @click="onOpenRecent(entry.path)"
             @keydown.enter="onOpenRecent(entry.path)"
@@ -202,7 +202,7 @@ function onOpenImportModal(): void {
             :key="entry.path"
             tabindex="0"
             role="button"
-            class="flex cursor-pointer items-center justify-between gap-3 px-3 py-2 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            class="flex cursor-pointer items-center justify-between gap-3 px-3 py-2 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
             @click="entry.missing ? undefined : onOpenRecent(entry.path)"
             @keydown.enter="entry.missing ? undefined : onOpenRecent(entry.path)"
           >

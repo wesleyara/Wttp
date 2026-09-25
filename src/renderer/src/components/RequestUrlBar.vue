@@ -9,19 +9,16 @@ import { useVariablesStore } from "@renderer/stores/variables";
 import { useWatchStore } from "@renderer/stores/watch";
 import { storeToRefs } from "pinia";
 import { computed, ref, useTemplateRef } from "vue";
-import { useI18n } from "vue-i18n";
 
-import WatchControl from "./WatchControl.vue";
-import WButton from "./WButton.vue";
+import SendControl from "./SendControl.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WIcon from "./WIcon.vue";
 import WMethodPicker from "./WMethodPicker.vue";
 
-const { t } = useI18n();
 const store = useRequestStore();
 const { method, url, pathParams, query, sending, path } = storeToRefs(store);
 const tabId = computed(() => store.tabId);
-const watching = computed(() => useWatchStore().sessionFor(tabId.value)?.running === true);
+const watchStore = useWatchStore();
 const variablesStore = useVariablesStore();
 
 // Realce/tooltip/autocomplete de `{{var}}` na URL (EP-06.1) — mesmo motor do body,
@@ -55,6 +52,8 @@ function onMethodChange(next: string): void {
 useUrlQuerySync(url, query, pathParams);
 
 function onSend(): void {
+  // Enter na URL bar durante um watch não dispara um envio paralelo à sessão.
+  if (watchStore.sessionFor(tabId.value)?.running) return;
   if (sending.value) {
     store.cancel();
   } else {
@@ -84,7 +83,7 @@ function onPasteUrl(event: ClipboardEvent): void {
     <button
       ref="methodTrigger"
       type="button"
-      class="flex h-8 w-28 shrink-0 items-center rounded-md border border-subtle bg-surface-2 pl-2 pr-1 transition-colors hover:border-strong focus-visible:border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1"
+      class="flex h-8 w-28 shrink-0 items-center rounded-md border border-subtle bg-surface-2 pl-2 pr-1 transition-colors hover:border-strong focus-visible:border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       @click="openMethodPicker"
     >
       <span class="flex-1 text-left font-mono text-sm font-medium" :class="methodToken(method)">
@@ -118,14 +117,12 @@ function onPasteUrl(event: ClipboardEvent): void {
         @paste.capture="onPasteUrl"
       />
     </div>
-    <WatchControl v-if="tabId" :tab-id="tabId" :disabled="sending" />
-    <WButton
-      :variant="sending ? 'danger' : 'primary'"
-      :disabled="watching"
-      class="w-24 shrink-0"
-      @click="onSend"
-    >
-      {{ sending ? t("request.cancel") : t("request.send") }}
-    </WButton>
+    <SendControl
+      v-if="tabId"
+      :tab-id="tabId"
+      :sending="sending"
+      @send="onSend"
+      @cancel="store.cancel"
+    />
   </div>
 </template>

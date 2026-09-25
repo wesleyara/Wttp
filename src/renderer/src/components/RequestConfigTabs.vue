@@ -517,7 +517,7 @@ useAutoContentType(body, headers);
             v-if="index < multipartEntries.length"
             type="button"
             :aria-label="t('request.removeRow')"
-            class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
             @click="removeMultipartRow(index)"
           >
             <WIcon name="x" />

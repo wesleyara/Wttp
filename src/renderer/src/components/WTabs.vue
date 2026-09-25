@@ -56,7 +56,7 @@ function onKeydown(event: KeyboardEvent): void {
         type="button"
         :aria-selected="tab.value === modelValue"
         :tabindex="tab.value === modelValue ? 0 : -1"
-        class="relative flex h-8 shrink-0 items-center whitespace-nowrap rounded-t-md px-3 font-inter text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-2"
+        class="relative flex h-8 shrink-0 items-center whitespace-nowrap rounded-t-md px-3 font-inter text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
         :class="
           tab.value === modelValue
             ? 'bg-surface-3 text-1'

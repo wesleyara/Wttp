@@ -71,6 +71,17 @@ export const useWatchStore = defineStore("watch", () => {
   // não precisa tornar cada byte reativo.
   const sessions = shallowRef<Record<string, WatchSession>>({});
   const controllers = new Map<string, Controller>();
+  /** Modo do botão de envio por aba (#62): Send ou Watch. Só em memória, como a configuração. */
+  const modes = shallowRef<Record<string, "send" | "watch">>({});
+
+  function modeFor(tabId: string): "send" | "watch" {
+    return modes.value[tabId] ?? "send";
+  }
+
+  function setMode(tabId: string, mode: "send" | "watch"): void {
+    modes.value = { ...modes.value, [tabId]: mode };
+  }
+
   /** Última configuração usada por aba — o botão "Watch" recomeça com ela. */
   const configs = new Map<string, WatchConfig>();
 
@@ -253,5 +264,15 @@ export const useWatchStore = defineStore("watch", () => {
     },
   );
 
-  return { sessions, runningIds, sessionFor, configFor, saveConfig, start, stop };
+  return {
+    sessions,
+    runningIds,
+    sessionFor,
+    configFor,
+    saveConfig,
+    modeFor,
+    setMode,
+    start,
+    stop,
+  };
 });

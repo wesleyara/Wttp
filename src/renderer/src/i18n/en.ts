@@ -93,8 +93,6 @@ export const en = {
     },
   },
   codegen: {
-    copyAsCurl: "Copy as cURL",
-    copyAsCurlWithSecrets: "Copy as cURL (with secrets)",
     generate: "Generate code…",
     title: "Generate code",
     languages: {

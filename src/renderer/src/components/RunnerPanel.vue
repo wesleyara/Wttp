@@ -242,7 +242,7 @@ function resultIconClass(result: RunRequestResult): string {
             </span>
             <button
               type="button"
-              class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-2 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-30"
+              class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-2 hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus disabled:opacity-30"
               :disabled="running || index === 0"
               :aria-label="t('runner.moveUp', { name: item.name })"
               @click="runner.move(index, index - 1)"
@@ -251,7 +251,7 @@ function resultIconClass(result: RunRequestResult): string {
             </button>
             <button
               type="button"
-              class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-2 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-30"
+              class="flex size-6 shrink-0 items-center justify-center rounded text-faint hover:bg-surface-2 hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus disabled:opacity-30"
               :disabled="running || index === items.length - 1"
               :aria-label="t('runner.moveDown', { name: item.name })"
               @click="runner.move(index, index + 1)"
@@ -342,7 +342,7 @@ function resultIconClass(result: RunRequestResult): string {
             >
               <button
                 type="button"
-                class="flex h-7 w-full items-center gap-2 rounded-md px-1 text-left hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                class="flex h-7 w-full items-center gap-2 rounded-md px-1 text-left hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
                 :aria-expanded="expanded.has(resultKey(result))"
                 @click="toggleExpanded(result)"
               >

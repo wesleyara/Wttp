@@ -203,7 +203,7 @@ async function onRestoreDefaults(): Promise<void> {
           type="button"
           :aria-selected="section.id === activeSection"
           :tabindex="section.id === activeSection ? 0 : -1"
-          class="flex items-center gap-2 rounded-md px-2 py-1.5 text-left font-inter text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          class="flex items-center gap-2 rounded-md px-2 py-1.5 text-left font-inter text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
           :class="
             section.id === activeSection
               ? 'bg-surface-3 text-1'

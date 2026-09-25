@@ -236,7 +236,7 @@ const showManualOverrideWarning = computed(
     <div v-else-if="authType === 'bearer'" class="flex flex-col gap-1">
       <label class="px-1 font-inter text-xs font-medium text-faint">{{ t("auth.token") }}</label>
       <div
-        class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
+        class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-1 focus-within:ring-inset focus-within:ring-focus"
       >
         <WCodeEditor
           :model-value="bearerToken"
@@ -278,7 +278,7 @@ const showManualOverrideWarning = computed(
           t("auth.password")
         }}</label>
         <div
-          class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
+          class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-1 focus-within:ring-inset focus-within:ring-focus"
         >
           <WCodeEditor
             :model-value="basicPassword"
@@ -301,7 +301,7 @@ const showManualOverrideWarning = computed(
         <div class="flex flex-1 flex-col gap-1">
           <label class="px-1 font-inter text-xs font-medium text-faint">{{ t("auth.key") }}</label>
           <div
-            class="flex h-8 items-center rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
+            class="flex h-8 items-center rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-1 focus-within:ring-inset focus-within:ring-focus"
           >
             <input
               :value="props.modelValue.type === 'apikey' ? props.modelValue.apikey.key : ''"
@@ -327,7 +327,7 @@ const showManualOverrideWarning = computed(
       <div class="flex flex-col gap-1">
         <label class="px-1 font-inter text-xs font-medium text-faint">{{ t("auth.value") }}</label>
         <div
-          class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1"
+          class="flex h-8 items-center gap-1.5 rounded-md border border-subtle bg-surface-2 px-2 focus-within:border-strong focus-within:ring-1 focus-within:ring-inset focus-within:ring-focus"
         >
           <WCodeEditor
             :model-value="apikeyValue"

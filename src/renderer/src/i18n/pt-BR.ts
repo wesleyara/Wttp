@@ -94,8 +94,6 @@ export const ptBR: MessageSchema = {
     },
   },
   codegen: {
-    copyAsCurl: "Copiar como cURL",
-    copyAsCurlWithSecrets: "Copiar como cURL (com segredos)",
     generate: "Gerar código…",
     title: "Gerar código",
     languages: {

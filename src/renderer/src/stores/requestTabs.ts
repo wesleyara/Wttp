@@ -1,3 +1,4 @@
+import type { CurlRequest } from "@renderer/lib/codegen/curl";
 import type {
   AuthConfig,
   FolderFile,
@@ -19,7 +20,6 @@ import type {
 } from "@shared";
 
 import { i18n } from "@renderer/i18n";
-import { type CurlRequest, toCurl } from "@renderer/lib/codegen/curl";
 import { suggestedFileName } from "@renderer/lib/content-type";
 import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/scriptChain";
 import { useEnvironmentStore } from "@renderer/stores/environment";
@@ -1269,38 +1269,6 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     };
   }
 
-  /**
-   * "Copy as cURL" (ClickLocal #44) da request em `path`: a aba aberta, com edições
-   * ainda não salvas, ou o arquivo em disco quando ela não está aberta (menu da
-   * árvore). Resolve pelo mesmo caminho de `send()`, sem rodar scripts de pre-request
-   * — eles podem ter efeito colateral (gravar variável, gerar token) e copiar não é
-   * enviar. Segredos e auth saem mascarados, a não ser com `withSecrets`.
-   */
-  async function copyAsCurl(path: string, withSecrets = false): Promise<void> {
-    const input = await codegenInputFor(path);
-    if (!input) return;
-    const command = toCurl(input.request, { maskSecrets: !withSecrets, secrets: input.secrets });
-
-    try {
-      await navigator.clipboard.writeText(command);
-    } catch {
-      toast.push(i18n.global.t("toast.curlCopyFailed"), "error");
-      return;
-    }
-
-    if (input.unresolved.length > 0) {
-      toast.push(
-        i18n.global.t("toast.curlCopiedUnresolved", { names: input.unresolved.join(", ") }),
-        "warning",
-      );
-    } else {
-      toast.push(
-        i18n.global.t(withSecrets ? "toast.curlCopiedWithSecrets" : "toast.curlCopied"),
-        "success",
-      );
-    }
-  }
-
   function cancelSendUnresolved(): void {
     unresolvedSendId.value = null;
     unresolvedSendNames.value = [];
@@ -1435,7 +1403,6 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     recordWatchIteration,
     preRequestScriptCount,
     cancelTab,
-    copyAsCurl,
     codegenInputFor,
     cancel,
     saveResponseToFile,

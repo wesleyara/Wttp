@@ -87,7 +87,7 @@ onBeforeUnmount(() => previouslyFocused?.focus());
             v-if="size !== 'md'"
             type="button"
             :title="t('base.close')"
-            class="rounded text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            class="rounded text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
             @click="close"
           >
             <WIcon name="x" size="4" />

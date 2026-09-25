@@ -33,7 +33,7 @@ function onInput(event: Event): void {
 
 const wrapperClasses = computed(() => [
   "flex h-8 items-center gap-1.5 rounded-md border bg-surface-2 px-2 transition-colors",
-  "focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2 focus-within:ring-offset-surface-1",
+  "focus-within:ring-1 focus-within:ring-inset focus-within:ring-focus",
   props.error ? "border-status-5xx" : "border-subtle focus-within:border-strong",
   props.disabled ? "pointer-events-none opacity-50" : "",
 ]);

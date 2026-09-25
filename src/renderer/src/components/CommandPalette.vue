@@ -100,20 +100,6 @@ const commands = computed<CommandEntry[]>(() => {
     ...always,
     {
       kind: "command",
-      id: "copy-as-curl",
-      name: t("codegen.copyAsCurl"),
-      icon: "terminal",
-      run: () => void tabs.copyAsCurl(active.path),
-    },
-    {
-      kind: "command",
-      id: "copy-as-curl-secrets",
-      name: t("codegen.copyAsCurlWithSecrets"),
-      icon: "shield-alert",
-      run: () => void tabs.copyAsCurl(active.path, true),
-    },
-    {
-      kind: "command",
       id: "generate-code",
       name: t("codegen.generate"),
       icon: "code",

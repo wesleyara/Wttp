@@ -169,23 +169,11 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
     );
   }
   if (node.kind === "request") {
-    items.push(
-      {
-        label: t("codegen.copyAsCurl"),
-        icon: "terminal",
-        action: () => void requestTabs.copyAsCurl(node.path),
-      },
-      {
-        label: t("codegen.copyAsCurlWithSecrets"),
-        icon: "shield-alert",
-        action: () => void requestTabs.copyAsCurl(node.path, true),
-      },
-      {
-        label: t("codegen.generate"),
-        icon: "code",
-        action: () => codegen.open(node.path),
-      },
-    );
+    items.push({
+      label: t("codegen.generate"),
+      icon: "code",
+      action: () => codegen.open(node.path),
+    });
   }
   if (git.repository) {
     items.push({

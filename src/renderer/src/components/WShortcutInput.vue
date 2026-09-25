@@ -54,7 +54,7 @@ function onKeydown(event: KeyboardEvent): void {
   <div class="flex items-center gap-1.5">
     <button
       type="button"
-      class="flex h-8 min-w-32 items-center justify-center gap-1.5 rounded-md border border-subtle bg-surface-3 px-2 font-mono text-xs text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex h-8 min-w-32 items-center justify-center gap-1.5 rounded-md border border-subtle bg-surface-3 px-2 font-mono text-xs text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :class="recording ? 'border-accent text-accent' : 'hover:border-strong'"
       @click="startRecording"
       @keydown="onKeydown"

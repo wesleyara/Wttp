@@ -56,6 +56,7 @@ test("watches until a JSON field matches and records one history entry", async (
     await fillCodeMirror(window, requestUrlEditor(window), `${server.url}/job`);
 
     await window.getByTestId("watch-options").click();
+    await window.getByTestId("send-mode-watch").click();
     await window.getByTestId("watch-interval").locator("input").fill("1");
     await window.getByTestId("watch-until").selectOption("json");
     await window.getByTestId("watch-json-path").locator("input").fill("$.job.status");
@@ -99,6 +100,7 @@ test("respects the attempt limit and Stop cancels the request in flight", async 
     await fillCodeMirror(window, requestUrlEditor(window), `${server.url}/job`);
 
     await window.getByTestId("watch-options").click();
+    await window.getByTestId("send-mode-watch").click();
     await window.getByTestId("watch-interval").locator("input").fill("1");
     await window.getByTestId("watch-until").selectOption("status");
     await window.getByTestId("watch-status").locator("input").fill("404");
@@ -110,10 +112,10 @@ test("respects the attempt limit and Stop cancels the request in flight", async 
 
     // Stop com uma request pendurada: o servidor nunca responde a `/slow`.
     await fillCodeMirror(window, requestUrlEditor(window), `${server.url}/slow`);
-    await window.getByTestId("watch-start").click();
+    await window.getByTestId("send-main").click();
     await expect(window.getByTestId("watch-stop")).toBeVisible();
     await window.getByTestId("watch-stop").click();
-    await expect(window.getByTestId("watch-start")).toBeVisible({ timeout: 5000 });
+    await expect(window.getByTestId("send-main")).toBeVisible({ timeout: 5000 });
     await expect(window.getByTestId("status-watching")).toHaveCount(0);
   } finally {
     await server.close();
@@ -137,7 +139,10 @@ test("warns before repeating a pre-request script", async ({ window, workspacesR
       'console.log("hi");',
     );
 
-    await window.getByTestId("watch-start").click();
+    await window.getByTestId("watch-options").click();
+    await window.getByTestId("send-mode-watch").click();
+    await window.keyboard.press("Escape");
+    await window.getByTestId("send-main").click();
     await expect(window.getByText("Pre-request scripts will repeat")).toBeVisible();
     expect(server.hits()).toBe(0);
     await window.getByTestId("watch-preRequest-confirm").click();

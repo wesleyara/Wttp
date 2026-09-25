@@ -30,7 +30,7 @@ const sizeClasses: Record<NonNullable<typeof props.size>, string> = {
 
 const classes = computed(() => [
   "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-inter font-medium transition-colors",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus",
   "disabled:pointer-events-none disabled:opacity-50",
   variantClasses[props.variant],
   sizeClasses[props.size],

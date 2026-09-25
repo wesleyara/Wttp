@@ -133,7 +133,7 @@ function openBranchPicker(): void {
     <span>{{ workspace.tree?.data?.name ?? t("status.noWorkspace") }}</span>
     <button
       type="button"
-      class="flex items-center text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.switchWorkspace')"
       @click="workspace.close"
     >
@@ -145,7 +145,7 @@ function openBranchPicker(): void {
         <button
           ref="branchTrigger"
           type="button"
-          class="-mx-1 flex items-center gap-1 rounded px-1 text-1 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          class="-mx-1 flex items-center gap-1 rounded px-1 text-1 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
           :title="t('git.branchTooltip', { root: git.repository.root })"
           :aria-expanded="branchPickerOpen"
           data-testid="git-branch"
@@ -157,7 +157,7 @@ function openBranchPicker(): void {
         <button
           v-if="git.files.length"
           type="button"
-          class="-ml-2 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          class="-ml-2 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
           :title="t('changes.showChanges')"
           data-testid="git-changes"
           @click="changes.open()"
@@ -168,7 +168,7 @@ function openBranchPicker(): void {
       <button
         v-else-if="git.available && workspace.ready"
         type="button"
-        class="-mx-1 flex items-center gap-1 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        class="-mx-1 flex items-center gap-1 rounded px-1 text-faint hover:bg-surface-3 hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
         :title="t('git.noRepositoryTooltip')"
         data-testid="git-no-repo"
         @click="changes.open()"
@@ -181,7 +181,7 @@ function openBranchPicker(): void {
     <button
       ref="environmentTrigger"
       type="button"
-      class="-mx-1 flex items-center gap-1 rounded px-1 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="-mx-1 flex items-center gap-1 rounded px-1 hover:bg-surface-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :class="
         environment.items.find(i => i.path === environment.activePath && isProduction(i.data.name))
           ? 'font-semibold text-status-5xx'
@@ -195,7 +195,7 @@ function openBranchPicker(): void {
     </button>
     <button
       type="button"
-      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.manageEnvironments')"
       @click="emit('open-environment-editor')"
     >
@@ -205,7 +205,7 @@ function openBranchPicker(): void {
     <button
       v-if="watchStore.runningIds.length > 0"
       type="button"
-      class="flex items-center gap-1 text-accent hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center gap-1 text-accent hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('watch.statusBarTitle')"
       data-testid="status-watching"
       @click="jumpToWatched"
@@ -224,7 +224,7 @@ function openBranchPicker(): void {
     <span class="flex-1" role="status" aria-live="polite">{{ menu.statusMessage }}</span>
     <button
       type="button"
-      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.responsePanelPosition', { position: ui.responsePanelPosition })"
       @click="ui.toggleResponsePanelPosition"
     >
@@ -235,7 +235,7 @@ function openBranchPicker(): void {
     </button>
     <button
       type="button"
-      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.theme', { theme: t(`theme.${settings.theme}`) })"
       @click="cycleTheme"
     >
@@ -243,7 +243,7 @@ function openBranchPicker(): void {
     </button>
     <button
       type="button"
-      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.jwtTool')"
       @click="jwtToolOpen = true"
     >
@@ -251,7 +251,7 @@ function openBranchPicker(): void {
     </button>
     <button
       type="button"
-      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.documentation')"
       @click="appStore.openDocsWindow(locale === 'pt-BR' ? 'pt-BR' : 'en')"
     >
@@ -259,7 +259,7 @@ function openBranchPicker(): void {
     </button>
     <button
       type="button"
-      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.preferences')"
       @click="emit('open-preferences')"
     >
