@@ -2,7 +2,7 @@ import type { HttpRequestSpec, HttpResponseResult } from "@shared";
 
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { createSecureServer, type Http2SecureServer } from "node:http2";
+import { createSecureServer, type Http2SecureServer, type ServerHttp2Session } from "node:http2";
 import { createServer as createHttpsServer, type Server as HttpsServer } from "node:https";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -57,12 +57,23 @@ function echoHandler(req: EchoRequest, res: EchoResponse): void {
  */
 let h2Server: Http2SecureServer;
 let h2BaseUrl: string;
+/**
+ * `Http2SecureServer.close()` só emite `"close"` quando toda sessão aberta termina, e o
+ * engine mantém a sessão do cliente viva de propósito (`h2Sessions`, reaproveitada por
+ * origem) — sem destruí-las aqui, o `afterAll` espera para sempre. Em Node 24 passava por
+ * acaso (fecha sessões ociosas no `close()`); no Node 22 do CI estourava o `hookTimeout`.
+ */
+const h2ServerSessions = new Set<ServerHttp2Session>();
 
 let http1OnlyServer: HttpsServer;
 let http1OnlyBaseUrl: string;
 
 beforeAll(async () => {
   h2Server = createSecureServer({ key: KEY, cert: CERT, allowHTTP1: true }, echoHandler);
+  h2Server.on("session", session => {
+    h2ServerSessions.add(session);
+    session.once("close", () => h2ServerSessions.delete(session));
+  });
   await new Promise<void>(resolve => h2Server.listen(0, "127.0.0.1", resolve));
   const h2Address = h2Server.address();
   if (h2Address === null || typeof h2Address === "string")
@@ -78,8 +89,10 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  const closed = new Promise<void>(resolve => h2Server.once("close", () => resolve()));
   h2Server.close();
-  await new Promise<void>(resolve => h2Server.once("close", () => resolve()));
+  for (const session of h2ServerSessions) session.destroy();
+  await closed;
   http1OnlyServer.closeAllConnections();
   await new Promise<void>(resolve => http1OnlyServer.close(() => resolve()));
 });
