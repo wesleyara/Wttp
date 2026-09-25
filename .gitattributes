@@ -1,0 +1,11 @@
+# Tudo que é texto fica com LF no working tree em qualquer SO. Sem isso, o Git do Windows
+# (core.autocrlf=true por padrão, inclusive no runner do GitHub Actions) trocava LF por
+# CRLF no checkout, e os fixtures YAML deixavam de bater byte a byte com o que o
+# serializer grava (roundtrip.spec.ts) — o formato em disco do Wttp é sempre LF.
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary

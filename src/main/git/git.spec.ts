@@ -30,6 +30,9 @@ afterEach(async () => {
 async function initRepo(path: string): Promise<void> {
   await mkdir(path, { recursive: true });
   await runGit(path, ["init", "-q", "-b", "main"]);
+  // O Git do Windows vem com core.autocrlf=true e trocaria LF por CRLF em todo checkout
+  // (discard, troca de branch), quebrando as comparações byte a byte abaixo.
+  await runGit(path, ["config", "core.autocrlf", "false"]);
   await runGit(path, ["config", "user.email", "test@example.com"]);
   await runGit(path, ["config", "user.name", "Test"]);
   await runGit(path, ["config", "commit.gpgsign", "false"]);
