@@ -46,6 +46,11 @@ test("turns a clicked response value into a variable and an assertion", async ({
     await tree.getByTestId("json-tree-row").filter({ hasText: "query" }).click();
     const nameRow = tree.getByTestId("json-tree-row").filter({ hasText: "name" });
 
+    // Regressão: Escape fecha o menu de contexto (o `open` era mutado direto num shallowRef).
+    await nameRow.click({ button: "right" });
+    await window.keyboard.press("Escape");
+    await expect(window.getByRole("menu")).toHaveCount(0);
+
     await nameRow.click({ button: "right" });
     await window.getByRole("menuitem", { name: "Save to variable on every send" }).click();
     await window.getByTestId("json-tree-var-name").locator("input").fill("who");

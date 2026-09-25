@@ -101,7 +101,7 @@ function onPasteUrl(event: ClipboardEvent): void {
       @select="onMethodChange"
     />
 
-    <div class="flex-1">
+    <div class="min-w-0 flex-1">
       <WCodeEditor
         v-model="url"
         data-testid="request-url-editor"

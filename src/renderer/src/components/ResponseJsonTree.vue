@@ -86,6 +86,11 @@ const menuItems = computed<ContextMenuItem[]>(() => {
   return items;
 });
 
+// `shallowRef`: mutar `.open` direto (inclusive no template) não dispara reatividade — troca o objeto.
+function closeMenu(): void {
+  menu.value = { ...menu.value, open: false };
+}
+
 function onNodeMenu(row: TreeRow, event: MouseEvent): void {
   menu.value = { open: true, x: event.clientX, y: event.clientY, row };
 }
@@ -121,6 +126,10 @@ const modal = shallowRef({
 
 function openNameModal(mode: "variable" | "environment", row: TreeRow): void {
   modal.value = { open: true, mode, row, name: suggestVarName(row.path) };
+}
+
+function closeModal(): void {
+  modal.value = { ...modal.value, open: false };
 }
 
 const trimmedName = computed(() => modal.value.name.trim());
@@ -183,13 +192,7 @@ const valuePreview = computed(() => {
 <template>
   <JsonTreeView :data="data" @node-menu="onNodeMenu" />
 
-  <WContextMenu
-    :open="menu.open"
-    :x="menu.x"
-    :y="menu.y"
-    :items="menuItems"
-    @close="menu.open = false"
-  />
+  <WContextMenu :open="menu.open" :x="menu.x" :y="menu.y" :items="menuItems" @close="closeMenu" />
 
   <WModal
     :open="modal.open"
@@ -198,7 +201,7 @@ const valuePreview = computed(() => {
         ? t('response.tree.modal.variableTitle')
         : t('response.tree.modal.environmentTitle')
     "
-    @close="modal.open = false"
+    @close="closeModal"
   >
     <form class="flex flex-col gap-3" @submit.prevent="confirmModal">
       <p class="font-mono text-xs text-muted">
@@ -235,7 +238,7 @@ const valuePreview = computed(() => {
       <button type="submit" class="hidden" />
     </form>
     <template #footer>
-      <WButton variant="ghost" @click="modal.open = false">{{ t("common.cancel") }}</WButton>
+      <WButton variant="ghost" @click="closeModal">{{ t("common.cancel") }}</WButton>
       <WButton
         :disabled="!nameValid || noActiveEnvironment"
         data-testid="json-tree-confirm"
