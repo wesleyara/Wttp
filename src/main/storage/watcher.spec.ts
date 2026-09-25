@@ -17,9 +17,21 @@ vi.mock("node:fs", async () => {
 let root: string;
 let watcher: WorkspaceWatcher | null;
 
+/**
+ * No macOS, `fs.watch` usa FSEvents, que entrega eventos com atraso: a criação da pasta
+ * temporária e do `wttp.yaml` logo acima ainda chegam a um watcher ligado milissegundos
+ * depois, e os testes de "não emite evento" falhavam no CI (`macos-latest`) com
+ * `changedPaths: ["wttp-watcher-XXXX", "wttp.yaml"]`. Esperar esses eventos do setup
+ * assentarem antes de cada teste ligar o watcher; Linux (inotify) e Windows não têm esse
+ * atraso, então não pagam a espera.
+ */
+const FS_EVENTS_SETTLE_MS = process.platform === "darwin" ? 500 : 0;
+
 beforeEach(async () => {
   root = await fs.mkdtemp(join(tmpdir(), "wttp-watcher-"));
   await fs.writeFile(join(root, "wttp.yaml"), "wttp: 1\nname: My API\n", "utf-8");
+  if (FS_EVENTS_SETTLE_MS > 0)
+    await new Promise(resolve => setTimeout(resolve, FS_EVENTS_SETTLE_MS));
   watcher = null;
 });
 
