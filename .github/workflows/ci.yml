@@ -130,6 +130,10 @@ jobs:
 
       # e2e/*.spec.ts drive `out/main/index.js`, the production build — not
       # the dev server (EP-10-T02).
+      # language-and-docs.spec.ts abre a doc embutida (resources/docs-site, fora
+      # do git). Sem ela o botão cai no site online e nenhuma janela abre.
+      - run: yarn docs:build:offline
+
       - run: yarn build
 
       # O Electron no Linux não sobe sem um servidor gráfico, mesmo com
