@@ -35,6 +35,13 @@ concurrency:
   group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
+# O GITHUB_TOKEN deste repositório é só leitura por padrão (Settings → Actions →
+# Workflow permissions); criar o release e subir os instaladores exige escrita em
+# `contents` — sem isto o electron-builder recebe 403 "Resource not accessible by
+# integration".
+permissions:
+  contents: write
+
 env:
   NODE_VERSION: "22"
 
