@@ -132,7 +132,17 @@ jobs:
       # the dev server (EP-10-T02).
       - run: yarn build
 
-      - run: yarn test:e2e
+      # O Electron no Linux não sobe sem um servidor gráfico, mesmo com
+      # --headless=new: sem DISPLAY a janela nunca abre e cada teste espera o
+      # timeout inteiro. O xvfb dá um display virtual. O sysctl libera os user
+      # namespaces que o sandbox do Chromium usa e que o AppArmor do Ubuntu 24.04
+      # bloqueia por padrão.
+      - name: Prepare a virtual display
+        run: |
+          sudo apt-get install -y xvfb
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - run: xvfb-run --auto-servernum yarn test:e2e
 
       - if: always()
         uses: actions/upload-artifact@v4

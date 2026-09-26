@@ -24,7 +24,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   resetGitDetectionForTests();
-  await rm(dir, { recursive: true, force: true });
+  await rm(dir, { recursive: true, force: true, maxRetries: 5 });
 });
 
 async function initRepo(path: string): Promise<void> {
@@ -33,6 +33,11 @@ async function initRepo(path: string): Promise<void> {
   // O Git do Windows vem com core.autocrlf=true e trocaria LF por CRLF em todo checkout
   // (discard, troca de branch), quebrando as comparações byte a byte abaixo.
   await runGit(path, ["config", "core.autocrlf", "false"]);
+  // Sem isso o git pode disparar `gc --auto`/maintenance em segundo plano depois de um
+  // commit grande e ainda estar escrevendo em `.git/objects/pack` quando o afterEach
+  // apaga a pasta (ENOTEMPTY no macOS).
+  await runGit(path, ["config", "gc.auto", "0"]);
+  await runGit(path, ["config", "maintenance.auto", "false"]);
   await runGit(path, ["config", "user.email", "test@example.com"]);
   await runGit(path, ["config", "user.name", "Test"]);
   await runGit(path, ["config", "commit.gpgsign", "false"]);
