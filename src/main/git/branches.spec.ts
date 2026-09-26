@@ -70,8 +70,12 @@ describe("checkoutBranch (ClickLocal #54)", () => {
 
     expect(await readFile(join(dir, "api", "r7.req.yaml"), "utf-8")).toBe("name: feature 7\n");
     expect((await getGitStatus(dir)).repository?.branch).toBe("feature/x");
-    expect(events).toHaveLength(1);
-    expect(events[0]).toEqual(
+    // Todos os arquivos trocados chegam num único reload. Windows e macOS às vezes
+    // entregam, depois do debounce, um evento solto só da pasta (`["api"]`, mtime do
+    // diretório) — é um rescan a mais, não um reload por arquivo, então não conta aqui.
+    const fileEvents = events.filter(paths => paths.some(path => path.endsWith(".req.yaml")));
+    expect(fileEvents).toHaveLength(1);
+    expect(fileEvents[0]).toEqual(
       expect.arrayContaining(["api/r0.req.yaml", "api/only-on-feature.req.yaml"]),
     );
   });
