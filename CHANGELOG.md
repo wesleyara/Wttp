@@ -10,6 +10,16 @@ by `yarn release <version>`; versions up to 0.3.0 were written by hand from the 
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/wesleyara/Wttp/compare/v0.3.0...v0.3.1) - 2026-09-26
+
+### Fixed
+
+- Keep a workspace file's line endings when saving it
+
+### Documentation
+
+- Point the online documentation links to wttp.vercel.app
+
 ## [0.3.0](https://github.com/wesleyara/Wttp/compare/v0.2.0...v0.3.0) - 2026-09-25
 
 Git inside the app, and a set of tools for working with responses.
