@@ -95,9 +95,11 @@ O push da tag dispara [`.github/workflows/release.yml`](../.github/workflows/rel
 
 1. `meta` confere que a versão do `package.json` bate com a tag;
 2. `quality` roda lint/typecheck/test de novo;
-3. `build` gera os instaladores de **Linux** (`.AppImage`, `.deb`) e **Windows** (`.exe`)
-   e sobe para um release **rascunho** `v0.4.0`, com um `SHA256SUMS-<SO>.txt` por sistema;
-4. `finalize` põe a seção da versão do `CHANGELOG.md` como descrição do release.
+3. `draft` cria o release **rascunho** `v0.4.0`, com a seção da versão do `CHANGELOG.md`
+   como descrição — uma vez só, antes dos builds, para os sistemas não criarem um
+   rascunho cada um em paralelo;
+4. `build` gera os instaladores de **Linux** (`.AppImage`, `.deb`) e **Windows** (`.exe`)
+   e sobe para esse rascunho, com um `SHA256SUMS-<SO>.txt` por sistema.
 
 Falhou? Corrija na `develop` com um commit normal; se o release ainda não foi publicado,
 mova a tag para o commit novo (`git tag -f -a v0.4.0 -m v0.4.0` e
