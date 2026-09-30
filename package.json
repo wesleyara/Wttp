@@ -41,7 +41,9 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "docs:build:offline": "node scripts/build-docs-offline.mjs",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "release:amend": "node scripts/release-amend.mjs",
+    "release:push": "node scripts/release-push.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",

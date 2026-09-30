@@ -1,7 +1,9 @@
+import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { promisify } from "node:util";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   assertSafeRef,
@@ -14,6 +16,11 @@ import {
   resetGitDetectionForTests,
   runGit,
 } from "./git";
+
+// Cada teste aqui sobe vários processos `git` de verdade; no runner Windows do CI isso
+// passa fácil dos 5s padrão do Vitest (e o git morto no meio segura a pasta temporária,
+// dando EBUSY no afterEach).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 let dir: string;
 
@@ -48,9 +55,18 @@ async function write(path: string, contents = "x\n"): Promise<void> {
   await writeFile(path, contents);
 }
 
+const execFileAsync = promisify(execFile);
+
+/**
+ * Prepara o repositório do teste sem o timeout de 10s do `runGit` do app: com mil
+ * arquivos, `git add -A` passa disso no runner Windows do CI (antivírus escaneando cada
+ * arquivo). Estourar o timeout matava o git no meio e o `rm` do afterEach dava EBUSY.
+ * O que o teste mede é o `getGitStatus`, não esta preparação.
+ */
 async function commitAll(cwd: string, message = "c"): Promise<void> {
-  await runGit(cwd, ["add", "-A"]);
-  await runGit(cwd, ["commit", "-q", "-m", message]);
+  const options = { cwd, timeout: 120_000, windowsHide: true };
+  await execFileAsync("git", ["add", "-A"], options);
+  await execFileAsync("git", ["commit", "-q", "-m", message], options);
 }
 
 describe("parsePorcelainV2", () => {
@@ -222,7 +238,7 @@ describe("getGitStatus (ClickLocal #51)", () => {
 
     expect(status.files).toHaveLength(50);
     expect(elapsed).toBeLessThan(300);
-  }, 30_000);
+  }, 180_000);
 });
 
 const REQUEST_V1 = `wttp: 1
