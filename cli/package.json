@@ -1,6 +1,6 @@
 {
   "name": "wttp-cli",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Run Wttp collections from the terminal and in CI — the Collection Runner of the Wttp desktop app, without the app.",
   "license": "MIT",
   "author": "wesleyara",

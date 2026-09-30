@@ -10,6 +10,12 @@ by `yarn release <version>`; versions up to 0.3.0 were written by hand from the 
 
 ## [Unreleased]
 
+## [0.3.2](https://github.com/wesleyara/Wttp/compare/v0.3.1...v0.3.2) - 2026-09-30
+
+### Fixed
+
+- Adjust environment ui
+
 ## [0.3.1](https://github.com/wesleyara/Wttp/compare/v0.3.0...v0.3.1) - 2026-09-26
 
 ### Fixed
