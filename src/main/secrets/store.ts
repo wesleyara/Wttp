@@ -106,3 +106,19 @@ export async function deleteSecret(root: string, key: string): Promise<void> {
   delete file.values[key];
   await writeSecretsFile(root, file);
 }
+
+/** Renomeia chaves em bloco (`from` → `to`), preservando o valor já cifrado — usado quando o arquivo de um environment muda de `path`. */
+export async function moveSecrets(
+  root: string,
+  moves: { from: string; to: string }[],
+): Promise<void> {
+  const file = await readSecretsFile(root);
+  let changed = false;
+  for (const { from, to } of moves) {
+    if (!(from in file.values)) continue;
+    file.values[to] = file.values[from];
+    delete file.values[from];
+    changed = true;
+  }
+  if (changed) await writeSecretsFile(root, file);
+}

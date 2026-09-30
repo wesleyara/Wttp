@@ -16,6 +16,8 @@ export const modalsEn = {
     duplicate: "Duplicate",
     secretsWarning:
       'This environment has secret values — they won\'t be copied to the duplicate. Click "Duplicate" again to confirm.',
+    unsavedChanges: "Unsaved changes",
+    noChanges: "No changes to save",
     duplicateNamesOne: "Duplicate variable name: {names}",
     duplicateNamesOther: "Duplicate variable names: {names}",
   },

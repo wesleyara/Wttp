@@ -171,6 +171,8 @@ variables:
 
 Variável com `secret: true` **nunca** tem o valor gravado no YAML — o campo fica vazio e o valor real vive no keychain do SO, sob a chave `wttp:<workspaceId>:<env>:<name>`. Sem keychain disponível, o fallback é `.wttp/secrets.json`, que é gitignored.
 
+O nome do arquivo acompanha o `name` (regra 6): `dev` → `environments/dev.yaml`. Renomear o environment na UI renomeia o arquivo e migra as chaves de segredo para o novo `<env>`; o environment ativo do workspace segue o arquivo.
+
 ---
 
 ## 6. Regras invioláveis

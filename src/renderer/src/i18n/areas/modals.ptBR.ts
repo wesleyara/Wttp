@@ -18,6 +18,8 @@ export const modalsPtBR: typeof modalsEn = {
     duplicate: "Duplicar",
     secretsWarning:
       'Este environment tem valores secretos — eles não serão copiados para a cópia. Clique em "Duplicar" de novo para confirmar.',
+    unsavedChanges: "Alterações não salvas",
+    noChanges: "Nenhuma alteração para salvar",
     duplicateNamesOne: "Nome de variável duplicado: {names}",
     duplicateNamesOther: "Nomes de variável duplicados: {names}",
   },

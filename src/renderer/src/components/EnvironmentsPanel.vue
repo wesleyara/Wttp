@@ -32,6 +32,13 @@ const draftName = ref("");
 const draftVariables = ref<KeyValueRow[]>([]);
 const duplicateWarning = ref<string | null>(null);
 
+/** Foto do rascunho como foi carregado/salvo — `dirty` compara o rascunho atual com ela (card #154). */
+function snapshot(): string {
+  return JSON.stringify([draftName.value, draftVariables.value]);
+}
+const savedSnapshot = ref("");
+const dirty = computed(() => snapshot() !== savedSnapshot.value);
+
 // Não há request associada aqui, então resolve contra a raiz do workspace (sem escopo
 // de collection/pasta) — o suficiente para destacar `{{var}}` não resolvido (EP-06.1).
 const draftPath = ref("");
@@ -53,6 +60,7 @@ function loadDraft(): void {
       ...v,
       description: v.description ?? "",
     }));
+    savedSnapshot.value = snapshot();
     return;
   }
 
@@ -63,6 +71,7 @@ function loadDraft(): void {
     value: v.secret ? "" : v.value,
     description: v.description ?? "",
   }));
+  savedSnapshot.value = snapshot();
 }
 
 onMounted(async () => {
@@ -114,6 +123,7 @@ async function save(): Promise<void> {
           description: row.description || undefined,
         })),
     );
+    savedSnapshot.value = snapshot();
     return;
   }
 
@@ -123,7 +133,10 @@ async function save(): Promise<void> {
     draftName.value,
     toVariableInputs(draftVariables.value),
   );
-  if (saved) selected.value = saved.path;
+  if (!saved) return;
+  selected.value = saved.path;
+  // Recarrega do que foi gravado (valores de segredo voltam vazios) e zera o "dirty".
+  loadDraft();
 }
 
 async function createEnvironment(): Promise<void> {
@@ -189,6 +202,11 @@ async function duplicateEnvironment(): Promise<void> {
             aria-hidden="true"
           />
           <span class="truncate">{{ item.data.name }}</span>
+          <span
+            v-if="dirty && selected === item.path"
+            class="ml-auto size-1.5 shrink-0 rounded-full bg-status-4xx"
+            aria-hidden="true"
+          />
         </button>
       </div>
 
@@ -224,7 +242,23 @@ async function duplicateEnvironment(): Promise<void> {
         >
           {{ t("common.delete") }}
         </WButton>
-        <WButton size="sm" variant="primary" @click="save">{{ t("common.save") }}</WButton>
+        <span
+          v-if="dirty"
+          class="flex items-center gap-1 font-inter text-xs text-muted"
+          data-testid="env-dirty"
+        >
+          <span class="size-1.5 rounded-full bg-accent" aria-hidden="true" />
+          {{ t("environments.unsavedChanges") }}
+        </span>
+        <WButton
+          size="sm"
+          variant="primary"
+          :disabled="!dirty"
+          :title="dirty ? undefined : t('environments.noChanges')"
+          @click="save"
+        >
+          {{ t("common.save") }}
+        </WButton>
       </div>
 
       <p

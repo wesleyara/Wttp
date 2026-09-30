@@ -10,9 +10,15 @@ import type { EnvironmentFile, EnvironmentListItem, EnvironmentVariable } from "
 
 import { DomainError } from "../ipc/errors";
 import { osKeychainEncryption, type SecretEncryption } from "../secrets/encryption";
-import { deleteSecret, setSecret } from "../secrets/store";
+import { deleteSecret, moveSecrets, setSecret } from "../secrets/store";
 import { CURRENT_SCHEMA_VERSION } from "./migrations/registry";
-import { createEnvironment, deleteEnvironment, getEnvironment, writeEnvironment } from "./tree";
+import {
+  createEnvironment,
+  deleteEnvironment,
+  getEnvironment,
+  renameEnvironmentFile,
+  writeEnvironment,
+} from "./tree";
 
 /**
  * `wttp:<workspaceId>:<env>:<name>` (arch-docs/file-format.md §5) — `workspaceId` é a raiz
@@ -127,15 +133,30 @@ export async function saveEnvironment(
     throw new DomainError("ENOENT", `environment not found: "${input.path}"`, input.path);
   }
 
+  // O arquivo acompanha o `name` (card #154): renomeia antes de gravar e leva os
+  // segredos junto, já que a chave usa o `path` como segmento `<env>`.
+  const path = await renameEnvironmentFile(input.root, input.path, input.name);
+  if (path !== input.path) {
+    await moveSecrets(
+      input.root,
+      (existing.data.variables ?? [])
+        .filter(variable => variable.secret)
+        .map(variable => ({
+          from: buildSecretKey(input.root, input.path as string, variable.name),
+          to: buildSecretKey(input.root, path, variable.name),
+        })),
+    );
+  }
+
   const variables = await applySecrets(
     input.root,
-    input.path,
+    path,
     existing.data.variables,
     input.variables,
     encryption,
   );
   const data: EnvironmentFile = { ...existing.data, name: input.name, variables };
-  return writeEnvironment(input.root, input.path, data);
+  return writeEnvironment(input.root, path, data);
 }
 
 /** Apaga um environment e todos os segredos das suas variáveis `secret: true` — `deleteSecret` não precisa de `encryption`, só `setSecret`/`getSecret` (decifrar). */

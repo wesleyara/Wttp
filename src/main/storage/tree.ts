@@ -258,6 +258,33 @@ export async function writeEnvironment(
   return { path, data: environment };
 }
 
+/**
+ * Renomeia o arquivo de um environment para o slug do novo `name` (card #154) — devolve
+ * o `path` novo, ou o mesmo se o slug não mudou. Só move o arquivo; quem chama regrava
+ * o conteúdo e migra as chaves de segredo (`<env>` na chave é o `path`).
+ */
+export async function renameEnvironmentFile(
+  root: string,
+  path: string,
+  name: string,
+): Promise<string> {
+  const dir = join(root, ENVIRONMENTS_DIR);
+  const existingNames = await listEntryNames(dir);
+  existingNames.delete(path);
+  const newPath = uniqueSlugName(name, ENVIRONMENT_SUFFIX, candidate =>
+    existingNames.has(candidate),
+  );
+  if (newPath === path) return path;
+
+  const absFrom = environmentAbsPath(root, path);
+  const absTo = environmentAbsPath(root, newPath);
+  markOwnWrite(absFrom);
+  markOwnWrite(absTo);
+  await fs.rename(absFrom, absTo);
+  clearKnownMtimesUnder(absFrom);
+  return newPath;
+}
+
 /** Remove um environment — o chamador (EP-06-T02, `ipc/environment.ts`) cuida de apagar os segredos associados antes. */
 export async function deleteEnvironment(root: string, path: string): Promise<void> {
   const absPath = environmentAbsPath(root, path);
