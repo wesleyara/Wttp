@@ -321,7 +321,7 @@ versões retroativas por tag anotada — `v0.1.0` (fim do MVP), `v0.2.0` (Runner
 seções curadas à mão e as próximas geradas pelo git-cliff (`cliff.toml`) via
 `yarn release <versão>` (`scripts/release.mjs`, `scripts/changelog.mjs`). O site de docs
 mostra o mesmo arquivo em `/changelog` e `/en/changelog`; `release.yml` usa a seção da
-versão como corpo do release, builda Linux+Windows (macOS só via `workflow_dispatch`) e
+versão como corpo do release, builda Linux+Windows+macOS (os três obrigatórios) e
 tem guarda para as tags retroativas — que mesmo assim precisam ser empurradas com o Actions
 desligado, porque o push de tag roda o workflow antigo do commit taggeado. Fluxo em [arch-docs/release.md](arch-docs/release.md).
 
