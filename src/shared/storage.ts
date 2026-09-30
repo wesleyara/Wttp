@@ -92,9 +92,9 @@ export interface EnvironmentFile extends UnknownFields {
 
 /**
  * Um environment lido do disco, com o nome do arquivo em `environments/` (EP-06-T02) —
- * mesmo par `path`/`data` de `FolderNode`/`RequestNode`. `path` é fixado na criação e
- * não muda quando `data.name` é editado depois (evita ter que migrar as chaves de
- * segredo no keychain, que usam `path` como o segmento `<env>` — arch-docs/file-format.md §5).
+ * mesmo par `path`/`data` de `FolderNode`/`RequestNode`. `path` acompanha o slug de
+ * `data.name`: renomear o environment renomeia o arquivo e migra as chaves de segredo,
+ * que usam `path` como o segmento `<env>` (arch-docs/file-format.md §5).
  */
 export interface EnvironmentListItem {
   path: string;

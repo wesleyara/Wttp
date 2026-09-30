@@ -134,7 +134,7 @@ describe("saveEnvironment — atualização", () => {
     expect(stored).toBeNull();
   });
 
-  it("renomear o environment não muda o path do arquivo nem a chave do segredo", async () => {
+  it("renomear o environment renomeia o arquivo e leva o segredo para a chave nova", async () => {
     const encryption = fakeEncryption();
     const created = await saveEnvironment(
       {
@@ -155,9 +155,23 @@ describe("saveEnvironment — atualização", () => {
       encryption,
     );
 
-    expect(renamed.path).toBe(created.path);
-    const stored = await getSecret(root, `wttp:${root}:${created.path}:api_key`, encryption);
-    expect(stored).toBe("s3cr3t");
+    expect(renamed.path).toBe("development.yaml");
+    expect(await getEnvironment(root, created.path)).toBeNull();
+    expect((await getEnvironment(root, renamed.path))?.data.name).toBe("development");
+    expect(await getSecret(root, `wttp:${root}:${renamed.path}:api_key`, encryption)).toBe(
+      "s3cr3t",
+    );
+    expect(await getSecret(root, `wttp:${root}:${created.path}:api_key`, encryption)).toBeNull();
+  });
+
+  it("renomear para um nome que colide com outro arquivo usa sufixo numérico", async () => {
+    await saveEnvironment({ root, name: "prod", variables: [] });
+    const dev = await saveEnvironment({ root, name: "dev", variables: [] });
+
+    const renamed = await saveEnvironment({ root, path: dev.path, name: "prod", variables: [] });
+
+    expect(renamed.path).toBe("prod-2.yaml");
+    expect((await getEnvironment(root, "prod.yaml"))?.data.name).toBe("prod");
   });
 
   it("variável não secreta sem value explícito é rejeitada", async () => {

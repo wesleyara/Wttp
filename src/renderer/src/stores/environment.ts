@@ -89,6 +89,10 @@ export const useEnvironmentStore = defineStore("environment", () => {
         name,
         variables: unwrap(variables),
       });
+      // O arquivo acompanha o nome (card #154): se o `path` mudou, o ativo vai junto.
+      if (path !== undefined && path !== saved.path && activePath.value === path) {
+        setActive(saved.path);
+      }
       await refresh();
       error.value = null;
       toast.push(i18n.global.t("toast.saved", { name: saved.data.name }), "success");
