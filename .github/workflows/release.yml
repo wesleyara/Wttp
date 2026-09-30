@@ -89,12 +89,9 @@ jobs:
         with:
           ref: ${{ needs.meta.outputs.tag }}
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-
-      - run: yarn install --frozen-lockfile
 
       - run: yarn lint
 
@@ -154,12 +151,9 @@ jobs:
         with:
           ref: ${{ needs.meta.outputs.tag }}
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-
-      - run: yarn install --frozen-lockfile
 
       # `release:*` (ao contrário de `build:*`, usado em ci.yml) roda com
       # `--publish always` — cria/atualiza o release do GitHub para a tag e sobe os

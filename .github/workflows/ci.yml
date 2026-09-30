@@ -2,7 +2,7 @@ name: CI
 
 # EP-10-T03: nothing broken merges into main.
 #
-# - `quality` and `build` run on every PR against main/develop and on push to
+# - `static` (lint + typecheck, Linux only), `quality` (tests on the three OSes) and `build` run on every PR against main/develop and on push to
 #   main, across the three OSes electron-builder targets.
 # - `e2e` is heavier (a full `yarn build` + a real Electron app per test) and
 #   only runs on push to main or on a PR carrying the `run-e2e` label — add
@@ -24,6 +24,23 @@ env:
   NODE_VERSION: "22"
 
 jobs:
+  # Lint e typecheck não dependem de SO — rodam uma vez, no Linux. O `quality` abaixo
+  # roda só os testes nos três sistemas, que é onde os bugs específicos de SO aparecem.
+  static:
+    if: github.event_name != 'pull_request' || github.event.action != 'labeled'
+    name: Lint and typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - run: yarn lint
+
+      - run: yarn typecheck
+
   quality:
     # A `labeled` event only exists to let `e2e` react to the label being
     # added — lint/typecheck/test already ran on the push that preceded it,
@@ -38,16 +55,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-
-      - run: yarn install --frozen-lockfile
-
-      - run: yarn lint
-
-      - run: yarn typecheck
 
       - run: yarn test
 
@@ -60,7 +70,7 @@ jobs:
   build:
     if: github.event_name != 'pull_request' || github.event.action != 'labeled'
     name: Build installer (${{ matrix.os }})
-    needs: quality
+    needs: [static, quality]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -75,12 +85,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-
-      - run: yarn install --frozen-lockfile
 
       # Validates the installer builds successfully on each OS. Not
       # published anywhere — electron-builder's `publish` config is never
@@ -110,17 +117,14 @@ jobs:
   e2e:
     name: E2E
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-e2e')
-    needs: quality
+    needs: [static, quality]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-
-      - run: yarn install --frozen-lockfile
 
       # e2e/fixtures.ts launches the app's own bundled Chromium headlessly
       # (--headless=new) rather than a Playwright-downloaded browser, so no
@@ -134,7 +138,7 @@ jobs:
       # do git). Sem ela o botão cai no site online e nenhuma janela abre.
       - run: yarn docs:build:offline
 
-      - run: yarn build
+      - run: yarn build:app
 
       # O Electron no Linux não sobe sem um servidor gráfico, mesmo com
       # --headless=new: sem DISPLAY a janela nunca abre e cada teste espera o

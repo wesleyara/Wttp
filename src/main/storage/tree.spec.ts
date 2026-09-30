@@ -131,7 +131,9 @@ describe("scanWorkspace", () => {
 
     expect(tree.children).toHaveLength(500);
     expect(elapsed).toBeLessThan(1000);
-  });
+    // O timeout do teste cobre só a criação dos 500 arquivos, que no runner Windows/macOS
+    // do CI passa dos 5s padrão do Vitest; o que se mede (< 1s) é o `scanWorkspace`.
+  }, 60_000);
 });
 
 describe("readNode / writeNode", () => {
