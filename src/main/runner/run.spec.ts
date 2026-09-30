@@ -26,6 +26,7 @@ import {
   writeEnvironment,
   writeNode,
 } from "../storage/tree";
+import { perfBudget } from "../testing/perfBudget";
 import { runCollection } from "./run";
 
 interface Hit {
@@ -281,7 +282,7 @@ describe("runCollection (EP-13-T01)", () => {
     const startedAt = Date.now();
     const { summary, events } = await run({ targetPath: api }, controller.signal);
 
-    expect(Date.now() - startedAt).toBeLessThan(2_000);
+    expect(Date.now() - startedAt).toBeLessThan(perfBudget(2_000));
     expect(finishedResults(events)[0]).toMatchObject({ cancelled: true });
     expect(summary).toMatchObject({ total: 0, endedEarly: "stopped" });
     expect(hits.map(hit => hit.url)).toEqual(["/slow"]);
@@ -322,6 +323,6 @@ describe("runCollection (EP-13-T01)", () => {
     const startedAt = Date.now();
     const { summary } = await run({ targetPath: api });
     expect(summary).toMatchObject({ total: 100, passed: 100 });
-    expect(Date.now() - startedAt).toBeLessThan(5_000);
+    expect(Date.now() - startedAt).toBeLessThan(perfBudget(5_000));
   });
 });

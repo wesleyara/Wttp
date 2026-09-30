@@ -21,6 +21,13 @@ export default defineConfig({
     },
   },
   test: {
+    // Vários specs criam centenas de arquivos ou sobem processos `git`/servidores de
+    // verdade; nos runners Windows/macOS do CI só essa preparação passa fácil dos 5s
+    // padrão do Vitest. Os orçamentos de desempenho medidos (`< 300ms`, `< 1s`, `< 5s`)
+    // são asserções dentro dos testes e seguem valendo — isto só evita que a preparação
+    // lenta reprove o teste por timeout.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     // EP-10-T02: `e2e/**` são specs do Playwright (`@playwright/test`), rodados por
     // `yarn test:e2e`/`playwright test`, nunca pelo Vitest — sem isso, o padrão de
     // include do Vitest (`**/*.spec.ts`) tentaria carregá-los e quebraria em `import

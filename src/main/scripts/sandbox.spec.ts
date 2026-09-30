@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { perfBudget } from "../testing/perfBudget";
 import { runInSandbox } from "./sandbox";
 
 describe("runInSandbox", () => {
@@ -14,7 +15,7 @@ describe("runInSandbox", () => {
     const elapsed = Date.now() - started;
 
     expect(result.ok).toBe(false);
-    expect(elapsed).toBeLessThan(1000);
+    expect(elapsed).toBeLessThan(perfBudget(1000));
     if (!result.ok) expect(result.message).toMatch(/timeout/i);
   });
 

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { perfBudget } from "../testing/perfBudget";
 import { writeFileAtomic } from "./fsAtomic";
 import { resolveWorkspacePath } from "./paths";
 import { slugify, uniqueSlugName } from "./slug";
@@ -130,10 +131,8 @@ describe("scanWorkspace", () => {
     const elapsed = performance.now() - start;
 
     expect(tree.children).toHaveLength(500);
-    expect(elapsed).toBeLessThan(1000);
-    // O timeout do teste cobre só a criação dos 500 arquivos, que no runner Windows/macOS
-    // do CI passa dos 5s padrão do Vitest; o que se mede (< 1s) é o `scanWorkspace`.
-  }, 60_000);
+    expect(elapsed).toBeLessThan(perfBudget(1000));
+  });
 });
 
 describe("readNode / writeNode", () => {
