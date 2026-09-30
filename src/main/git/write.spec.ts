@@ -1,10 +1,15 @@
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getGitStatus, resetGitDetectionForTests, runGit } from "./git";
 import { commitStaged, discardPaths, initRepository, stagePaths, unstagePaths } from "./write";
+
+// Cada teste aqui sobe vários processos `git` de verdade; no runner Windows do CI isso
+// passa fácil dos 5s padrão do Vitest (e o git morto no meio segura a pasta temporária,
+// dando EBUSY no afterEach).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 let dir: string;
 let workspace: string;

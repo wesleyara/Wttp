@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   assertSafeRef,
@@ -16,6 +16,11 @@ import {
   resetGitDetectionForTests,
   runGit,
 } from "./git";
+
+// Cada teste aqui sobe vários processos `git` de verdade; no runner Windows do CI isso
+// passa fácil dos 5s padrão do Vitest (e o git morto no meio segura a pasta temporária,
+// dando EBUSY no afterEach).
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 let dir: string;
 
