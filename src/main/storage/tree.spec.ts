@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { perfBudget } from "../testing/perfBudget";
 import { writeFileAtomic } from "./fsAtomic";
 import { resolveWorkspacePath } from "./paths";
 import { slugify, uniqueSlugName } from "./slug";
@@ -130,7 +131,7 @@ describe("scanWorkspace", () => {
     const elapsed = performance.now() - start;
 
     expect(tree.children).toHaveLength(500);
-    expect(elapsed).toBeLessThan(1000);
+    expect(elapsed).toBeLessThan(perfBudget(1000));
   });
 });
 

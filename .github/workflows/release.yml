@@ -3,14 +3,13 @@ name: Release
 # Publicar uma versão: `yarn release <versão>` (scripts/release.mjs) cria o commit
 # `chore(release)` com o CHANGELOG.md atualizado e a tag `v<versão>`; empurrar a tag
 # dispara este workflow. `quality` roda de novo aqui (alguém pode taguear um commit que
-# nunca passou pela `main`), Linux e Windows empacotam e sobem pro mesmo release do GitHub
+# nunca passou pela `main`), Linux, Windows e macOS empacotam e sobem pro mesmo release do GitHub
 # (por tag, `electron-builder` cuida de criar/reaproveitar), e o release sai como rascunho
 # (`releaseType: draft` em `electron-builder.yml`) até revisão manual.
 #
-# macOS é opcional (card #63): sem certificado Developer ID o `.dmg` abre com aviso do
-# Gatekeeper, e o runner macOS é o mais caro. Para incluí-lo, rode este workflow à mão
-# (Actions → Release → Run workflow) com a tag e `macos` marcado — ele reaproveita o mesmo
-# release rascunho.
+# macOS é obrigatório: entra sempre na matriz, e um build que falhe nele deixa o release
+# incompleto (sem o `.dmg` nem o `latest-mac.yml` do auto-update). Sem certificado
+# Developer ID o `.dmg` abre com aviso do Gatekeeper (arch-docs/release.md).
 #
 # As notas do release vêm da seção da versão no CHANGELOG.md versionado
 # (`scripts/changelog.mjs`), não de uma geração nova a partir dos commits — o changelog
@@ -25,11 +24,6 @@ on:
         description: "Existing tag to build (e.g. v0.4.0)"
         required: true
         type: string
-      macos:
-        description: "Also build the macOS installer"
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
   group: release-${{ inputs.tag || github.ref }}
@@ -69,7 +63,6 @@ jobs:
         shell: bash
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
-          MACOS: ${{ inputs.macos || false }}
         run: |
           case "$TAG" in
             v0.1.0|v0.2.0)
@@ -82,12 +75,9 @@ jobs:
             echo "::error::package.json version ($version) does not match tag $TAG."
             exit 1
           fi
-          matrix='[{"os":"ubuntu-latest","script":"release:linux"},{"os":"windows-latest","script":"release:win"}'
-          if [ "$MACOS" = "true" ]; then
-            matrix="$matrix"',{"os":"macos-latest","script":"release:mac"}'
-          fi
+          matrix='[{"os":"ubuntu-latest","script":"release:linux"},{"os":"windows-latest","script":"release:win"},{"os":"macos-latest","script":"release:mac"}]'
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "matrix=$matrix]" >> "$GITHUB_OUTPUT"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   quality:
     name: Quality
@@ -99,12 +89,9 @@ jobs:
         with:
           ref: ${{ needs.meta.outputs.tag }}
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-
-      - run: yarn install --frozen-lockfile
 
       - run: yarn lint
 
@@ -137,7 +124,7 @@ jobs:
           TAG: ${{ needs.meta.outputs.tag }}
         run: node scripts/changelog.mjs section "$TAG" > "$RUNNER_TEMP/release-notes.md"
 
-      # Rodar de novo (ex: para incluir o macOS) reaproveita o release existente e só
+      # Rodar de novo (ex: refazer um build que falhou) reaproveita o release existente e só
       # atualiza título e notas — nunca mexe no estado rascunho/publicado.
       - name: Create or update the release
         env:
@@ -164,12 +151,9 @@ jobs:
         with:
           ref: ${{ needs.meta.outputs.tag }}
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-
-      - run: yarn install --frozen-lockfile
 
       # `release:*` (ao contrário de `build:*`, usado em ci.yml) roda com
       # `--publish always` — cria/atualiza o release do GitHub para a tag e sobe os

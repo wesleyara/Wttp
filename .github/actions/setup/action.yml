@@ -1,0 +1,35 @@
+name: Setup
+description: Node, cache dos binários do Electron/electron-builder e `yarn install`
+
+inputs:
+  node-version:
+    description: Node version
+    required: false
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: yarn
+
+    # `cache: yarn` guarda só os pacotes do yarn. O `yarn install` ainda baixa o zip do
+    # Electron (postinstall do pacote `electron`) e o electron-builder baixa NSIS,
+    # winCodeSign etc. — sem este cache, todo job repete esses downloads. Caminhos que
+    # não existem no SO do runner são ignorados.
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+          ~/Library/Caches/electron
+          ~/Library/Caches/electron-builder
+          ~\AppData\Local\electron\Cache
+          ~\AppData\Local\electron-builder\Cache
+        key: electron-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+        restore-keys: electron-${{ runner.os }}-
+
+    - run: yarn install --frozen-lockfile
+      shell: bash

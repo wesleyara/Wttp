@@ -98,8 +98,8 @@ O push da tag dispara [`.github/workflows/release.yml`](../.github/workflows/rel
 3. `draft` cria o release **rascunho** `v0.4.0`, com a seção da versão do `CHANGELOG.md`
    como descrição — uma vez só, antes dos builds, para os sistemas não criarem um
    rascunho cada um em paralelo;
-4. `build` gera os instaladores de **Linux** (`.AppImage`, `.deb`) e **Windows** (`.exe`)
-   e sobe para esse rascunho, com um `SHA256SUMS-<SO>.txt` por sistema.
+4. `build` gera os instaladores de **Linux** (`.AppImage`, `.deb`), **Windows** (`.exe`) e
+   **macOS** (`.dmg`, x64 e arm64) e sobe para esse rascunho, com um `SHA256SUMS-<SO>.txt` por sistema.
 
 Falhou? Corrija na `develop` com um commit normal; se o release ainda não foi publicado,
 mova a tag para o commit novo (`git tag -f -a v0.4.0 -m v0.4.0` e
@@ -107,11 +107,12 @@ mova a tag para o commit novo (`git tag -f -a v0.4.0 -m v0.4.0` e
 **Actions → Release → Run workflow**, com `tag: v0.4.0`. Se já foi publicado, não mexa na
 tag: lance um patch.
 
-**macOS (opcional).** Sem certificado Developer ID o `.dmg` é bloqueado pelo Gatekeeper, e
-o runner macOS é o mais caro, então não entra por padrão. Para incluí-lo: **Actions →
-Release → Run workflow**, `Use workflow from: main`, `tag: v0.4.0`, `macos` marcado — o
-`.dmg` vai para o mesmo release. Sem ele não há `latest-mac.yml`, e o auto-update não
-oferece a versão a usuários de Mac.
+**macOS é obrigatório.** Entra sempre na matriz do `build`. Se o build do macOS falhar, o
+release fica sem o `.dmg` e sem `latest-mac.yml` (o auto-update não oferece a versão a
+usuários de Mac) — não publique o rascunho assim: corrija e rode de novo só o que falhou
+(**Actions → Release → Re-run failed jobs**). Sem certificado Developer ID o `.dmg` sai sem
+assinar e o Gatekeeper avisa; ver "Assinatura" abaixo. O runner macOS é o mais caro e o
+mais lento da matriz.
 
 ### 6. Publicar
 
