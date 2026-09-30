@@ -67,26 +67,26 @@ site de documentação (`/changelog`, `/en/changelog`) e no auto-update. Para aj
 
 ```sh
 # edite CHANGELOG.md
-git add CHANGELOG.md
-git commit --amend --no-edit
-git tag -f -a v0.4.0 -m v0.4.0
+yarn release:amend
 ```
+
+`release:amend` funde a edição no commit de release e move a tag para ele. Recusa se o
+commit já estiver em algum remoto ou se qualquer outro arquivo estiver modificado.
 
 Desistiu? `git tag -d v0.4.0 && git reset --hard HEAD~1` desfaz tudo (só antes do push).
 
 ### 4. Enviar
 
 ```sh
-git push origin develop v0.4.0
-
-git checkout main
-git merge --ff-only develop
-git push origin main
-git checkout develop
+yarn release:push --dry-run   # só confere
+yarn release:push
 ```
 
-A `main` avança por fast-forward (sem merge commit), então a tag fica na ponta dela.
-Nunca pelo botão de merge de PR do GitHub, que criaria um merge commit.
+Envia `develop` e a tag e avança a `main` por fast-forward (`develop:main`, sem merge
+commit), então a tag fica na ponta dela. Antes de enviar qualquer coisa confere: branch
+`develop`, árvore limpa, HEAD é o commit de release com a tag, a tag ainda não existe no
+`origin`, e `origin/develop` e `origin/main` são ancestrais do HEAD — se a `main` divergiu,
+nada é enviado. Nunca pelo botão de merge de PR do GitHub, que criaria um merge commit.
 
 ### 5. Acompanhar o build
 
