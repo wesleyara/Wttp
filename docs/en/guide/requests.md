@@ -78,3 +78,11 @@ literal in the command, and the notice tells you which one.
 The key icon in the status bar opens the JWT tool: **Decode** shows the header and payload
 of any token (any algorithm, entirely local) and **Encode** signs an HS256 token with the
 secret you provide.
+
+## JSON viewer
+
+The `{}` icon in the status bar opens the JSON viewer: paste any document and explore it in
+the **Tree** tab (right-click a value to copy the value or its path) or the **Formatted**
+tab. **Format** and **Minify** rewrite the pasted text. If the JSON is invalid, the message
+points to the line and column of the error. It works without an open request and runs
+entirely locally.
