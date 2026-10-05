@@ -127,6 +127,7 @@ export const en = {
     theme: "Theme: {theme}",
     documentation: "Documentation",
     jwtTool: "JWT tool",
+    jsonViewer: "JSON viewer",
     preferences: "Preferences",
     scriptPreRequestFailed: "Pre-request script failed",
     scriptTestsFailed: "{failed}/{total} tests failed",

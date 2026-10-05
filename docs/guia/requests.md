@@ -80,3 +80,11 @@ sem valor fica literal no comando, e o aviso diz qual.
 O ícone de chave na barra de status abre a ferramenta JWT: **Decode** mostra header e
 payload de qualquer token (qualquer algoritmo, tudo local) e **Encode** assina um token
 HS256 com o segredo que você informar.
+
+## Visualizador de JSON
+
+O ícone `{}` na barra de status abre o visualizador de JSON: cole qualquer documento e
+explore na aba **Árvore** (clique direito num valor copia o valor ou o caminho) ou na aba
+**Formatado**. **Formatar** e **Minificar** reescrevem o texto colado. Se o JSON for
+inválido, a mensagem aponta a linha e a coluna do erro. Funciona sem uma request aberta e
+tudo roda local.

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BranchPicker from "@renderer/components/BranchPicker.vue";
+import JsonViewerModal from "@renderer/components/JsonViewerModal.vue";
 import JwtToolModal from "@renderer/components/JwtToolModal.vue";
 import WEnvironmentPicker, {
   type EnvironmentPickerItem,
@@ -112,6 +113,7 @@ function cycleTheme(): void {
 }
 
 const jwtToolOpen = ref(false);
+const jsonViewerOpen = ref(false);
 
 // Popover de branches (#54), ancorado para cima como o de environments.
 const branchTriggerRef = useTemplateRef<HTMLElement>("branchTrigger");
@@ -244,6 +246,14 @@ function openBranchPicker(): void {
     <button
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
+      :title="t('status.jsonViewer')"
+      @click="jsonViewerOpen = true"
+    >
+      <WIcon name="braces" size="3.5" />
+    </button>
+    <button
+      type="button"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.jwtTool')"
       @click="jwtToolOpen = true"
     >
@@ -278,6 +288,7 @@ function openBranchPicker(): void {
   />
 
   <JwtToolModal :open="jwtToolOpen" @close="jwtToolOpen = false" />
+  <JsonViewerModal :open="jsonViewerOpen" @close="jsonViewerOpen = false" />
 
   <BranchPicker
     :open="branchPickerOpen"

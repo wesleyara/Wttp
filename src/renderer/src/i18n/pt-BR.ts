@@ -128,6 +128,7 @@ export const ptBR: MessageSchema = {
     theme: "Tema: {theme}",
     documentation: "Documentação",
     jwtTool: "Ferramenta JWT",
+    jsonViewer: "Visualizador de JSON",
     preferences: "Preferências",
     scriptPreRequestFailed: "Script de pre-request falhou",
     scriptTestsFailed: "{failed}/{total} testes falharam",
