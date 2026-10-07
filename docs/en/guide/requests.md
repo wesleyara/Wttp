@@ -16,7 +16,7 @@
 | **Body**    | None, JSON, URL Encoded, Raw (text/XML/HTML, with a `Content-Type` of your choice), Multipart (with files) or Binary. `Content-Type` follows the type. |
 | **Auth**    | Bearer, Basic, API Key, or inherit — see [Authentication](./authentication).                                                                           |
 | **Scripts** | Pre-request and post-response — see [Scripts and tests](./scripts).                                                                                    |
-| **Docs**    | Markdown documenting the request, saved in the same YAML.                                                                                              |
+| **Docs**    | Markdown documenting the request, saved in the same YAML — see [Documenting your APIs](./documenting-apis). |
 
 Folders and collections have their own configuration tabs (variables, auth, scripts and
 docs) that apply to everything under them.

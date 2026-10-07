@@ -5,7 +5,8 @@ troca com um clique na barra de status — dev, staging, produção.
 
 ## Criar e editar
 
-Na barra de status, **Manage** abre o editor de environments numa aba própria. Lá você
+Na barra de status, o ícone de engrenagem (**Gerenciar environments**) abre o editor de
+environments numa aba própria. Lá você
 cria, renomeia, duplica e exclui environments e edita as variáveis de cada um: nome,
 valor, descrição e se está habilitada.
 

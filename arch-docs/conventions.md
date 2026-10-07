@@ -109,6 +109,17 @@ O componente nunca chama `window.wttp.*` direto. A store chama; o componente lê
 - **Somente tokens semânticos** (`bg-surface-2`, `text-muted`, `border-subtle`). Cor crua da escala só em `tailwind.config.js`. Ver [design-system.md](design-system.md).
 - Todo componente novo é conferido nos dois temas antes de considerado pronto.
 
+### Código copiado de fora (*vendored*)
+
+`src/renderer/src/components/MarkdownEditor/` veio de outro repositório e segue as mesmas
+regras do resto do app — não é exceção de lint nem de design system. Ao trazer código de fora:
+texto de UI e conteúdo inserido passam por `t()` (fábricas de plugin recebem `t`, ver
+`MarkdownEditor/plugins/`), cores vêm só dos tokens (`--mde-*` ligados aos `--w-*` em
+`styles/markdown-editor.css`; nenhuma cor crua), toda função tem tipo de retorno explícito e o
+`eslint --fix` do projeto decide o estilo. As libs pesadas entram por `import()` dinâmico.
+Mexeu no módulo? Rode o e2e `e2e/api-docs.spec.ts`: ele cobre o editor, a prévia offline sob a
+CSP, o YAML gravado e os anexos.
+
 ---
 
 ## Lint e formatação

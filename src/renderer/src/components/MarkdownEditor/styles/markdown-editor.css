@@ -1,0 +1,361 @@
+/* Tokens visuais do editor, ligados aos tokens semânticos do design system do Wttp
+ * (arch-docs/design-system.md): como `--w-*` já troca com o tema, o dark mode vem de graça. */
+.mde-root,
+.mde-view {
+  --mde-bg: rgb(var(--w-surface-2));
+  --mde-bg-elevated: rgb(var(--w-surface-3));
+  --mde-bg-hover: rgb(var(--w-border-subtle));
+  --mde-border: rgb(var(--w-border-subtle));
+  --mde-text: rgb(var(--w-text-1));
+  --mde-text-muted: rgb(var(--w-text-muted));
+  --mde-active-bg: rgb(var(--w-accent));
+  --mde-active-text: rgb(var(--w-surface-1));
+  --mde-accent: rgb(var(--w-focus-ring));
+  --mde-radius: 6px;
+  --mde-font: inherit;
+  --mde-z: 1000;
+
+  font-family: var(--mde-font);
+  color: var(--mde-text);
+}
+
+.mde-root {
+  display: flex;
+  flex-direction: column;
+}
+
+.mde-root *,
+.mde-root *::before,
+.mde-root *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- toolbar ---------- */
+.mde-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid var(--mde-border);
+  border-top-left-radius: var(--mde-radius);
+  border-top-right-radius: var(--mde-radius);
+  background: color-mix(in srgb, var(--mde-bg-elevated) 60%, transparent);
+}
+
+.mde-toolbar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.mde-toolbar-group--end {
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+
+.mde-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--mde-border);
+}
+
+.mde-label {
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: var(--mde-text-muted);
+}
+
+/* ---------- botões ---------- */
+.mde-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: var(--mde-radius);
+  background: transparent;
+  color: var(--mde-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  justify-content: center;
+}
+
+.mde-btn:hover {
+  background: var(--mde-bg-hover);
+}
+
+.mde-btn:focus-visible {
+  outline: 2px solid var(--mde-accent);
+  outline-offset: 1px;
+}
+
+.mde-btn--active,
+.mde-btn--active:hover {
+  background: var(--mde-active-bg);
+  color: var(--mde-active-text);
+}
+
+.mde-btn--soft {
+  height: 32px;
+  min-width: 32px;
+  background: var(--mde-bg-elevated);
+  color: var(--mde-text);
+}
+
+.mde-btn--soft:hover {
+  background: var(--mde-bg-hover);
+}
+
+.mde-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.mde-icon--sm {
+  width: 12px;
+  height: 12px;
+}
+
+/* ---------- dropdown ---------- */
+.mde-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.mde-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: calc(var(--mde-z) + 1);
+  min-width: 160px;
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+  border: 1px solid var(--mde-border);
+  border-radius: var(--mde-radius);
+  background: var(--mde-bg);
+  box-shadow: 0 8px 24px rgb(var(--w-text-1) / 0.15);
+}
+
+.mde-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: calc(var(--mde-radius) - 2px);
+  background: transparent;
+  color: var(--mde-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mde-menu-item:hover,
+.mde-menu-item:focus-visible {
+  outline: none;
+  background: var(--mde-bg-elevated);
+}
+
+.mde-menu-item .mde-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--mde-text-muted);
+}
+
+.mde-menu > li {
+  position: relative;
+}
+
+.mde-submenu {
+  top: -5px;
+  left: calc(100% + 2px);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.mde-menu-item .mde-menu-item-chevron {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+}
+
+/* ---------- cores do md-editor-v3 ----------
+ * A lib pinta editor e prévia com `--md-*` e o `md-editor-dark` redefine essas variáveis no próprio
+ * nó, o que passaria por cima de qualquer valor herdado do wrapper — daí o seletor no `.md-editor`
+ * (maior especificidade). Ligadas aos tokens `--mde-*`, os dois temas do app valem na lib. */
+.mde-root .md-editor,
+.mde-view .md-editor {
+  --md-bk-color: var(--mde-bg);
+  --md-bk-color-outstand: var(--mde-bg-elevated);
+  --md-bk-hover-color: var(--mde-bg-elevated);
+  --md-color: var(--mde-text);
+  --md-hover-color: var(--mde-accent);
+  --md-border-color: var(--mde-border);
+  --md-border-hover-color: var(--mde-bg-hover);
+  --md-border-active-color: var(--mde-accent);
+}
+
+/* Leitura solta (painel de documentação): a prévia é a própria página, não um card. */
+.mde-view .md-editor {
+  --md-bk-color: transparent;
+}
+
+/* ---------- editor / preview ---------- */
+.mde-root .md-editor.mde-surface {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.mde-preview {
+  padding: 8px 12px;
+  border: 1px solid var(--mde-border);
+  border-top: 0;
+  border-bottom-left-radius: var(--mde-radius);
+  border-bottom-right-radius: var(--mde-radius);
+}
+
+/* O md-editor-v3 aplica `overflow: visible` direto na raiz do MdPreview (mesma especificidade da
+ * nossa classe e carregado depois), então conteúdo longo vazaria da altura fixa em vez de rolar. */
+.mde-root .md-editor-previewOnly.mde-scroll {
+  overflow-y: auto !important;
+}
+
+.mde-root .md-editor-preview img,
+.mde-fullscreen .md-editor-preview img,
+.mde-view .md-editor-preview img {
+  cursor: zoom-in;
+}
+
+/* ---------- preview em tela cheia ---------- */
+.mde-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mde-z);
+  display: flex;
+  flex-direction: column;
+  background: var(--mde-bg);
+  color: var(--mde-text);
+}
+
+.mde-fullscreen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--mde-border);
+}
+
+.mde-fullscreen-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mde-fullscreen-content {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 16px 24px;
+}
+
+@media (max-width: 640px) {
+  .mde-fullscreen-header,
+  .mde-fullscreen-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* ---------- lightbox ---------- */
+.mde-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--mde-z) + 10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--w-surface-1) / 0.94);
+  user-select: none;
+}
+
+.mde-lightbox-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  display: flex;
+  gap: 6px;
+}
+
+.mde-lightbox img {
+  max-width: 90vw;
+  max-height: 90vh;
+  transition: transform 100ms ease-out;
+}
+
+/* ---------- ajustes de markdown ----------
+ * O md-editor-v3 traz o github-markdown-css escopado em `.md-editor-preview`, mas resets globais
+ * (ex.: o preflight do Tailwind) zeram list-style / font-weight e ganham pela ordem de carregamento,
+ * então listas e negrito viram texto puro. Restauramos só essas duas propriedades — `revert` em
+ * border/margin/padding voltaria além dos estilos de tabela/blockquote da própria lib. */
+.md-editor-preview :where(ul, ol) {
+  list-style: revert;
+  padding-left: 1.5em;
+}
+
+:where(.md-editor-preview) :where(strong, b) {
+  font-weight: 600;
+}
+
+/* ---------- admonitions (`!!! note Título … !!!`) ----------
+ * O md-editor-v3 gera `.md-editor-admonition.md-editor-admonition-<tipo>` mas não traz estilo para
+ * eles. Usado pelo `calloutsPlugin`; qualquer outro tipo cai no visual de "note". */
+.md-editor-preview .md-editor-admonition {
+  --mde-adm: rgb(var(--w-accent));
+  margin: 1em 0;
+  padding: 8px 14px;
+  border-left: 4px solid var(--mde-adm);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--mde-adm) 9%, transparent);
+}
+
+.md-editor-preview .md-editor-admonition > :last-child {
+  margin-bottom: 0;
+}
+
+.md-editor-preview .md-editor-admonition-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: var(--mde-adm);
+}
+
+.md-editor-preview .md-editor-admonition-tip { --mde-adm: rgb(var(--w-status-2xx)); }
+.md-editor-preview .md-editor-admonition-warning,
+.md-editor-preview .md-editor-admonition-caution { --mde-adm: rgb(var(--w-status-3xx)); }
+.md-editor-preview .md-editor-admonition-danger,
+.md-editor-preview .md-editor-admonition-error { --mde-adm: rgb(var(--w-status-5xx)); }
+
+/* O primeiro bloco da prévia não precisa do respiro de cima do heading (margin-top do
+ * github-markdown-css somado ao padding da lib deixava um vão enorme antes do título). */
+.md-editor-preview > :first-child,
+.md-editor-preview > :first-child:is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 0;
+}
+.mde-root .md-editor-preview-wrapper {
+  padding-top: 12px;
+}

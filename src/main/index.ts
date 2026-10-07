@@ -3,10 +3,12 @@ import { app, BrowserWindow, Menu, shell } from "electron";
 import { join } from "path";
 
 import icon from "../../resources/icon.png?asset";
+import { registerAttachmentProtocol } from "./attachments/protocol";
 import { registerDocsScheme } from "./docs/docsWindow";
 import { registerIpcHandlers } from "./ipc";
 import { applyNativeTheme, readSettings } from "./ipc/settings";
 import { buildMenu } from "./menu";
+import { killSessions } from "./terminal/sessions";
 import { initAutoUpdater } from "./update/updater";
 import { loadWindowState, watchWindowState } from "./window/windowState";
 
@@ -39,6 +41,10 @@ async function createWindow(): Promise<BrowserWindow> {
 
   if (state.isMaximized) mainWindow.maximize();
   watchWindowState(mainWindow);
+  // O pty não sobrevive à página que o abriu: reload ou fechamento encerram os shells.
+  const { webContents } = mainWindow;
+  webContents.on("did-start-loading", () => killSessions(webContents));
+  webContents.on("destroyed", () => killSessions(webContents));
 
   const settings = await readSettings();
   applyNativeTheme(settings.theme);
@@ -90,6 +96,7 @@ app.whenReady().then(() => {
   });
 
   registerIpcHandlers();
+  registerAttachmentProtocol();
 
   void createWindow().then(initAutoUpdater);
 
@@ -97,6 +104,8 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow();
   });
 });
+
+app.on("before-quit", () => killSessions());
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

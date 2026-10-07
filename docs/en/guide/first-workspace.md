@@ -31,6 +31,17 @@ The sidebar shows collections, folders and requests. The **+** button creates a
 - **Filter…** at the top filters the tree by name.
 - **Quick open** (`Ctrl/Cmd+P`) finds any request by name, path or URL.
 
+## The status bar
+
+At the bottom of the window, from left to right:
+
+- the workspace name, the Git branch and the **active environment** selector, with a gear
+  next to it (**Manage environments**);
+- on the right, shortcut icons: **unused attachments** (paperclip, see
+  [Documenting your APIs](./documenting-apis#removing-attachments)), **terminal** (shows or
+  hides the panel), response panel position, theme, JSON viewer, JWT tool, this
+  documentation and Preferences. Hover an icon to see its name.
+
 ## Tabs and session
 
 Every request opens in its own tab. Right-click a tab for **Close**, **Close others** or

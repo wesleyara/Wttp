@@ -26,11 +26,14 @@ export function useVariablePreview(
   unresolved: Ref<string[]>;
   tooltip: Ref<string>;
   tooltips: Ref<Record<string, string>>;
+  /** Valor de cada variável resolvida (segredo mascarado) — alimenta a prévia de markdown (EP-12-T01). */
+  values: Ref<Record<string, string>>;
 } {
   const variables = useVariablesStore();
   const unresolved = ref<string[]>([]);
   const tooltip = ref("");
   const tooltips = ref<Record<string, string>>({});
+  const values = ref<Record<string, string>>({});
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   let generation = 0;
@@ -42,6 +45,7 @@ export function useVariablePreview(
       unresolved.value = [];
       tooltip.value = "";
       tooltips.value = {};
+      values.value = {};
       return;
     }
 
@@ -53,9 +57,12 @@ export function useVariablePreview(
     unresolved.value = result.unresolved;
 
     const perName: Record<string, string> = {};
+    const perValue: Record<string, string> = {};
     for (const used of result.used) {
       perName[used.name] = describeUsed(used, secretNames.value.has(used.name));
+      perValue[used.name] = secretNames.value.has(used.name) ? "••••" : used.value;
     }
+    values.value = perValue;
     for (const name of result.unresolved) {
       perName[name] = `${name} — not resolved`;
     }
@@ -72,5 +79,5 @@ export function useVariablePreview(
     { immediate: true },
   );
 
-  return { unresolved, tooltip, tooltips };
+  return { unresolved, tooltip, tooltips, values };
 }

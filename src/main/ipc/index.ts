@@ -1,4 +1,5 @@
 import { registerAppHandlers } from "./app";
+import { registerAttachmentHandlers } from "./attachment";
 import { registerDialogHandlers } from "./dialog";
 import { registerEnvironmentHandlers } from "./environment";
 import { registerGitHandlers } from "./git";
@@ -11,6 +12,7 @@ import { registerRunnerHandlers } from "./runner";
 import { registerScriptHandlers } from "./scripts";
 import { registerSecretHandlers } from "./secrets";
 import { registerSettingsHandlers } from "./settings";
+import { registerTerminalHandlers } from "./terminal";
 import { registerUiHandlers } from "./ui";
 import { registerUpdateHandlers } from "./update";
 import { registerVariableHandlers } from "./variables";
@@ -24,6 +26,7 @@ export function registerIpcHandlers(): void {
   registerMenuHandlers();
   registerHttpHandlers();
   registerDialogHandlers();
+  registerAttachmentHandlers();
   registerWorkspaceHandlers();
   registerNodeHandlers();
   registerSecretHandlers();
@@ -34,5 +37,6 @@ export function registerIpcHandlers(): void {
   registerHistoryHandlers();
   registerRunnerHandlers();
   registerGitHandlers();
+  registerTerminalHandlers();
   registerUpdateHandlers();
 }

@@ -1,5 +1,7 @@
 import { _electron as electron } from "@playwright/test";
+import { readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { join } from "node:path";
 
 import { expect, LAUNCH_ENV, MAIN_ENTRY, test } from "./fixtures";
 import {
@@ -75,6 +77,21 @@ test("compares two runs from history and remembers ignored paths", async ({
   } finally {
     await new Promise<void>(resolve => server.close(() => resolve()));
   }
+
+  // O ui-state do workspace é gravado com debounce; fechar o app antes disso perde o
+  // caminho ignorado (flaky no CI). Espera chegar em disco antes de fechar.
+  const hasIgnore = (dir: string): boolean => {
+    try {
+      const raw = readFileSync(
+        join(workspacesRoot, "wttp", dir, ".wttp", "ui-state.json"),
+        "utf-8",
+      );
+      return raw.includes("$.meta.timestamp");
+    } catch {
+      return false;
+    }
+  };
+  await expect.poll(() => readdirSync(join(workspacesRoot, "wttp")).some(hasIgnore)).toBe(true);
 
   // Outra sessão: o caminho continua ignorado.
   await electronApp.close();

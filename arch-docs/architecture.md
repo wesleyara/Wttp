@@ -132,6 +132,7 @@ src/main/
 ├── scripts/          spawn e protocolo do utility process
 ├── importers/        parse → normalize → emit, um módulo por formato
 ├── docs/             janela da documentação empacotada (protocolo `wttp-docs:`)
+├── attachments/      protocolo `wttp-attachment:` — mídia dos anexos da documentação
 └── secrets/          keychain do SO
 ```
 
@@ -152,6 +153,48 @@ Em desenvolvimento, `yarn dev` (`scripts/dev.mjs`) sobe o VitePress (`vitepress 
 porta 5174) junto do `electron-vite dev` e passa `WTTP_DOCS_DEV_URL` ao app: só com o app
 não empacotado, a janela de documentação carrega esse servidor em vez da cópia empacotada,
 então editar um `.md` atualiza a janela ao vivo. `yarn dev:app` sobe só o Electron.
+
+### Anexos da documentação e o editor de markdown
+
+O `docs` de request, pasta e collection é markdown (EP-12). O editor é o `MarkdownEditor`
+do repositório `wesleyara/markdown-editor-poc` — um wrapper de `md-editor-v3` — copiado
+(*vendored*) para `src/renderer/src/components/MarkdownEditor/`, sem plugins de exemplo da
+origem; `WMarkdownEditor.vue`/`WMarkdownPreview.vue` são a fatia do Wttp por cima dele
+(tema, `t`, plugins traduzidos, variáveis, anexos). Pontos que não são óbvios:
+
+- **Offline e CSP.** O `index.html` só aceita `script-src 'self'`, então tudo o que o
+  `md-editor-v3` buscaria numa CDN é entregue empacotado: mermaid, KaTeX e highlight.js por
+  `import()` dinâmico em `MarkdownEditor/utils/setup.ts` (só pesam se um editor abrir),
+  cropper/prettier/echarts desligados. Os componentes só renderizam depois que o `setup`
+  resolve.
+- **Uma instância de CodeMirror.** O `md-editor-v3` traz o próprio CodeMirror em versão
+  diferente da do app; duas cópias de `@codemirror/state` quebram os `instanceof` internos
+  (`Unrecognized extension value`) e o editor não monta. `electron.vite.config.ts` força uma
+  só com `resolve.dedupe` — mexeu em dependências do CodeMirror? Confira o editor numa janela.
+- **Um gancho `sanitize`.** O HTML da prévia passa por `lib/markdownPostProcess.ts`: anexos
+  de `attachments/` viram `<img>`/`<video controls>` carregáveis (`lib/markdownAttachments.ts`)
+  e `{{variáveis}}` viram o valor do environment ativo (`lib/markdownVars.ts`, valor sempre
+  escapado, segredo mascarado). Editor, leitura e tela cheia usam o mesmo.
+- **Anexos.** Gravados em `attachments/` na raiz do workspace (formato em
+  [file-format.md §9](file-format.md)) por `storage/attachments.ts`, via `attachment:save`
+  (colar/arrastar), `attachment:pick` (diálogo nativo, único caminho de vídeo),
+  `attachment:read` (export), `attachment:list` e `attachment:trash` (limpeza de não usados;
+  lixeira do SO, com fallback avisado para apagar de vez). A prévia carrega a mídia por
+  `wttp-attachment://workspace/attachments/<arquivo>` (`attachments/protocol.ts`): a CSP não
+  aceita `file://` e um protocolo próprio dá `Range` ao `<video>`. Só serve `attachments/` do
+  workspace ativo, nos tipos permitidos — YAML, `.wttp/secrets.json`, `../` e arquivo ausente
+  dão 404. `registerSchemesAsPrivileged` vale **uma chamada só**, então o esquema dos anexos
+  entra na mesma chamada do `wttp-docs` (`docs/docsWindow.ts`). A CSP tem
+  `img-src`/`media-src wttp-attachment:`.
+- **Leitura e export.** `useDocsReaderStore` monta o modelo (`lib/docs/model.ts`) a partir da
+  árvore já carregada — sem I/O — e só a última execução vem do histórico. `lib/docs/export*.ts`
+  geram HTML de arquivo único (anexos embutidos como `data:`, vídeo só até 8 MB) e markdown;
+  a gravação usa `dialog:saveFile`. Segredos: `{{variáveis}}` nunca são substituídas, valores
+  literais de auth e de headers sensíveis saem como `****` e nenhuma resposta entra no arquivo
+  (`lib/docs/docs.spec.ts`).
+- **YAML legível.** `lib/docsText.ts` tira a linha só de espaços que o auto-indent do editor
+  deixa no fim: sem isso o `yaml` abandona o bloco literal (`docs: |`) e grava uma string entre
+  aspas, ilegível num diff.
 
 `ipc/` é deliberadamente fino: valida a entrada, chama a camada de domínio, mapeia o erro para `WttpError`. Nenhuma regra de negócio vive ali — é o que permite testar `http/`, `storage/` e `importers/` com Vitest puro, sem subir o Electron.
 

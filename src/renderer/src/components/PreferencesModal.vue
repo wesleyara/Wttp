@@ -11,6 +11,7 @@ import { useI18n } from "vue-i18n";
 import PreferencesSection from "./PreferencesSection.vue";
 import WButton from "./WButton.vue";
 import WIcon from "./WIcon.vue";
+import WInput from "./WInput.vue";
 import WModal from "./WModal.vue";
 import WSelect from "./WSelect.vue";
 import WShortcutInput from "./WShortcutInput.vue";
@@ -47,6 +48,14 @@ const SECTIONS = computed<{ id: SectionId; label: string; icon: string }[]>(() =
 const AUTO_UPDATE_OPTIONS = computed(() => [
   { value: "on", label: t("prefs.updates.on") },
   { value: "off", label: t("prefs.updates.off") },
+]);
+
+const FETCH_INTERVAL_OPTIONS = computed(() => [
+  { value: "0", label: t("remote.fetchInterval.off") },
+  ...[1, 5, 15, 30].map(count => ({
+    value: String(count),
+    label: t("remote.fetchInterval.minutes", { count }),
+  })),
 ]);
 
 const LANGUAGE_OPTIONS = computed(() => [
@@ -109,6 +118,8 @@ const SHORTCUT_ACTIONS = computed<{ action: MenuAction; label: string }[]>(() =>
   { action: "search:focus", label: t("shortcutActions.searchFocus") },
   { action: "search:quickOpen", label: t("shortcutActions.searchQuickOpen") },
   { action: "git:changes", label: t("shortcutActions.gitChanges") },
+  { action: "terminal:toggle", label: t("shortcutActions.terminalToggle") },
+  { action: "terminal:open", label: t("shortcutActions.terminalOpen") },
   { action: "preferences:open", label: t("shortcutActions.preferencesOpen") },
 ]);
 
@@ -247,6 +258,19 @@ async function onRestoreDefaults(): Promise<void> {
           </PreferencesSection>
 
           <PreferencesSection
+            :title="t('remote.fetchInterval.title')"
+            :description="t('remote.fetchInterval.description')"
+          >
+            <div class="w-48">
+              <WSelect
+                :model-value="String(settings.gitFetchIntervalMinutes)"
+                :options="FETCH_INTERVAL_OPTIONS"
+                @update:model-value="value => settings.setGitFetchIntervalMinutes(Number(value))"
+              />
+            </div>
+          </PreferencesSection>
+
+          <PreferencesSection
             :title="t('prefs.restoreDefaults.title')"
             :description="t('prefs.restoreDefaults.description')"
           >
@@ -351,6 +375,30 @@ async function onRestoreDefaults(): Promise<void> {
               <p v-if="shortcutErrors[entry.action]" class="font-inter text-xs text-status-5xx">
                 {{ shortcutErrors[entry.action] }}
               </p>
+            </div>
+          </PreferencesSection>
+
+          <PreferencesSection :title="t('prefs.terminal.title')">
+            <div class="flex flex-col gap-1">
+              <WInput
+                :model-value="settings.terminalCommand"
+                :placeholder="t('prefs.terminal.placeholder')"
+                data-testid="terminal-command"
+                @update:model-value="value => settings.setTerminalCommand(value)"
+              />
+              <p class="font-inter text-xs text-muted">{{ t("prefs.terminal.hint") }}</p>
+            </div>
+          </PreferencesSection>
+
+          <PreferencesSection :title="t('prefs.terminal.shellTitle')">
+            <div class="flex flex-col gap-1">
+              <WInput
+                :model-value="settings.terminalShell"
+                :placeholder="t('prefs.terminal.shellPlaceholder')"
+                data-testid="terminal-shell"
+                @update:model-value="value => settings.setTerminalShell(value)"
+              />
+              <p class="font-inter text-xs text-muted">{{ t("prefs.terminal.shellHint") }}</p>
             </div>
           </PreferencesSection>
         </div>

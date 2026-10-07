@@ -358,7 +358,7 @@ export async function getChanges(root: string, base = "HEAD"): Promise<GitFileCh
   return changes;
 }
 
-function kindOf(path: string): GitFileKind {
+export function kindOf(path: string): GitFileKind {
   if (path.endsWith(".req.yaml")) return "request";
   if (path === "folder.yaml" || path.endsWith("/folder.yaml")) return "folder";
   if (path.startsWith("environments/") && /\.ya?ml$/.test(path)) return "environment";
@@ -366,7 +366,7 @@ function kindOf(path: string): GitFileKind {
   return "text";
 }
 
-function parseVersion(kind: GitFileKind, text: string): GitFileVersion {
+export function parseVersion(kind: GitFileKind, text: string): GitFileVersion {
   const validate =
     kind === "request"
       ? validateRequest
@@ -387,7 +387,7 @@ function parseVersion(kind: GitFileKind, text: string): GitFileVersion {
 }
 
 /** Conteúdo de `path` (relativo ao workspace) em `ref` — `null` se ele não existe lá. */
-async function showAt(root: string, ref: string, path: string): Promise<string | null> {
+export async function showAt(root: string, ref: string, path: string): Promise<string | null> {
   try {
     // `<ref>:./<path>` resolve relativo ao `cwd` (a raiz do workspace), mesmo com o
     // workspace numa subpasta do repositório.
@@ -411,15 +411,20 @@ export async function getFileVersions(
   path: string,
   base = "HEAD",
   from?: string,
+  ref?: string,
 ): Promise<GitFileVersions> {
   if (base !== "HEAD") assertSafeRef(base);
+  if (ref) assertSafeRef(ref);
   // Mesmo guarda de `node:*`: nada fora da raiz do workspace.
   const absolute = resolveWorkspacePath(root, path);
   if (from) resolveWorkspacePath(root, from);
   const kind = kindOf(path);
 
   const beforeText = await showAt(root, base, from ?? path);
-  const afterText = await fs.readFile(absolute, "utf-8").catch(() => null);
+  // Com `ref`, o lado "depois" também vem de um commit (timeline, #55), não do disco.
+  const afterText = ref
+    ? await showAt(root, ref, path)
+    : await fs.readFile(absolute, "utf-8").catch(() => null);
 
   return {
     kind,

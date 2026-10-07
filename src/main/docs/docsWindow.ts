@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 
+import { attachmentSchemePrivileges } from "../attachments/protocol";
 import { isAllowedExternalUrl } from "../ipc/externalUrls";
 import { resolveDocsFile } from "./docsPaths";
 
@@ -31,10 +32,15 @@ const MIME_TYPES: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 
-/** Precisa rodar antes de `app.whenReady()` — esquemas privilegiados não podem ser registrados depois. */
+/**
+ * Precisa rodar antes de `app.whenReady()` — esquemas privilegiados não podem ser registrados
+ * depois, e `registerSchemesAsPrivileged` vale uma vez só: por isso o esquema dos anexos
+ * (EP-12) entra aqui, na mesma chamada.
+ */
 export function registerDocsScheme(): void {
   protocol.registerSchemesAsPrivileged([
     { scheme: DOCS_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
+    attachmentSchemePrivileges,
   ]);
 }
 

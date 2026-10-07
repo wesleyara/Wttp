@@ -83,6 +83,7 @@ export default defineConfig({
               { text: "Montar e enviar uma request", link: "/guia/requests" },
               { text: "Environments e variáveis", link: "/guia/environments" },
               { text: "Autenticação e herança", link: "/guia/autenticacao" },
+              { text: "Documentando suas APIs", link: "/guia/documentando-apis" },
             ],
           },
           {
@@ -142,6 +143,7 @@ export default defineConfig({
               { text: "Build and send a request", link: "/en/guide/requests" },
               { text: "Environments and variables", link: "/en/guide/environments" },
               { text: "Authentication and inheritance", link: "/en/guide/authentication" },
+              { text: "Documenting your APIs", link: "/en/guide/documenting-apis" },
             ],
           },
           {

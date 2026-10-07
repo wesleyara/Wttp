@@ -40,7 +40,11 @@ export const useEnvironmentStore = defineStore("environment", () => {
     if (!workspace.root) return;
     loading.value = true;
     try {
-      items.value = await window.wttp.env.list({ root: workspace.root });
+      const list = await window.wttp.env.list({ root: workspace.root });
+      // Ordem alfabética pelo nome (sem diferenciar maiúsculas) em todo lugar que lista environments.
+      items.value = [...list].sort((a, b) =>
+        a.data.name.localeCompare(b.data.name, undefined, { sensitivity: "base", numeric: true }),
+      );
       error.value = null;
       applyDefaultEnvironment();
     } catch (e) {

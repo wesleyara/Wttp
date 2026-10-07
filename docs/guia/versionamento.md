@@ -17,11 +17,26 @@ meu-workspace/
 ## O que vai e o que não vai
 
 - **Vai para o Git:** `wttp.yaml`, `folder.yaml`, `*.req.yaml` e `environments/*.yaml`.
+- **Anexos:** `attachments/` (imagens e vídeos da documentação) também vai para o Git —
+  veja [Anexos](#anexos).
 - **Nunca vai:** `.wttp/` — sessão de abas, rascunhos, histórico de execuções e o
   fallback de segredos. O Wttp cria o `.gitignore` com `.wttp/` ao inicializar o
   workspace.
 - **Segredos:** variáveis marcadas **Secret** ficam no keychain do sistema, nunca no
   YAML. Quem clona o repositório precisa preencher os próprios valores.
+
+## Anexos
+
+As imagens e vídeos que você anexa à documentação ficam em `attachments/`, na raiz do
+workspace, e são arquivos comuns do repositório: faça commit deles junto com o YAML que os
+cita. O nome inclui um trecho do hash do conteúdo, então o mesmo arquivo nunca aparece
+duplicado e dois arquivos diferentes nunca se sobrescrevem.
+
+Arquivos binários grandes — vídeos, principalmente — pesam no repositório de todo mundo
+que clona. O Wttp recusa arquivos acima de **50 MB**; se a sua equipe anexa vídeos com
+frequência, considere o [Git LFS](https://git-lfs.com) para `attachments/*.mp4`. Para tirar
+do disco o que a documentação não usa mais, veja
+[Removendo anexos](./documentando-apis#removendo-anexos).
 
 ## Diffs previsíveis
 
@@ -61,3 +76,19 @@ com a mesma configuração, credenciais e hooks do terminal.
 O Wttp nunca força nada: sem `--force`, sem merge nem rebase. Se o git recusa uma troca por
 causa de mudanças locais, a mensagem dele aparece como está, e o terminal continua sendo o
 lugar para resolver conflitos.
+
+### Pull e push
+
+Quando a branch tem um upstream, a barra de status mostra `↑2 ↓1` (commits para enviar e para receber). O Wttp roda `git fetch` em segundo plano ao abrir o workspace e a cada 5 minutos — ajuste ou desligue em **Preferências → Geral**.
+
+No popover da branch ficam **Pull** e **Push**:
+
+- **Pull** é sempre _fast-forward only_. Se a branch divergiu do remoto, o Wttp não altera nada e mostra o comando para resolver no terminal. Abas com alterações não salvas bloqueiam o pull.
+- **Push** nunca usa `--force`. Se o remoto tem commits que você não tem, o push é recusado com uma mensagem clara. Uma branch ainda não publicada oferece **Publicar branch**.
+- As credenciais vêm só do credential helper ou do ssh-agent do seu sistema. O Wttp nunca as pede, guarda ou registra; se a autenticação falhar, ele explica como configurar o helper.
+
+### Linha do tempo e restaurar versão
+
+Clique com o botão direito numa request, pasta ou collection (ou na aba de uma request) e escolha **Linha do tempo**; num environment, o botão **Linha do tempo** fica no editor. A lista mostra os commits que tocaram aquele arquivo — hash curto, autor, data relativa e mensagem — e acompanha renomeações: renomear a request na árvore não corta o histórico.
+
+Clicar num commit mostra o diff campo a campo dele, contra o commit anterior ou contra o arquivo como está agora (**Arquivo atual**). **Restaurar esta versão** grava no arquivo exatamente o conteúdo daquele commit, como uma edição comum: ele aparece como modificado em **Changes** e nada é commitado. Se a aba da request tem alterações não salvas, o Wttp pergunta antes. Um arquivo que nunca foi commitado mostra um estado vazio explicando isso.

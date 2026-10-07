@@ -31,6 +31,17 @@ A barra lateral mostra collections, pastas e requests. No botão **+** você cri
 - **Filtrar…** no topo filtra a árvore por nome.
 - **Busca rápida** (`Ctrl/Cmd+P`) encontra qualquer request por nome, caminho ou URL.
 
+## A barra de status
+
+Embaixo da janela, da esquerda para a direita:
+
+- o nome do workspace, a branch do Git e o seletor do **environment ativo**, com a
+  engrenagem ao lado (**Gerenciar environments**);
+- no canto direito, ícones de atalho: **anexos não usados** (clipe, veja
+  [Documentando suas APIs](./documentando-apis#removendo-anexos)), **terminal** (mostra ou
+  oculta o painel), posição do painel de resposta, tema, visualizador de JSON, ferramenta
+  JWT, esta documentação e as Preferências. Passe o mouse sobre um ícone para ver o nome.
+
 ## Abas e sessão
 
 Cada request abre na sua aba. Clique direito numa aba para **Fechar**, **Fechar outras**

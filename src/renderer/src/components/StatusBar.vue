@@ -7,12 +7,15 @@ import WEnvironmentPicker, {
 } from "@renderer/components/WEnvironmentPicker.vue";
 import WIcon from "@renderer/components/WIcon.vue";
 import { useAppStore } from "@renderer/stores/app";
+import { useAttachmentsStore } from "@renderer/stores/attachments";
 import { useChangesStore } from "@renderer/stores/changes";
 import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useGitStore } from "@renderer/stores/git";
+import { useGitRemoteStore } from "@renderer/stores/gitRemote";
 import { useMenuStore } from "@renderer/stores/menu";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useSettingsStore } from "@renderer/stores/settings";
+import { useTerminalPanelStore } from "@renderer/stores/terminalPanel";
 import { useUiStore } from "@renderer/stores/ui";
 import { useWatchStore } from "@renderer/stores/watch";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
@@ -28,6 +31,8 @@ const environment = useEnvironmentStore();
 const ui = useUiStore();
 const requestTabs = useRequestTabsStore();
 const git = useGitStore();
+const terminalPanel = useTerminalPanelStore();
+const attachments = useAttachmentsStore();
 const changes = useChangesStore();
 const watchStore = useWatchStore();
 
@@ -38,6 +43,8 @@ function jumpToWatched(): void {
 }
 
 /** Branch atual (ClickLocal #51) — HEAD destacado aparece como o hash curto. */
+const gitRemote = useGitRemoteStore();
+
 const gitBranchLabel = computed(() => {
   const repo = git.repository;
   if (!repo) return "";
@@ -155,6 +162,24 @@ function openBranchPicker(): void {
         >
           <WIcon name="git-branch" size="3.5" class="text-faint" />
           {{ gitBranchLabel }}
+          <WIcon
+            v-if="gitRemote.busy"
+            name="loader-circle"
+            size="3"
+            class="animate-spin text-faint"
+            data-testid="git-remote-busy"
+          />
+          <span
+            v-else-if="gitRemote.ahead || gitRemote.behind"
+            class="font-inter text-faint"
+            :title="
+              t('remote.aheadBehindTooltip', { ahead: gitRemote.ahead, behind: gitRemote.behind })
+            "
+            data-testid="git-ahead-behind"
+          >
+            <template v-if="gitRemote.ahead">↑{{ gitRemote.ahead }}</template>
+            <template v-if="gitRemote.behind"> ↓{{ gitRemote.behind }}</template>
+          </span>
         </button>
         <button
           v-if="git.files.length"
@@ -199,10 +224,10 @@ function openBranchPicker(): void {
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
       :title="t('status.manageEnvironments')"
+      :aria-label="t('status.manageEnvironments')"
       @click="emit('open-environment-editor')"
     >
       <WIcon name="settings" size="3.5" />
-      {{ t("status.manage") }}
     </button>
     <button
       v-if="watchStore.runningIds.length > 0"
@@ -224,6 +249,28 @@ function openBranchPicker(): void {
       {{ scriptSummary.text }}
     </span>
     <span class="flex-1" role="status" aria-live="polite">{{ menu.statusMessage }}</span>
+    <button
+      v-if="workspace.ready"
+      type="button"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
+      :title="t('attachments.cleanup.menuItem')"
+      :aria-label="t('attachments.cleanup.menuItem')"
+      data-testid="open-attachments-cleanup"
+      @click="attachments.openCleanup()"
+    >
+      <WIcon name="paperclip" size="3.5" />
+    </button>
+    <button
+      v-if="workspace.ready"
+      type="button"
+      class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"
+      :title="t('status.toggleTerminalTooltip')"
+      :aria-label="t('status.toggleTerminalTooltip')"
+      data-testid="open-terminal"
+      @click="terminalPanel.toggle()"
+    >
+      <WIcon name="terminal" size="3.5" />
+    </button>
     <button
       type="button"
       class="flex items-center gap-1 text-faint hover:text-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-focus"

@@ -21,6 +21,7 @@ import type {
 
 import { i18n } from "@renderer/i18n";
 import { suggestedFileName } from "@renderer/lib/content-type";
+import { normalizeDocs } from "@renderer/lib/docsText";
 import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/scriptChain";
 import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useToastStore } from "@renderer/stores/toast";
@@ -179,8 +180,40 @@ export interface ChangesTabState {
 
 export const CHANGES_TAB_ID = "__changes__";
 
+/** Aba Timeline (ClickLocal #55) — singleton: a história de um arquivo por vez, o alvo vive em `useTimelineStore`. */
+export interface TimelineTabState {
+  kind: "timeline";
+  id: string;
+  path: string;
+  title: string;
+  pinned: true;
+  dirty: false;
+}
+
+export const TIMELINE_TAB_ID = "__timeline__";
+
+/** Aba do painel de leitura da documentação (EP-12-T02): uma por collection/pasta (`path` é o da pasta lida); o estado de leitura vive em `useDocsReaderStore`, então navegar pela doc nunca mexe nas abas de trabalho. */
+export interface DocsTabState {
+  kind: "docs";
+  id: string;
+  path: string;
+  title: string;
+  pinned: true;
+  dirty: false;
+}
+
+export const DOCS_TAB_ID_PREFIX = "__docs__:";
+
+export const docsTabId = (path: string): string => `${DOCS_TAB_ID_PREFIX}${path}`;
+
 export type OpenTab =
-  RequestTabState | FolderTabState | EnvironmentTabState | RunnerTabState | ChangesTabState;
+  | RequestTabState
+  | FolderTabState
+  | EnvironmentTabState
+  | RunnerTabState
+  | ChangesTabState
+  | TimelineTabState
+  | DocsTabState;
 
 export function isRequestTab(tab: OpenTab | null | undefined): tab is RequestTabState {
   return tab?.kind === "request";
@@ -198,8 +231,16 @@ export function isRunnerTab(tab: OpenTab | null | undefined): tab is RunnerTabSt
   return tab?.kind === "runner";
 }
 
+export function isDocsTab(tab: OpenTab | null | undefined): tab is DocsTabState {
+  return tab?.kind === "docs";
+}
+
 export function isChangesTab(tab: OpenTab | null | undefined): tab is ChangesTabState {
   return tab?.kind === "changes";
+}
+
+export function isTimelineTab(tab: OpenTab | null | undefined): tab is TimelineTabState {
+  return tab?.kind === "timeline";
 }
 
 function isRequestOrFolderTab(tab: OpenTab): tab is RequestTabState | FolderTabState {
@@ -272,7 +313,7 @@ function buildRequestFileData(tab: RequestTabState): RequestFile {
     auth: unwrap(tab.auth),
     body: unwrap(tab.body),
     scripts: cleanScripts(tab.scripts),
-    docs: tab.docs || undefined,
+    docs: normalizeDocs(tab.docs) || undefined,
   };
 }
 
@@ -281,7 +322,7 @@ function buildFolderFileData(tab: FolderTabState): FolderFile {
   return {
     ...unwrap(tab.originalData),
     auth: unwrap(tab.auth),
-    docs: tab.docs || undefined,
+    docs: normalizeDocs(tab.docs) || undefined,
     variables: unwrap(tab.variables).filter(v => v.name.trim() !== ""),
     scripts: cleanScripts(tab.scripts),
   };
@@ -481,6 +522,37 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     activate(CHANGES_TAB_ID);
   }
 
+  /** Abre (ou ativa) a aba Timeline — de que arquivo é a história é de `useTimelineStore`. */
+  function openTimelineTab(): void {
+    const existing = tabs.value.find(isTimelineTab);
+    if (existing) {
+      activate(existing.id);
+      return;
+    }
+    tabs.value.push({
+      kind: "timeline",
+      id: TIMELINE_TAB_ID,
+      path: TIMELINE_TAB_ID,
+      title: "Timeline",
+      pinned: true,
+      dirty: false,
+    });
+    activate(TIMELINE_TAB_ID);
+  }
+
+  /** Abre (ou ativa) a aba de leitura da documentação de `path` — uma aba por collection/pasta; reabrir foca a existente. */
+  function openDocsTab(path: string, title: string): void {
+    const id = docsTabId(path);
+    const existing = tabs.value.find(tab => tab.id === id);
+    if (existing) {
+      existing.title = title;
+      activate(id);
+      return;
+    }
+    tabs.value.push({ kind: "docs", id, path, title, pinned: true, dirty: false });
+    activate(id);
+  }
+
   /** Abre (ou ativa) a aba do Collection Runner — quem escolhe o que rodar é `useRunnerStore.configure`. */
   function openRunnerTab(): void {
     const existing = tabs.value.find(isRunnerTab);
@@ -594,8 +666,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
 
   /** Usado quando o nó já foi excluído pela árvore (EP-05-T03) — a confirmação já aconteceu lá. */
   function closeByPath(path: string): void {
-    const tab = tabs.value.find(t => t.path === path);
-    if (tab) forceClose(tab.id);
+    // Pasta + aba de docs dessa pasta compartilham o `path` — fecha as duas.
+    tabs.value.filter(t => t.path === path).forEach(t => forceClose(t.id));
   }
 
   /** Como `closeByPath`, mas também fecha abas (de request ou de pasta) dentro de uma pasta excluída. */
@@ -641,15 +713,18 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
 
   function renamePath(oldPath: string, newPath: string, newName: string): void {
     renameResponseFilters(oldPath, newPath);
-    const tab = tabs.value.find(t => t.path === oldPath);
-    if (!tab) return;
-    tab.path = newPath;
-    tab.id = newPath;
-    tab.title = newName;
-    if (tab.kind === "request" || tab.kind === "folder") {
-      tab.originalData = { ...tab.originalData, name: newName };
+    const matching = tabs.value.filter(t => t.path === oldPath);
+    if (matching.length === 0) return;
+    for (const tab of matching) {
+      const oldId = tab.id;
+      tab.path = newPath;
+      tab.id = isDocsTab(tab) ? docsTabId(newPath) : newPath;
+      tab.title = newName;
+      if (tab.kind === "request" || tab.kind === "folder") {
+        tab.originalData = { ...tab.originalData, name: newName };
+      }
+      if (activeId.value === oldId) activeId.value = tab.id;
     }
-    if (activeId.value === oldPath) activeId.value = newPath;
     persistSession();
   }
 
@@ -1376,6 +1451,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     openEnvironmentTab,
     openRunnerTab,
     openChangesTab,
+    openTimelineTab,
+    openDocsTab,
     requestClose,
     forceClose,
     reloadFromDisk,

@@ -140,5 +140,6 @@ export const useGitStore = defineStore("git", () => {
     changedTreePaths,
     onlyChanged,
     refresh,
+    scheduleRefresh,
   };
 });

@@ -19,6 +19,12 @@ export const useSettingsStore = defineStore("settings", () => {
   const autoUpdateEnabled = ref<boolean>(true);
   /** Só as ações remapeadas — ação ausente cai no acelerador de `defaultAccelerators`. */
   const shortcuts = ref<Partial<Record<MenuAction, string>>>({});
+  /** Comando do terminal de "Open terminal"; vazio = detecta o do SO. */
+  const terminalCommand = ref<string>("");
+  /** Shell do terminal embutido (#169); vazio = o do SO. */
+  const terminalShell = ref<string>("");
+  /** Minutos entre os `git fetch` em segundo plano (#56); 0 desliga. */
+  const gitFetchIntervalMinutes = ref<number>(5);
   const defaultAccelerators = ref<Record<MenuAction, string> | undefined>(undefined);
   const systemPrefersLight = ref(
     typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: light)").matches : false,
@@ -53,6 +59,9 @@ export const useSettingsStore = defineStore("settings", () => {
     workspacesRootDir.value = settings.workspacesRootDir;
     autoUpdateEnabled.value = settings.autoUpdateEnabled !== false;
     shortcuts.value = settings.shortcuts ?? {};
+    terminalCommand.value = settings.terminalCommand ?? "";
+    terminalShell.value = settings.terminalShell ?? "";
+    gitFetchIntervalMinutes.value = settings.gitFetchIntervalMinutes ?? 5;
     defaultAccelerators.value = defaults;
     applyToDocument();
     applyLanguageSetting(language.value);
@@ -87,6 +96,16 @@ export const useSettingsStore = defineStore("settings", () => {
   }
 
   /** Só os atalhos — ao contrário de `resetToDefaults`, não mexe em tema nem pasta de workspaces. */
+  function setTerminalCommand(command: string): void {
+    terminalCommand.value = command;
+    void window.wttp.settings.set({ terminalCommand: command.trim() });
+  }
+
+  function setTerminalShell(shell: string): void {
+    terminalShell.value = shell;
+    void window.wttp.settings.set({ terminalShell: shell.trim() });
+  }
+
   function resetShortcuts(): void {
     shortcuts.value = {};
     void window.wttp.settings.set({ shortcuts: {} });
@@ -113,6 +132,11 @@ export const useSettingsStore = defineStore("settings", () => {
     void window.wttp.settings.set({ workspacesRootDir: next });
   }
 
+  function setGitFetchIntervalMinutes(next: number): void {
+    gitFetchIntervalMinutes.value = next;
+    void window.wttp.settings.set({ gitFetchIntervalMinutes: next });
+  }
+
   function setAutoUpdateEnabled(next: boolean): void {
     autoUpdateEnabled.value = next;
     void window.wttp.settings.set({ autoUpdateEnabled: next });
@@ -126,6 +150,9 @@ export const useSettingsStore = defineStore("settings", () => {
     workspacesRootDir.value = settings.workspacesRootDir;
     autoUpdateEnabled.value = settings.autoUpdateEnabled !== false;
     shortcuts.value = settings.shortcuts ?? {};
+    terminalCommand.value = settings.terminalCommand ?? "";
+    terminalShell.value = settings.terminalShell ?? "";
+    gitFetchIntervalMinutes.value = settings.gitFetchIntervalMinutes ?? 5;
     applyToDocument();
     applyLanguageSetting(language.value);
   }
@@ -146,6 +173,10 @@ export const useSettingsStore = defineStore("settings", () => {
     workspacesContainerDir,
     autoUpdateEnabled,
     shortcuts,
+    terminalCommand,
+    terminalShell,
+    gitFetchIntervalMinutes,
+    setGitFetchIntervalMinutes,
     defaultAccelerators,
     load,
     setTheme,
@@ -155,6 +186,8 @@ export const useSettingsStore = defineStore("settings", () => {
     effectiveAccelerator,
     findAcceleratorOwner,
     setShortcut,
+    setTerminalCommand,
+    setTerminalShell,
     restoreShortcut,
     resetShortcuts,
     resetToDefaults,

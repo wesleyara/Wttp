@@ -66,6 +66,11 @@ export interface GitFileVersionsPayload extends GitRootPayload {
   /** Onde o arquivo estava na base, se foi renomeado. */
   from?: string;
   base?: string;
+  /**
+   * Lado "depois" lido de um commit (`git show <ref>:<path>`) em vez do disco — a timeline
+   * (#55) compara um commit com o anterior sem o working tree no meio.
+   */
+  ref?: string;
 }
 
 export interface GitPathsPayload extends GitRootPayload {
@@ -119,4 +124,65 @@ export interface GitFileVersions {
   before: GitFileVersion | null;
   /** `null` = o arquivo não existe mais no disco (apagado). */
   after: GitFileVersion | null;
+}
+
+// --- Pull/push (ClickLocal #56) -------------------------------------------------------------
+
+/** Quanto a branch atual está à frente/atrás do upstream, pelo que o último `fetch` trouxe. */
+export interface GitAheadBehind {
+  /** `origin/main`; `null` = a branch não tem upstream (ou HEAD destacado). */
+  upstream: string | null;
+  ahead: number;
+  behind: number;
+  /** O repositório tem algum remote configurado — sem ele, fetch/push não fazem sentido. */
+  hasRemote: boolean;
+}
+
+/** Operações de rede aceitam um id para o `git:cancel` poder abortar o processo em andamento. */
+export interface GitRemotePayload extends GitRootPayload {
+  operationId?: string;
+}
+
+export interface GitPushPayload extends GitRemotePayload {
+  /** Branch sem upstream: `git push --set-upstream origin <branch>`. */
+  setUpstream?: boolean;
+}
+
+// --- Timeline e restaurar versão (ClickLocal #55) ---------------------------------------------
+
+export interface GitLogPayload extends GitRootPayload {
+  /** Arquivo (relativo ao workspace) cuja história é pedida — `git log --follow`. */
+  path: string;
+}
+
+export interface GitLogEntry {
+  hash: string;
+  shortHash: string;
+  author: string;
+  /** ISO 8601 — a data relativa ("há 2 dias") é montada na UI. */
+  date: string;
+  subject: string;
+  /** Caminho do arquivo **naquele commit** — muda ao atravessar um rename. */
+  path: string;
+  /** Caminho no pai, quando o commit renomeou o arquivo. */
+  from?: string;
+  status: "added" | "modified" | "deleted" | "renamed";
+}
+
+export interface GitLog {
+  /** `git` não encontrado ou fora de um repositório — a UI explica em vez de mostrar lista vazia. */
+  available: boolean;
+  inRepository: boolean;
+  entries: GitLogEntry[];
+  /** Há mais commits além do limite devolvido. */
+  truncated: boolean;
+}
+
+export interface GitRestorePayload extends GitRootPayload {
+  /** Arquivo de destino, relativo ao workspace (o caminho atual). */
+  path: string;
+  /** Commit de onde o conteúdo vem. */
+  ref: string;
+  /** Onde o arquivo estava naquele commit, se for outro caminho. */
+  from?: string;
 }

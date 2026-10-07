@@ -16,7 +16,7 @@
 | **Body**    | None, JSON, URL Encoded, Raw (texto/XML/HTML, com `Content-Type` à escolha), Multipart (com arquivos) ou Binary. O `Content-Type` acompanha o tipo. |
 | **Auth**    | Bearer, Basic, API Key, ou herdar — veja [Autenticação](./autenticacao).                                                                            |
 | **Scripts** | Pre-request e post-response — veja [Scripts e testes](./scripts).                                                                                   |
-| **Docs**    | Markdown com a documentação da request, gravado no mesmo YAML.                                                                                      |
+| **Docs**    | Markdown com a documentação da request, gravado no mesmo YAML — veja [Documentando suas APIs](./documentando-apis). |
 
 Pastas e collections têm as suas próprias abas de configuração (variáveis, auth, scripts
 e docs) que valem para tudo abaixo delas.

@@ -15,3 +15,8 @@ import "@fontsource/barlow/500.css";
 import "@fontsource/barlow/600.css";
 // JetBrains Mono — URLs, bodies, respostas, editor.
 import "@fontsource/jetbrains-mono/400.css";
+// 700 só para o negrito do terminal embutido — sem ele o navegador sintetiza um.
+import "@fontsource/jetbrains-mono/700.css";
+
+// Symbols Nerd Font Mono — ícones de Powerline/Nerd Font do terminal embutido (fallback por glifo).
+import "./symbols-nerd-font/symbols-nerd-font.css";
