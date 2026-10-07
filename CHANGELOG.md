@@ -10,6 +10,12 @@ by `yarn release <version>`; versions up to 0.3.0 were written by hand from the 
 
 ## [Unreleased]
 
+## [0.3.4](https://github.com/wesleyara/Wttp/compare/v0.3.3...v0.3.4) - 2026-10-07
+
+### Added
+
+- API docs editor with attachments, embedded terminal, git push/pull and file timeline
+
 ## [0.3.3](https://github.com/wesleyara/Wttp/compare/v0.3.2...v0.3.3) - 2026-10-05
 
 ### Added
