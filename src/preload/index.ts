@@ -6,12 +6,18 @@ import type {
   AppSettings,
   AttachmentInfo,
   CopyNodeIntoPayload,
+  CreateFlowPayload,
   CreateNodePayload,
   CreateWorkspacePayload,
   DetectImportPayload,
   DiscoveredWorkspace,
   EnvironmentListItem,
   EnvironmentPathPayload,
+  FlowEvent,
+  FlowListItem,
+  FlowPathPayload,
+  FlowRunPayload,
+  FlowRunResult,
   FolderNode,
   GitAheadBehind,
   GitBranches,
@@ -60,6 +66,7 @@ import type {
   ReadAttachmentResult,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
+  RenameFlowPayload,
   RenameNodePayload,
   RequestHistoryPayload,
   RequestNode,
@@ -77,6 +84,7 @@ import type {
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
+  SaveFlowPayload,
   ScriptRunResult,
   ScriptRunSpec,
   SecretStorageStatus,
@@ -308,6 +316,21 @@ const wttp = {
         callback(runEvent);
       ipcRenderer.on("runner:event", listener);
       return () => ipcRenderer.off("runner:event", listener);
+    },
+  },
+  flow: {
+    create: (payload: CreateFlowPayload): Promise<FlowListItem> => invoke("flow:create", payload),
+    save: (payload: SaveFlowPayload): Promise<FlowListItem> => invoke("flow:save", payload),
+    rename: (payload: RenameFlowPayload): Promise<FlowListItem> => invoke("flow:rename", payload),
+    delete: (payload: FlowPathPayload): Promise<void> => invoke("flow:delete", payload),
+    run: (payload: FlowRunPayload): Promise<FlowRunResult> => invoke("flow:run", payload),
+    stop: (runId: string): Promise<void> => invoke("flow:stop", runId),
+    // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
+    onEvent: (callback: (event: FlowEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, flowEvent: FlowEvent): void =>
+        callback(flowEvent);
+      ipcRenderer.on("flow:event", listener);
+      return () => ipcRenderer.off("flow:event", listener);
     },
   },
   history: {

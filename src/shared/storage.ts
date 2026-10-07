@@ -5,6 +5,7 @@
  * `{{variáveis}}` não resolvidas.
  */
 
+import type { FlowListItem } from "./flow";
 import type {
   AuthConfig,
   HttpMethod,
@@ -154,6 +155,8 @@ export interface WorkspaceTree {
   data: WorkspaceFile | null;
   issues?: WorkspaceNodeIssue[];
   environments: EnvironmentFile[];
+  /** `flows/*.flow.yaml` — fora da árvore de collections, como os environments. */
+  flows?: FlowListItem[];
   children: WorkspaceNode[];
 }
 

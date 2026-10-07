@@ -348,9 +348,35 @@ function isValidMoveTarget(path: string, kind: WorkspaceNode["kind"], targetDir:
   return true;
 }
 
-function onDragPointerUp(): void {
+/**
+ * Soltar fora da área da árvore não move nada: avisa quem estiver ouvindo (o canvas de um
+ * flow cria um nó com a request solta nele). Evento do `window` para a árvore não conhecer o canvas.
+ */
+function isOutsideTree(event: PointerEvent): boolean {
+  const rect = containerRef.value?.getBoundingClientRect();
+  if (!rect) return false;
+  return (
+    event.clientX < rect.left ||
+    event.clientX > rect.right ||
+    event.clientY < rect.top ||
+    event.clientY > rect.bottom
+  );
+}
+
+function onDragPointerUp(event: PointerEvent): void {
   const dragged = draggingNode.value;
   if (dragged) suppressNextClick = true;
+  if (dragged && isOutsideTree(event)) {
+    if (dragged.kind === "request") {
+      window.dispatchEvent(
+        new CustomEvent("wttp:tree-drop", {
+          detail: { path: dragged.path, x: event.clientX, y: event.clientY },
+        }),
+      );
+    }
+    endDrag();
+    return;
+  }
   const indicator = dropIndicator.value;
   if (!dragged || !indicator || indicator.invalid) {
     endDrag();

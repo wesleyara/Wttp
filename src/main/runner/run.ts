@@ -58,7 +58,7 @@ function validateOptions(options: RunCollectionOptions): void {
 }
 
 /** Environment + valores reais dos segredos, lidos uma vez no começo do run. */
-async function loadEnvironment(
+export async function loadEnvironment(
   root: string,
   path: string | null,
   deps: RunnerDeps,

@@ -7,12 +7,18 @@ import type {
   AppSettings,
   AttachmentInfo,
   CopyNodeIntoPayload,
+  CreateFlowPayload,
   CreateNodePayload,
   CreateWorkspacePayload,
   DetectImportPayload,
   DiscoveredWorkspace,
   EnvironmentListItem,
   EnvironmentPathPayload,
+  FlowEvent,
+  FlowListItem,
+  FlowPathPayload,
+  FlowRunPayload,
+  FlowRunResult,
   FolderNode,
   GitAheadBehind,
   GitBranches,
@@ -61,6 +67,7 @@ import type {
   ReadAttachmentResult,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
+  RenameFlowPayload,
   RenameNodePayload,
   RequestHistoryPayload,
   RequestNode,
@@ -78,6 +85,7 @@ import type {
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
+  SaveFlowPayload,
   ScriptRunResult,
   ScriptRunSpec,
   SecretStorageStatus,
@@ -226,6 +234,15 @@ interface WttpApi {
     start: (payload: RunStartPayload) => Promise<RunStartResult>;
     stop: (runId: string) => Promise<void>;
     onEvent: (callback: (event: RunEvent) => void) => () => void;
+  };
+  flow: {
+    create: (payload: CreateFlowPayload) => Promise<FlowListItem>;
+    save: (payload: SaveFlowPayload) => Promise<FlowListItem>;
+    rename: (payload: RenameFlowPayload) => Promise<FlowListItem>;
+    delete: (payload: FlowPathPayload) => Promise<void>;
+    run: (payload: FlowRunPayload) => Promise<FlowRunResult>;
+    stop: (runId: string) => Promise<void>;
+    onEvent: (callback: (event: FlowEvent) => void) => () => void;
   };
   history: {
     list: (payload: RequestHistoryPayload) => Promise<HistoryEntry[]>;

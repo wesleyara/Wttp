@@ -164,6 +164,45 @@ function buildResponseView(spec: ScriptRunSpec): unknown {
   });
 }
 
+/**
+ * O que a função de um flow devolveu → a saída (1-based) a seguir. Um número escolhe a saída;
+ * um array, no estilo do Node-RED (`[msgA, null, msgC]`), escolhe a primeira posição que não é
+ * `null`/`undefined`; `null`/`undefined` não segue por saída nenhuma e o flow termina ali.
+ */
+export function chooseOutput(
+  returned: unknown,
+  outputs: number,
+): { output: number | null } | { error: string } {
+  if (returned === undefined || returned === null) return { output: null };
+  let output: number | null;
+  if (typeof returned === "number") {
+    if (!Number.isInteger(returned)) {
+      return {
+        error: `the function returned ${returned} — return a whole output number (1 to ${outputs})`,
+      };
+    }
+    output = returned;
+  } else if (Array.isArray(returned)) {
+    const index = returned.findIndex(item => item !== null && item !== undefined);
+    output = index === -1 ? null : index + 1;
+  } else {
+    return {
+      error: `the function returned ${typeof returned} — return the output number to follow (1 to ${outputs}), an array like [a, null, c], or nothing to stop`,
+    };
+  }
+  if (output !== null && (output < 1 || output > outputs)) {
+    return {
+      error: `the function chose output ${output}, but this node has ${outputs} output${outputs === 1 ? "" : "s"}`,
+    };
+  }
+  return { output };
+}
+
+/** O código de um nó de função é o corpo de uma função: `return` escolhe a saída. */
+function wrapFunctionBody(code: string): string {
+  return `__output__ = (function () {\n${code}\n}).call(undefined);`;
+}
+
 export function executeScript(spec: ScriptRunSpec): ScriptRunResult {
   const envVars: Record<string, string> | null = spec.envVars ? { ...spec.envVars } : null;
   const collectionVars: Record<string, string> | null = spec.collectionVars
@@ -243,19 +282,33 @@ export function executeScript(spec: ScriptRunSpec): ScriptRunResult {
     console: consoleApi,
     wttp: wttpApi,
   };
+  const vars: Record<string, string> | undefined =
+    spec.phase === "function" ? { ...spec.vars } : undefined;
   if (spec.phase === "preRequest") {
     globals.req = req;
   } else {
     globals.res = buildResponseView(spec);
     globals.test = testApi;
     globals.expect = createExpect();
+    if (spec.phase === "function") {
+      // `vars` é a camada de runtime do flow: o que o código escreve aqui vale como `{{nome}}` nos nós seguintes.
+      globals.vars = vars;
+      globals.__output__ = undefined;
+    }
   }
 
   const run = runInSandbox({
-    code: spec.code,
+    code: spec.phase === "function" ? wrapFunctionBody(spec.code) : spec.code,
     globals,
     timeoutMs: spec.timeoutMs ?? DEFAULT_TIMEOUT_MS,
   });
+
+  /** `vars` voltam como texto, como nas demais camadas: o que o código atribuiu vira `String`. */
+  const stringVars = vars
+    ? Object.fromEntries(
+        Object.entries(vars).map(([name, value]) => [name, value == null ? "" : String(value)]),
+      )
+    : undefined;
 
   if (!run.ok) {
     return {
@@ -263,12 +316,37 @@ export function executeScript(spec: ScriptRunSpec): ScriptRunResult {
       envVars,
       collectionVars,
       req: spec.phase === "preRequest" ? req : undefined,
+      vars: stringVars,
       assertions,
       console: consoleEntries,
       error: {
         code: /timeout/i.test(run.message) ? "SCRIPT_TIMEOUT" : "UNKNOWN",
         message: run.message,
       },
+    };
+  }
+
+  if (spec.phase === "function") {
+    const chosen = chooseOutput(globals.__output__, spec.outputs ?? 1);
+    if ("error" in chosen) {
+      return {
+        ok: false,
+        envVars,
+        collectionVars,
+        vars: stringVars,
+        assertions,
+        console: consoleEntries,
+        error: { code: "UNKNOWN", message: chosen.error },
+      };
+    }
+    return {
+      ok: true,
+      envVars,
+      collectionVars,
+      vars: stringVars,
+      output: chosen.output,
+      assertions,
+      console: consoleEntries,
     };
   }
 

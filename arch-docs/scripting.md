@@ -15,14 +15,19 @@ da resposta chegar, mesmo nome que Insomnia/Postman usam. O campo em disco e o v
 
 ## Onde cada coisa está disponível
 
-| Global   | `preRequest` | `tests` | Descrição                                              |
-| -------- | :-----------: | :-----: | ------------------------------------------------------- |
-| `wttp`   | ✓             | ✓       | `setVar`/`getVar` (environment ativo), `setCollectionVar`/`getCollectionVar` (collection) |
-| `req`    | ✓ (mutável)   | —       | a request resolvida, antes de disparar                  |
-| `res`    | —             | ✓ (congelada) | a resposta recebida                                |
-| `test`   | —             | ✓       | declara uma asserção                                     |
-| `expect` | —             | ✓       | matchers usados dentro de `test`                         |
-| `console`| ✓             | ✓       | `log`/`warn`/`error`, capturados e mostrados na aba Tests |
+| Global    | `preRequest` |    `tests`    |  `function`   | Descrição                                                                                        |
+| --------- | :----------: | :-----------: | :-----------: | ------------------------------------------------------------------------------------------------ |
+| `wttp`    |      ✓       |       ✓       |       ✓       | `setVar`/`getVar` (environment ativo), `setCollectionVar`/`getCollectionVar` (collection)        |
+| `req`     | ✓ (mutável)  |       —       |       —       | a request resolvida, antes de disparar                                                           |
+| `res`     |      —       | ✓ (congelada) | ✓ (congelada) | a resposta recebida (na função: a do último nó de request, ou `undefined` se nenhum rodou ainda) |
+| `vars`    |      —       |       —       |  ✓ (mutável)  | só na função: as variáveis de runtime do flow                                                    |
+| `test`    |      —       |       ✓       |       ✓       | declara uma asserção                                                                             |
+| `expect`  |      —       |       ✓       |       ✓       | matchers usados dentro de `test`                                                                 |
+| `console` |      ✓       |       ✓       |       ✓       | `log`/`warn`/`error`, capturados e mostrados na aba Tests                                        |
+
+A fase `function` é a do **nó de função de um flow** (card #59, `arch-docs/file-format.md` §10): o
+código é o **corpo de uma função** — `return` escolhe por qual das `outputs` saídas o flow segue
+(ver "Nó de função" abaixo). Roda no mesmo processo isolado e com o mesmo timeout dos demais.
 
 Nada além disso está no escopo do script — sem `require`, `process`, `fetch` ou
 qualquer outra API do Node/browser.
@@ -80,13 +85,13 @@ A resposta recebida. Qualquer tentativa de alterar um campo é ignorada silencio
 (o objeto é `Object.freeze`d) — o script nunca influencia o que a UI mostra.
 
 ```js
-res.status      // number
-res.statusText  // string
-res.headers     // { [nome]: valor }
-res.body        // string — corpo decodificado como texto
-res.json        // corpo parseado como JSON, ou undefined se não for JSON válido
-res.size        // { headersSent, bodySent, headersReceived, bodyReceived }
-res.timing      // { dns, connect, tls, ttfb, download, total } em ms
+res.status; // number
+res.statusText; // string
+res.headers; // { [nome]: valor }
+res.body; // string — corpo decodificado como texto
+res.json; // corpo parseado como JSON, ou undefined se não for JSON válido
+res.size; // { headersSent, bodySent, headersReceived, bodyReceived }
+res.timing; // { dns, connect, tls, ttfb, download, total } em ms
 ```
 
 ## `test(name, fn)` / `expect(value)`
@@ -102,14 +107,14 @@ request inteira.
 
 Matchers disponíveis em `expect(actual)`:
 
-| Matcher                          | Passa quando…                                        |
-| --------------------------------- | ----------------------------------------------------- |
-| `.toBe(expected)`                 | `actual === expected` (`Object.is`)                    |
-| `.toEqual(expected)`              | igualdade estrutural profunda                          |
-| `.toBeTruthy()`                   | `actual` é truthy                                       |
-| `.toContain(item)`                | `actual` é string/array e contém `item`                |
-| `.toHaveProperty(path, value?)`   | `actual` tem a propriedade em `path` (`"a.b.c"`); se `value` for passado, também compara o valor |
-| `.toMatch(regexOuString)`         | `actual` é string e casa com o padrão                   |
+| Matcher                         | Passa quando…                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `.toBe(expected)`               | `actual === expected` (`Object.is`)                                                              |
+| `.toEqual(expected)`            | igualdade estrutural profunda                                                                    |
+| `.toBeTruthy()`                 | `actual` é truthy                                                                                |
+| `.toContain(item)`              | `actual` é string/array e contém `item`                                                          |
+| `.toHaveProperty(path, value?)` | `actual` tem a propriedade em `path` (`"a.b.c"`); se `value` for passado, também compara o valor |
+| `.toMatch(regexOuString)`       | `actual` é string e casa com o padrão                                                            |
 
 ## `console.log` / `.warn` / `.error`
 
@@ -133,3 +138,36 @@ Cada fase (pre-request e tests, de cada nível da cadeia — request, pasta, col
 roda com o timeout configurado em `wttp.yaml` → `settings.scriptTimeout` (default
 5000ms). Estourar o timeout mata o processo do script e falha aquela fase com
 `SCRIPT_TIMEOUT` — não trava a UI.
+
+---
+
+## Nó de função (flows)
+
+Um nó `function` de um flow tem `outputs` (1 a 10 saídas) e `code`. O código roda como o **corpo de
+uma função** — pode usar `return` — com `res` (a resposta do último nó de request, congelada, ou
+`undefined`), `vars` (as variáveis de runtime do flow), `wttp`, `test`/`expect` e `console`.
+
+```js
+console.log("status", res.status);
+vars.token = res.json.data.token; // vale como {{token}} nos nós seguintes
+if (res.status === 201) return 1; // segue pela saída 1
+return 2; // ...ou pela saída 2
+```
+
+O que o código devolve decide o caminho:
+
+| Retorno                        | Efeito                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| um inteiro `N` (1 a `outputs`) | segue pela saída `N`                                                            |
+| um array, ex. `[null, x]`      | estilo Node-RED: segue pela **primeira** posição que não é `null`/`undefined`   |
+| nada, `null` ou `undefined`    | nenhuma saída — o flow termina ali, sem erro                                    |
+| qualquer outra coisa           | o nó **falha** com uma mensagem ("returned string — return the output number…") |
+| um número fora de 1..`outputs` | o nó **falha**: "chose output 7, but this node has 2 outputs"                   |
+
+- `vars` é lido e escrito como texto (`String`); apagar uma chave (`delete vars.x`) a remove do runtime.
+  É a mesma camada que os mapeamentos de um flow usam: vence environment, collection e workspace
+  (`arch-docs/file-format.md` §8), vale só durante o run e nada é gravado em disco.
+- `wttp.setVar` escreve no environment ativo **em memória** durante o run (um flow não persiste);
+  `wttp.setCollectionVar` falha — o nó não pertence a uma collection.
+- Exceção não tratada, erro de sintaxe e timeout falham o nó; o flow para ali mesmo sem `bail`, já
+  que nenhuma saída foi escolhida. As variáveis escritas até o ponto da falha são mantidas.

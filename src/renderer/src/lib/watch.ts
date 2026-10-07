@@ -6,7 +6,8 @@
 
 import type { HistoryEntry, HttpResponseResult } from "@shared";
 
-import { queryJsonPath } from "./jsonpath";
+import { type Condition, evaluateCondition, viewOfResponse } from "@shared/condition";
+import { queryJsonPath } from "@shared/jsonpath";
 
 export const MIN_INTERVAL_SECONDS = 1;
 export const DEFAULT_INTERVAL_SECONDS = 5;
@@ -71,37 +72,28 @@ export interface UntilInput {
   assertions: { passed: boolean }[];
 }
 
-function stringify(value: unknown): string {
-  return typeof value === "string" ? value : (JSON.stringify(value) ?? "");
+/** A condição de "poll until" do watch, na forma estruturada que flows e watch compartilham. */
+export function untilCondition(config: WatchConfig): Condition | null {
+  switch (config.until) {
+    case "none":
+      return null;
+    case "status":
+      return { source: "status", op: "eq", value: config.status.trim() };
+    case "tests":
+      return { source: "assertions" };
+    case "json":
+      return { source: "body", path: config.jsonPath.trim(), op: "eq", value: config.jsonValue };
+  }
 }
 
 /** A condição de "poll until" foi atendida por esta resposta? Sempre `false` sem condição. */
 export function untilMatches(config: WatchConfig, input: UntilInput): boolean {
-  const { result } = input;
-  switch (config.until) {
-    case "none":
-      return false;
-    case "status":
-      return result.ok && String(result.status) === config.status.trim();
-    case "tests":
-      // Sem nenhuma asserção não há o que "ter passado" — parar de primeira seria mentira.
-      return input.assertions.length > 0 && input.assertions.every(a => a.passed);
-    case "json": {
-      if (!result.ok) return false;
-      let document: unknown;
-      try {
-        document = JSON.parse(new TextDecoder(result.charset || "utf-8").decode(result.body));
-      } catch {
-        return false;
-      }
-      try {
-        const [first] = queryJsonPath(document as never, config.jsonPath.trim());
-        return first !== undefined && stringify(first) === config.jsonValue;
-      } catch {
-        return false;
-      }
-    }
-  }
+  const condition = untilCondition(config);
+  if (!condition) return false;
+  return evaluateCondition(condition, {
+    response: input.result.ok ? viewOfResponse(input.result) : null,
+    assertions: input.assertions,
+  });
 }
 
 /** Corpo grande demais não entra no diff inteiro — mesmo teto do painel de resposta. */

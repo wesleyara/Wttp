@@ -8,6 +8,15 @@
  */
 
 import type {
+  CreateFlowPayload,
+  FlowListItem,
+  FlowPathPayload,
+  FlowRunPayload,
+  FlowRunResult,
+  RenameFlowPayload,
+  SaveFlowPayload,
+} from "./flow";
+import type {
   GitAheadBehind,
   GitBranches,
   GitChangesPayload,
@@ -661,6 +670,15 @@ export interface IpcContract {
   "runner:start": { payload: RunStartPayload; result: RunStartResult };
   /** Para o run: aborta a request em andamento e não roda mais nenhuma. No-op se já acabou. */
   "runner:stop": { payload: string; result: void };
+  /** Flows: `flows/*.flow.yaml`. A lista chega junto da árvore (`WorkspaceTree.flows`). */
+  "flow:create": { payload: CreateFlowPayload; result: FlowListItem };
+  "flow:save": { payload: SaveFlowPayload; result: FlowListItem };
+  /** Renomeia o flow e o arquivo (regra 6); devolve o item com o `path` novo. */
+  "flow:rename": { payload: RenameFlowPayload; result: FlowListItem };
+  "flow:delete": { payload: FlowPathPayload; result: void };
+  /** Começa a rodar um flow e devolve na hora — o progresso chega por `flow:event` (event ↓), que termina em `finished` ou `failed`. */
+  "flow:run": { payload: FlowRunPayload; result: FlowRunResult };
+  "flow:stop": { payload: string; result: void };
   /** Repositório e branch do workspace (ClickLocal #51) — nunca rejeita por falta de `git` ou de repo. */
   "git:info": { payload: GitRootPayload; result: GitInfo };
   /** `git:info` + mudanças dentro do workspace, caminhos relativos a ele. */
@@ -716,6 +734,7 @@ export type WttpErrorCode =
   | "INVALID_PAYLOAD"
   | "SCHEMA_INVALID"
   | "SCHEMA_VERSION_UNSUPPORTED"
+  | "FLOW_INVALID"
   | "PATH_ESCAPES_ROOT"
   | "ATTACHMENT_TYPE"
   | "ATTACHMENT_EMPTY"

@@ -1,8 +1,8 @@
 import type { HistoryEntry } from "@shared";
 
+import { queryJsonPath } from "@shared/jsonpath";
 import { describe, expect, it } from "vitest";
 
-import { queryJsonPath } from "./jsonpath";
 import { childPath, compileIgnores, diffHeaders, diffJson, diffResponses } from "./responseDiff";
 
 describe("diffJson (ClickLocal #49)", () => {

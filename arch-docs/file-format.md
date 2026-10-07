@@ -14,6 +14,8 @@ my-api/                        # raiz do workspace
 ├── environments/
 │   ├── dev.yaml
 │   └── prod.yaml
+├── flows/                     # cenários que encadeiam requests (card #180)
+│   └── login-and-fetch.flow.yaml
 ├── attachments/               # imagens e vídeos referenciados pelo `docs` (versionados)
 │   └── tela-de-login-1a2b3c4d.png
 ├── .wttp/                     # gitignored — estado local da máquina
@@ -250,3 +252,62 @@ Imagens e vídeos que o markdown de `docs` (request, pasta, collection) referenc
 - **Export.** O HTML exportado embute as imagens como `data:` (arquivo único, abre offline) e os vídeos até 8 MB; acima disso o vídeo vira um aviso no lugar do player. O markdown exportado mantém os caminhos relativos — a pasta `attachments/` precisa acompanhar o arquivo.
 - **Remover uma referência nunca apaga o arquivo.** O mesmo anexo pode ser citado por vários `docs`, a edição é desfazível e o git já guarda o arquivo. Limpar é uma ação à parte — "Clean unused attachments…" no menu "+" da árvore e na busca rápida — que lista o que nenhum `docs` menciona e manda para a lixeira do SO só o que o usuário confirma. "Mencionar" é qualquer ocorrência do texto `attachments/<arquivo>` (imagem, link, bloco de código), no `docs` salvo de todo o workspace e no das abas abertas, ainda que não salvas. Sem lixeira na máquina (ex. Linux sem `gio`), o arquivo é apagado de vez e a UI avisa. Quando uma referência sai de um `docs` salvo e o anexo fica sem uso, o app mostra um aviso com atalho para a limpeza; órfãos que já existiam ao abrir o workspace ficam em silêncio.
 - **Não é schema novo.** Nenhum campo de YAML mudou, então `wttp: 1` continua valendo: um Wttp antigo mostra o texto `![...](attachments/...)` como está e preserva os arquivos.
+
+---
+
+## 10. `flows/*.flow.yaml` — flows
+
+Um **flow** é um cenário que junta requests de **qualquer pasta** num grafo, com a passagem de dados entre elas **explícita**: um mapeamento pega um pedaço da resposta de um nó e o grava numa variável que os nós seguintes enxergam com `{{nome}}`, sem escrever script. Nós de controle decidem o caminho (condição), esperam (delay) ou repetem o nó anterior até algo acontecer (poll until). (O Collection Runner roda uma pasta em ordem de `seq`, com o encadeamento implícito via `wttp.setVar`.)
+
+```yaml
+wttp: 2
+name: Create or recover
+start: login
+nodes:
+  - { id: login, type: request, request: auth/login.req.yaml, x: 0, y: 0 }
+  - { id: create, type: request, request: users/create.req.yaml, x: 280, y: 0 }
+  - { id: created, type: condition, when: { source: status, op: eq, value: "201" }, x: 560, y: 0 }
+  - { id: job, type: request, request: jobs/get.req.yaml, x: 840, y: 0 }
+  - {
+      id: wait,
+      type: pollUntil,
+      when: { source: body, path: job.state, op: eq, value: done },
+      intervalMs: 1000,
+      maxAttempts: 10,
+      x: 1120,
+      y: 0,
+    }
+  - { id: pause, type: delay, ms: 2000, x: 840, y: 140 }
+  - { id: recover, type: request, request: users/get.req.yaml, x: 1120, y: 140 }
+edges:
+  - { from: login, to: create }
+  - { from: create, to: created }
+  - { from: created, to: job, when: true }
+  - { from: created, to: pause, when: false }
+  - { from: job, to: wait }
+  - { from: pause, to: recover }
+  - { from: wait, to: route }
+  - { from: route, to: recover, output: 2 }
+mappings:
+  - { from: login.res.body.data.token, to: token }
+  - { from: create.res.body.id, to: user_id }
+maxSteps: 50
+```
+
+- **Versão própria: `wttp: 2`.** O flow tem a linha de versão dele, separada dos demais arquivos (que seguem em `wttp: 1`): nasceu depois e ganhou o formato de grafo sem que request, pasta ou environment precisassem mudar. Uma versão maior que a suportada é recusada com mensagem clara (regra 1).
+- **Migração 1 → 2.** A v1 (card #57) era uma lista linear — `nodes` só de requests, sem `type`, e a ordem da lista era a ordem de execução. Ao ler, o migrador dá `type: request` a todo nó e cria uma aresta de cada nó para o seguinte: mesmos nós, mesmas requests, mesmas posições, mesmos mapeamentos, mesmo caminho, sem perda. Salvar grava o v2. Arquivo sem `wttp` vale como v1.
+- **Um diretório só, na raiz.** `flows/` é reservado, como `environments/` e `attachments/`: nunca aparece como collection na árvore. Nome do arquivo derivado do `name` (`Create or recover` → `flows/create-or-recover.flow.yaml`, regra 6).
+- **`nodes`**: cada nó tem `id` (obrigatório, único no flow, `[A-Za-z0-9_-]+` — é como as arestas e os mapeamentos o citam), `type` e `x`/`y` (números opcionais, a posição no canvas; ausentes valem 0). Tipos:
+  - `request`: `request` é o caminho relativo à raiz do workspace, com `/`, de um `*.req.yaml` — **uma referência, nunca uma cópia**: editar a request vale para todo flow que a usa. A mesma request pode aparecer em mais de um nó, com `id`s diferentes.
+  - `condition`: `when` (condição, abaixo). Tem duas saídas, `true` e `false`, e avalia a resposta do último nó de request executado.
+  - `pollUntil`: `when`, `intervalMs` (mínimo 1000) e `maxAttempts` (1 a 1000, **obrigatório**: o poll nunca fica preso esperando). **Reexecuta o nó de request imediatamente anterior** (exatamente uma aresta chega nele, vinda de um `request`) até a condição bater; a primeira avaliação usa a resposta que já existe. No limite, o nó falha com uma mensagem.
+  - `delay`: `ms` (0 a 600000), uma espera fixa.
+  - `function`: `outputs` (1 a 10) e `code`, o **corpo de uma função JavaScript** que decide por qual saída o flow segue. Roda isolado (`utilityProcess` + `node:vm`, com o timeout dos scripts — regra crítica 5) e vê `res` (a resposta do último nó de request), `vars` (as variáveis de runtime do flow, que ele lê e escreve) e a API de scripts (`arch-docs/scripting.md`, "Nó de função"). `return N` segue a saída `N`, um array `[null, x]` segue a primeira posição que não é `null`, e não devolver nada termina o flow ali; uma saída inexistente ou um retorno de outro tipo **falha o nó**, e o flow para mesmo sem `bail`. O `code` é gravado em bloco literal (`|`), legível no diff, e o nó vai em formato de bloco em vez de `{ ... }` numa linha.
+- **`edges`** liga a saída de um nó à entrada de outro. Cada nó tem **no máximo uma saída** (`from`/`to`); só a `condition` se divide em duas, com `when: true` e `when: false` (uma aresta sem `when` saindo de uma condição, ou com `when` saindo de outro nó, é inválida), e a `function` em até dez, numeradas com `output: 1..N` (obrigatório numa aresta que sai de uma função, entre 1 e o `outputs` dela; inválido em qualquer outro nó). Nó sem saída encerra o flow. `start` (opcional) é o nó inicial; ausente, o primeiro de `nodes`. Ciclos são permitidos (é como se faz um laço), por isso há um teto: `maxSteps` (1 a 1000, padrão 100) conta cada execução de nó, re-execuções de poll incluídas, e ao estourar o flow para com `endedEarly: limit` e uma mensagem.
+- **Condição (`when`)** é estruturada — **nunca código**: `source` (`status`, `body`, `header` ou `assertions`), `path` (`body`: o caminho no JSON; `header`: o nome), `op` (`eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `exists`, `notExists`) e `value` (texto; número em `gt`/`gte`/`lt`/`lte`; ausente em `exists`/`notExists`). `assertions` não tem `op`/`value`: vale quando há ao menos uma asserção e todas passaram. É o mesmo avaliador do "poll until" do modo watch.
+- **`mappings`** é opcional, aplicado na ordem, **depois** que o nó de origem recebe resposta (mesmo que as asserções dele falhem), a cada execução dele. Cada um tem `from` e `to`:
+  - `from` é `<id do nó>.res.status`, `<id do nó>.res.headers.<Nome>` (sem diferenciar maiúsculas) ou `<id do nó>.res.body.<caminho>`, onde `<caminho>` é um acesso ao JSON do corpo: `data.token`, `items[0].id`, `["x-y"].z` (o mesmo JSONPath do filtro da resposta, sem o `$.` inicial). A origem precisa ser um nó `request`. O valor extraído vira texto: número/booleano pelo `String`, objeto/array pelo JSON. Caminho sem resultado, ou corpo que não é JSON, **falha o nó** com uma mensagem — nunca grava um valor vazio em silêncio. A exceção é o nó cuja saída vai para uma `condition` ou um `pollUntil`: a falha vira um aviso no resultado e é a condição que decide o caminho (assim "se criou segue por A, senão por B" funciona mesmo quando a resposta de erro não traz o campo mapeado).
+  - `to` é o nome da variável (`[A-Za-z_][A-Za-z0-9_.-]*`). Ela vive na camada **runtime** do resolvedor (§8: vence environment, collection e workspace) e só durante o run; **nada é gravado em disco** por um flow.
+- **Validação antes de rodar.** Um `request` que não existe (renomeada fora do app, removida) ou está inválida, ou um `pollUntil` sem um nó de request logo antes, é um erro claro que impede o run; o app também reescreve as referências quando a request (ou uma pasta acima dela) é renomeada ou movida pela árvore.
+- Campos desconhecidos são preservados (regra 7).
+- Não existem ainda: execução paralela de ramos (uma função escolhe **uma** saída), sub-flows e `wttp run` de flows na CLI.

@@ -149,6 +149,8 @@ export interface ExecuteOptions {
   index: number;
   scriptTimeoutMs?: number;
   signal?: AbortSignal;
+  /** Chamado com a resposta recebida (ou a falha), antes da cadeia de tests — os Flows tiram dela o que os mapeamentos e as condições pedem. */
+  onResponse?: (response: HttpResponseResult) => void;
 }
 
 /**
@@ -283,6 +285,8 @@ export async function executeRequest(
       cancelled: true,
     };
   }
+
+  options.onResponse?.(response);
 
   for (const link of chainFor(item, "tests")) {
     const result = await deps.runScript({

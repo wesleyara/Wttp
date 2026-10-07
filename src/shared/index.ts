@@ -7,6 +7,7 @@
 
 export type * from "./ipc";
 export type * from "./http";
+export type * from "./flow";
 export type * from "./git";
 export type * from "./history";
 export type * from "./import";

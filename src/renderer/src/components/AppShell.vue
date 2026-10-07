@@ -5,6 +5,8 @@ import ChangesPanel from "@renderer/components/ChangesPanel.vue";
 import CommandPalette from "@renderer/components/CommandPalette.vue";
 import DocsReaderPanel from "@renderer/components/DocsReaderPanel.vue";
 import EnvironmentsPanel from "@renderer/components/EnvironmentsPanel.vue";
+import FlowPanel from "@renderer/components/FlowPanel.vue";
+import FlowsSection from "@renderer/components/FlowsSection.vue";
 import FolderConfigTabs from "@renderer/components/FolderConfigTabs.vue";
 import GenerateCodeModal from "@renderer/components/GenerateCodeModal.vue";
 import ImportModal from "@renderer/components/ImportModal.vue";
@@ -33,6 +35,7 @@ import { useAttachmentsStore } from "@renderer/stores/attachments";
 import { useChangesStore } from "@renderer/stores/changes";
 import { useCodegenStore } from "@renderer/stores/codegen";
 import { useDocsReaderStore } from "@renderer/stores/docsReader";
+import { useFlowsStore } from "@renderer/stores/flows";
 import { GIT_STATUS_LETTER, useGitStore } from "@renderer/stores/git";
 import { useImportStore } from "@renderer/stores/import";
 import { useMenuStore } from "@renderer/stores/menu";
@@ -64,6 +67,7 @@ const git = useGitStore();
 const terminal = useTerminalStore();
 const terminalPanel = useTerminalPanelStore();
 const changes = useChangesStore();
+const flows = useFlowsStore();
 const timeline = useTimelineStore();
 
 // Badges Git na árvore (ClickLocal #51): letra no nó que mudou, ponto na pasta com mudança dentro.
@@ -144,6 +148,7 @@ const createMenuItems = computed<ContextMenuItem[]>(() => [
   },
   { label: t("createMenu.newFolder"), icon: "folder-plus", action: () => void tree.createFolder() },
   { label: t("createMenu.newRequest"), icon: "file-plus", action: () => void tree.createRequest() },
+  { label: t("createMenu.newFlow"), icon: "workflow", action: () => void flows.create() },
   {
     label: t("createMenu.import"),
     icon: "import",
@@ -377,6 +382,7 @@ onUnmounted(() => {
                 @move-many="tree.moveManyInto"
               />
             </div>
+            <FlowsSection />
           </aside>
         </template>
         <template #second>
@@ -405,6 +411,18 @@ onUnmounted(() => {
           >
             <RequestTabsBar />
             <ChangesPanel class="min-h-0 flex-1" />
+          </main>
+          <!-- Flow: canvas e painel do nó, coluna inteira. -->
+          <main
+            v-else-if="requestTabs.active?.kind === 'flow'"
+            class="flex h-full flex-col bg-surface-1"
+          >
+            <RequestTabsBar />
+            <FlowPanel
+              :key="requestTabs.active.id"
+              :path="requestTabs.active.path.slice('flows/'.length)"
+              class="min-h-0 flex-1"
+            />
           </main>
           <!-- Timeline (#55): também coluna inteira. -->
           <main

@@ -26,6 +26,7 @@ import { dirname, join } from "node:path";
 import { DomainError } from "../ipc/errors";
 import { ATTACHMENTS_DIR } from "./attachments";
 import { writeYamlAtomic } from "./eol";
+import { FLOWS_DIR, listFlows, rewriteFlowReferences } from "./flows";
 import { ensureGitignore } from "./gitignore";
 import { CURRENT_SCHEMA_VERSION } from "./migrations/registry";
 import { resolveWorkspacePath } from "./paths";
@@ -167,6 +168,7 @@ async function scanChildren(root: string, relDir: string): Promise<WorkspaceNode
         relDir === "" &&
         (entry.name === ENVIRONMENTS_DIR ||
           entry.name === ATTACHMENTS_DIR ||
+          entry.name === FLOWS_DIR ||
           entry.name === WORKSPACE_FILE)
       ) {
         return null;
@@ -363,12 +365,13 @@ export async function scanWorkspace(root: string): Promise<WorkspaceTree> {
     issues = [{ path: "", message: `workspace manifest not found: "${WORKSPACE_FILE}"` }];
   }
 
-  const [environments, children] = await Promise.all([
+  const [environments, flows, children] = await Promise.all([
     readEnvironments(root),
+    listFlows(root),
     scanChildren(root, ""),
   ]);
 
-  return { root, data, issues, environments, children };
+  return { root, data, issues, environments, flows, children };
 }
 
 /** Caminho do arquivo que de fato guarda o conteúdo de um nó — o próprio arquivo para uma request, `folder.yaml` para uma pasta. */
@@ -474,6 +477,8 @@ export async function moveNode(root: string, from: string, to: string, seq: numb
     markOwnWrite(absTo);
     await fs.rename(absFrom, absTo);
     clearKnownMtimesUnder(absFrom);
+    // Flows citam requests por caminho: acompanham o rename/move em vez de quebrar.
+    await rewriteFlowReferences(root, from, to);
   }
 
   const targetSiblings = (await scanChildren(root, targetDir))

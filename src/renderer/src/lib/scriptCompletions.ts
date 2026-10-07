@@ -125,13 +125,33 @@ const MEMBERS_BY_OBJECT: Record<string, ApiMember[]> = {
 
 /** Só o que existe na fase — `req`/`console` no pre-request; `res`/`test`/`expect`/`console` nos tests (arch-docs/scripting.md). */
 function topLevelNamesFor(phase: ScriptPhase): string[] {
-  return phase === "preRequest"
-    ? ["wttp", "req", "console"]
-    : ["wttp", "res", "test", "expect", "console"];
+  if (phase === "preRequest") return ["wttp", "req", "console"];
+  // A função de um flow (#59) vê a última resposta e as variáveis do flow (`vars`).
+  if (phase === "function") return ["wttp", "res", "vars", "test", "expect", "console"];
+  return ["wttp", "res", "test", "expect", "console"];
 }
 
 /** Padrões comuns (EP-09-T04) — `Tab` pula entre os `${...}` até o fim do snippet. */
 function snippetsFor(phase: ScriptPhase): Completion[] {
+  if (phase === "function") {
+    return [
+      snippetCompletion("if (res.status === ${201}) return ${1};\nreturn ${2};", {
+        label: "route-by-status",
+        type: "text",
+        info: "Follow output 1 when the status matches, output 2 otherwise",
+      }),
+      snippetCompletion("vars.${name} = res.json.${field};\nreturn ${1};", {
+        label: "save-field",
+        type: "text",
+        info: "Save a response field as {{name}} for the next nodes",
+      }),
+      snippetCompletion("return [${null}, ${null}];", {
+        label: "return-array",
+        type: "text",
+        info: "Node-RED style: the first position that isn't null picks the output",
+      }),
+    ];
+  }
   if (phase === "preRequest") {
     return [
       snippetCompletion('wttp.setVar("${name}", ${value});', {
@@ -188,7 +208,7 @@ export function scriptApiCompletionSource(phase: ScriptPhase) {
     }
 
     // `expect(res.status).` — os matchers vêm depois de um `)`, não de um identificador.
-    if (phase === "tests") {
+    if (phase === "tests" || phase === "function") {
       const chained = context.matchBefore(/\)\.[\w$]*/);
       if (chained) {
         return {

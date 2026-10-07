@@ -192,6 +192,20 @@ export interface TimelineTabState {
 
 export const TIMELINE_TAB_ID = "__timeline__";
 
+/** Aba de um flow — uma por arquivo de `flows/`; `path` é `flows/<arquivo>`. Edição (rascunho), canvas e run vivem em `useFlowsStore`; `dirty` espelha o rascunho para a barra de abas e o Ctrl+S funcionarem como em qualquer aba. */
+export interface FlowTabState {
+  kind: "flow";
+  id: string;
+  path: string;
+  title: string;
+  pinned: true;
+  dirty: boolean;
+}
+
+export const FLOW_TAB_ID_PREFIX = "__flow__:";
+
+export const flowTabId = (file: string): string => `${FLOW_TAB_ID_PREFIX}${file}`;
+
 /** Aba do painel de leitura da documentação (EP-12-T02): uma por collection/pasta (`path` é o da pasta lida); o estado de leitura vive em `useDocsReaderStore`, então navegar pela doc nunca mexe nas abas de trabalho. */
 export interface DocsTabState {
   kind: "docs";
@@ -213,6 +227,7 @@ export type OpenTab =
   | RunnerTabState
   | ChangesTabState
   | TimelineTabState
+  | FlowTabState
   | DocsTabState;
 
 export function isRequestTab(tab: OpenTab | null | undefined): tab is RequestTabState {
@@ -241,6 +256,10 @@ export function isChangesTab(tab: OpenTab | null | undefined): tab is ChangesTab
 
 export function isTimelineTab(tab: OpenTab | null | undefined): tab is TimelineTabState {
   return tab?.kind === "timeline";
+}
+
+export function isFlowTab(tab: OpenTab | null | undefined): tab is FlowTabState {
+  return tab?.kind === "flow";
 }
 
 function isRequestOrFolderTab(tab: OpenTab): tab is RequestTabState | FolderTabState {
@@ -418,7 +437,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   function currentDrafts(): WorkspaceDrafts {
     const drafts: WorkspaceDrafts = {};
     for (const tab of tabs.value) {
-      if (!tab.dirty) continue;
+      // O rascunho de um flow vive em `useFlowsStore`, na memória — não em `.wttp/drafts.json`.
+      if (!isRequestOrFolderTab(tab) || !tab.dirty) continue;
       drafts[tab.path] =
         tab.kind === "request"
           ? { kind: "request", data: buildRequestFileData(tab) }
@@ -538,6 +558,38 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
       dirty: false,
     });
     activate(TIMELINE_TAB_ID);
+  }
+
+  /** Abre (ou ativa) a aba do flow `file` (nome do arquivo em `flows/`). */
+  function openFlowTab(file: string, title: string): void {
+    const id = flowTabId(file);
+    const existing = tabs.value.find(tab => tab.id === id);
+    if (existing) {
+      existing.title = title;
+      activate(id);
+      return;
+    }
+    tabs.value.push({ kind: "flow", id, path: `flows/${file}`, title, pinned: true, dirty: false });
+    activate(id);
+  }
+
+  /** Marca/limpa a bolinha de "não salvo" de uma aba cujo conteúdo vive fora deste store (flows). */
+  function setDirty(id: string, dirty: boolean): void {
+    const tab = tabs.value.find(candidate => candidate.id === id);
+    if (tab && tab.kind === "flow") tab.dirty = dirty;
+  }
+
+  /**
+   * Abas cujo estado mora em outra store (o flow, com o rascunho do canvas) dizem aqui como
+   * salvar e descartar — Ctrl+S e o diálogo de fechar aba suja passam a valer para elas.
+   */
+  interface ExternalTabHandler {
+    save(tab: OpenTab): Promise<void>;
+    discard?(tab: OpenTab): void;
+  }
+  const externalHandlers = new Map<string, ExternalTabHandler>();
+  function registerTabHandler(kind: string, handler: ExternalTabHandler): void {
+    externalHandlers.set(kind, handler);
   }
 
   /** Abre (ou ativa) a aba de leitura da documentação de `path` — uma aba por collection/pasta; reabrir foca a existente. */
@@ -779,6 +831,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   function saveActive(): Promise<void> {
     const tab = active.value;
     if (!tab) return Promise.resolve();
+    const external = externalHandlers.get(tab.kind);
+    if (external) return external.save(tab);
     return tab.kind === "folder" ? saveFolderTab(tab.id) : save(tab.id);
   }
 
@@ -786,7 +840,9 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (!closeConfirmId.value) return;
     const id = closeConfirmId.value;
     const tab = tabs.value.find(t => t.id === id);
-    if (tab?.kind === "folder") await saveFolderTab(id);
+    const external = tab ? externalHandlers.get(tab.kind) : undefined;
+    if (tab && external) await external.save(tab);
+    else if (tab?.kind === "folder") await saveFolderTab(id);
     else await save(id);
     forceClose(id);
     if (closeQueue.value[0] === id) closeQueue.value.shift();
@@ -797,6 +853,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (!closeConfirmId.value) return;
     const id = closeConfirmId.value;
     const tab = tabs.value.find(t => t.id === id);
+    if (tab) externalHandlers.get(tab.kind)?.discard?.(tab);
     forceClose(id);
     if (tab) toast.push(i18n.global.t("toast.discarded", { name: tab.title }), "warning");
     if (closeQueue.value[0] === id) closeQueue.value.shift();
@@ -1452,6 +1509,9 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     openRunnerTab,
     openChangesTab,
     openTimelineTab,
+    openFlowTab,
+    setDirty,
+    registerTabHandler,
     openDocsTab,
     requestClose,
     forceClose,

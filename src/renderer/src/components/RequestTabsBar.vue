@@ -173,9 +173,11 @@ function onDoubleClick(id: string): void {
                 ? 'git-compare'
                 : tab.kind === 'timeline'
                   ? 'history'
-                  : tab.kind === 'docs'
-                    ? 'book-open'
-                    : 'folder'
+                  : tab.kind === 'flow'
+                    ? 'workflow'
+                    : tab.kind === 'docs'
+                      ? 'book-open'
+                      : 'folder'
         "
         size="3.5"
         class="shrink-0 text-faint"

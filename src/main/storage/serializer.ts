@@ -1,17 +1,25 @@
 import type {
   AuthConfig,
   EnvironmentFile,
+  FlowFile,
   FolderFile,
   RequestBody,
   RequestFile,
   WorkspaceFile,
 } from "@shared";
 
+import { isMap, isSeq } from "yaml";
+
 import {
   AUTH_FIELD_ORDER,
   BODY_FIELD_ORDER,
   ENVIRONMENT_FIELD_ORDER,
   ENVIRONMENT_VARIABLE_FIELD_ORDER,
+  FLOW_CONDITION_FIELD_ORDER,
+  FLOW_EDGE_FIELD_ORDER,
+  FLOW_FIELD_ORDER,
+  FLOW_MAPPING_FIELD_ORDER,
+  FLOW_NODE_FIELD_ORDER,
   FOLDER_FIELD_ORDER,
   KEY_VALUE_ENTRY_FIELD_ORDER,
   MULTIPART_ENTRY_FIELD_ORDER,
@@ -143,5 +151,40 @@ export function serializeEnvironment(environment: EnvironmentFile): string {
   );
 
   const doc = buildDocument({ ...known, ...environment.unknown }, [["variables"]]);
+  return stringifyDocument(doc);
+}
+
+export function serializeFlow(flow: FlowFile): string {
+  const nodes = flow.nodes.map(node =>
+    orderFields(
+      {
+        ...node,
+        when: node.when
+          ? orderFields(node.when as unknown as Record<string, unknown>, FLOW_CONDITION_FIELD_ORDER)
+          : undefined,
+      },
+      FLOW_NODE_FIELD_ORDER,
+    ),
+  );
+
+  const known = orderFields(
+    {
+      ...flow,
+      nodes,
+      edges: orderEntries(flow.edges, FLOW_EDGE_FIELD_ORDER),
+      mappings: orderEntries(flow.mappings, FLOW_MAPPING_FIELD_ORDER),
+    },
+    FLOW_FIELD_ORDER,
+  );
+
+  const doc = buildDocument({ ...known, ...flow.unknown }, [["nodes"], ["edges"], ["mappings"]]);
+  // Um nó de função carrega código: em bloco, o `code` sai como literal `|` legível no diff,
+  // em vez de uma linha só cheia de `\n`.
+  const items = doc.getIn(["nodes"], true);
+  if (isSeq(items)) {
+    for (const item of items.items) {
+      if (isMap(item) && item.has("code")) item.flow = false;
+    }
+  }
   return stringifyDocument(doc);
 }

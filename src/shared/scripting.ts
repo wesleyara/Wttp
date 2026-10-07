@@ -9,7 +9,7 @@
 import type { HttpRequestSpec, HttpResponseResult } from "./http";
 import type { WttpError } from "./ipc";
 
-export type ScriptPhase = "preRequest" | "tests";
+export type ScriptPhase = "preRequest" | "tests" | "function";
 
 export interface ScriptConsoleEntry {
   level: "log" | "warn" | "error";
@@ -56,6 +56,12 @@ export interface ScriptRunSpec {
   collectionName?: string;
   req?: HttpRequestSpec;
   res?: HttpResponseResult;
+  /**
+   * Fase `function` (nó de função de um flow): as variáveis de runtime do flow — o script as
+   * lê e escreve em `vars` — e quantas saídas o nó tem, para validar o que o código devolve.
+   */
+  vars?: Record<string, string>;
+  outputs?: number;
   /** `wttp.yaml` → `settings.scriptTimeout`, default 5000ms. */
   timeoutMs?: number;
 }
@@ -73,6 +79,10 @@ export interface ScriptRunResult {
   collectionVars: Record<string, string> | null;
   /** Só presente (e só relevante) na fase `preRequest` — a request como o script deixou. */
   req?: HttpRequestSpec;
+  /** Fase `function`: `vars` como o script deixou. */
+  vars?: Record<string, string>;
+  /** Fase `function`: a saída (1-based) que o código escolheu; `null` = nenhuma, o flow termina ali. */
+  output?: number | null;
   assertions: ScriptAssertion[];
   console: ScriptConsoleEntry[];
   error?: WttpError;

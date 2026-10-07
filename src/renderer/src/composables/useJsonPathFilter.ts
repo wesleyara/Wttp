@@ -1,7 +1,7 @@
 import type { ComputedRef, Ref } from "vue";
 
-import { compileJsonPath, JsonPathError } from "@renderer/lib/jsonpath";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
+import { compileJsonPath, JsonPathError } from "@shared/jsonpath";
 import { computed, ref, watch } from "vue";
 
 /** Estado do filtro aplicado ao body: sem filtro, resultado, ou por que não deu para filtrar. */

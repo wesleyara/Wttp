@@ -1,14 +1,16 @@
-import type { EnvironmentFile, FolderFile, RequestFile, WorkspaceFile } from "@shared";
+import type { EnvironmentFile, FlowFile, FolderFile, RequestFile, WorkspaceFile } from "@shared";
 
 import { parse } from "yaml";
 
 import {
   ENVIRONMENT_FIELD_ORDER,
+  FLOW_FIELD_ORDER,
   FOLDER_FIELD_ORDER,
   REQUEST_FIELD_ORDER,
   splitKnownFields,
   WORKSPACE_FIELD_ORDER,
 } from "./fieldOrder";
+import { migrateFlowToCurrent } from "./migrations/flow";
 import { migrateToCurrent, resolveSchemaVersion } from "./migrations/registry";
 
 /** Sem `unknown` quando não sobra nenhum campo desconhecido — mantém o objeto limpo. */
@@ -48,4 +50,10 @@ export function parseEnvironment(raw: string): EnvironmentFile {
     ENVIRONMENT_FIELD_ORDER,
   );
   return withUnknown(known as unknown as EnvironmentFile, unknown);
+}
+
+/** Um flow v1 (lista linear, #57) é migrado para o grafo da v2 (#59) na leitura. */
+export function parseFlow(raw: string): FlowFile {
+  const { known, unknown } = splitKnownFields(migrateFlowToCurrent(parse(raw)), FLOW_FIELD_ORDER);
+  return withUnknown(known as unknown as FlowFile, unknown);
 }

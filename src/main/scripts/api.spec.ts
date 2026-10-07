@@ -238,3 +238,92 @@ describe("executeScript — uncaught exceptions", () => {
     ]);
   });
 });
+
+describe("fase function (nó de função de um flow)", () => {
+  const run = (
+    code: string,
+    extra: Partial<ScriptRunSpec> = {},
+  ): ReturnType<typeof executeScript> =>
+    executeScript(
+      specFor({
+        code,
+        phase: "function",
+        outputs: 3,
+        vars: { token: "abc" },
+        res: jsonResponse({ job: { state: "done" }, count: 7 }, 201),
+        ...extra,
+      }),
+    );
+
+  it("a number picks the output to follow", () => {
+    expect(run("return 2;")).toMatchObject({ ok: true, output: 2 });
+    expect(run("return res.status === 201 ? 3 : 1;")).toMatchObject({ ok: true, output: 3 });
+  });
+
+  it("an array, Node-RED style, picks the first position that isn't null", () => {
+    expect(run("return [null, { a: 1 }, 'x'];")).toMatchObject({ ok: true, output: 2 });
+    expect(run("return [null, null, null];")).toMatchObject({ ok: true, output: null });
+  });
+
+  it("returning nothing follows no output — the flow ends there", () => {
+    expect(run("const x = 1;")).toMatchObject({ ok: true, output: null });
+    expect(run("return null;")).toMatchObject({ ok: true, output: null });
+  });
+
+  it("reads the last response and reads/writes the flow variables as text", () => {
+    const result = run(
+      "vars.state = res.json.job.state; vars.total = res.json.count * 2; delete vars.token; return 1;",
+    );
+    expect(result).toMatchObject({ ok: true, output: 1, vars: { state: "done", total: "14" } });
+    expect(result.vars).not.toHaveProperty("token");
+  });
+
+  it("sees the variables the flow already had", () => {
+    expect(run("return vars.token === 'abc' ? 2 : 1;")).toMatchObject({ output: 2 });
+  });
+
+  it("works without a response (the function runs before any request)", () => {
+    expect(run("return res === undefined ? 1 : 2;", { res: undefined })).toMatchObject({
+      ok: true,
+      output: 1,
+    });
+  });
+
+  it("captures console output and assertions, tagged with the phase", () => {
+    const result = run(
+      "console.log('hi'); test('ok', () => expect(res.status).toBe(201)); return 1;",
+    );
+    expect(result.console).toEqual([{ level: "log", message: "hi", phase: "function" }]);
+    expect(result.assertions).toMatchObject([{ name: "ok", passed: true }]);
+  });
+
+  it("fails clearly on an output that doesn't exist, a bad type and a fractional number", () => {
+    expect(run("return 4;").error?.message).toMatch(/chose output 4, but this node has 3 outputs/);
+    expect(run("return 0;").error?.message).toMatch(/chose output 0/);
+    expect(run("return 'a';").error?.message).toMatch(/returned string/);
+    expect(run("return 1.5;").error?.message).toMatch(/whole output number/);
+    expect(run("return [null, null, null, 'x'];", { outputs: 3 }).error?.message).toMatch(
+      /chose output 4/,
+    );
+  });
+
+  it("reports syntax errors and thrown errors, keeping the variables written until then", () => {
+    expect(run("return (;")).toMatchObject({ ok: false });
+    const thrown = run("vars.before = 'yes'; throw new Error('boom');");
+    expect(thrown).toMatchObject({ ok: false, vars: { before: "yes" } });
+    expect(thrown.error?.message).toMatch(/boom/);
+  });
+
+  it("times out an endless loop", () => {
+    expect(run("while (true) {}", { timeoutMs: 50 })).toMatchObject({
+      ok: false,
+      error: { code: "SCRIPT_TIMEOUT" },
+    });
+  });
+
+  it("has no access to require, process or the file system", () => {
+    expect(
+      run("return typeof require === 'undefined' && typeof process === 'undefined' ? 1 : 2;"),
+    ).toMatchObject({ output: 1 });
+  });
+});

@@ -54,6 +54,36 @@ export const REQUEST_SETTINGS_FIELD_ORDER = [
   "validateTls",
 ] as const;
 
+export const FLOW_FIELD_ORDER = [
+  "wttp",
+  "name",
+  "start",
+  "nodes",
+  "edges",
+  "mappings",
+  "maxSteps",
+] as const;
+
+export const FLOW_NODE_FIELD_ORDER = [
+  "id",
+  "type",
+  "request",
+  "when",
+  "intervalMs",
+  "maxAttempts",
+  "ms",
+  "outputs",
+  "code",
+  "x",
+  "y",
+] as const;
+
+export const FLOW_CONDITION_FIELD_ORDER = ["source", "path", "op", "value"] as const;
+
+export const FLOW_EDGE_FIELD_ORDER = ["from", "to", "when", "output"] as const;
+
+export const FLOW_MAPPING_FIELD_ORDER = ["from", "to"] as const;
+
 export const SCRIPTS_FIELD_ORDER = ["preRequest", "tests"] as const;
 
 export const ENVIRONMENT_FIELD_ORDER = ["wttp", "name", "variables"] as const;

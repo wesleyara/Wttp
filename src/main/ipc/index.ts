@@ -2,6 +2,7 @@ import { registerAppHandlers } from "./app";
 import { registerAttachmentHandlers } from "./attachment";
 import { registerDialogHandlers } from "./dialog";
 import { registerEnvironmentHandlers } from "./environment";
+import { registerFlowHandlers } from "./flow";
 import { registerGitHandlers } from "./git";
 import { registerHistoryHandlers } from "./history";
 import { registerHttpHandlers } from "./http";
@@ -36,6 +37,7 @@ export function registerIpcHandlers(): void {
   registerScriptHandlers();
   registerHistoryHandlers();
   registerRunnerHandlers();
+  registerFlowHandlers();
   registerGitHandlers();
   registerTerminalHandlers();
   registerUpdateHandlers();
