@@ -32,6 +32,7 @@ fileAssociations:
     mimeType: application/vnd.wttp.workspace+yaml
 asarUnpack:
   - resources/**
+  - node_modules/node-pty/**
 win:
   executableName: wttp
   target:

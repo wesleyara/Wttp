@@ -3,6 +3,7 @@ import type { GitFileStatus, WorkspaceNode } from "@shared";
 
 import ChangesPanel from "@renderer/components/ChangesPanel.vue";
 import CommandPalette from "@renderer/components/CommandPalette.vue";
+import DocsReaderPanel from "@renderer/components/DocsReaderPanel.vue";
 import EnvironmentsPanel from "@renderer/components/EnvironmentsPanel.vue";
 import FolderConfigTabs from "@renderer/components/FolderConfigTabs.vue";
 import GenerateCodeModal from "@renderer/components/GenerateCodeModal.vue";
@@ -15,6 +16,9 @@ import RequestUrlBar from "@renderer/components/RequestUrlBar.vue";
 import ResponsePanel from "@renderer/components/ResponsePanel.vue";
 import RunnerPanel from "@renderer/components/RunnerPanel.vue";
 import StatusBar from "@renderer/components/StatusBar.vue";
+import TerminalPanel from "@renderer/components/TerminalPanel.vue";
+import TimelinePanel from "@renderer/components/TimelinePanel.vue";
+import UnusedAttachmentsModal from "@renderer/components/UnusedAttachmentsModal.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WContextMenu, { type ContextMenuItem } from "@renderer/components/WContextMenu.vue";
 import WEmptyState from "@renderer/components/WEmptyState.vue";
@@ -25,13 +29,18 @@ import WorkspaceLanding from "@renderer/components/WorkspaceLanding.vue";
 import WSplitPane from "@renderer/components/WSplitPane.vue";
 import WToast from "@renderer/components/WToast.vue";
 import WTree, { type TreeDecoration } from "@renderer/components/WTree.vue";
+import { useAttachmentsStore } from "@renderer/stores/attachments";
 import { useChangesStore } from "@renderer/stores/changes";
 import { useCodegenStore } from "@renderer/stores/codegen";
+import { useDocsReaderStore } from "@renderer/stores/docsReader";
 import { GIT_STATUS_LETTER, useGitStore } from "@renderer/stores/git";
 import { useImportStore } from "@renderer/stores/import";
 import { useMenuStore } from "@renderer/stores/menu";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useRunnerStore } from "@renderer/stores/runner";
+import { useTerminalStore } from "@renderer/stores/terminal";
+import { useTerminalPanelStore } from "@renderer/stores/terminalPanel";
+import { useTimelineStore } from "@renderer/stores/timeline";
 import { useTreeStore } from "@renderer/stores/tree";
 import { useUiStore } from "@renderer/stores/ui";
 import { useUpdateStore } from "@renderer/stores/update";
@@ -49,8 +58,13 @@ const tree = useTreeStore();
 const requestTabs = useRequestTabsStore();
 const codegen = useCodegenStore();
 const runner = useRunnerStore();
+const docsReader = useDocsReaderStore();
+const attachments = useAttachmentsStore();
 const git = useGitStore();
+const terminal = useTerminalStore();
+const terminalPanel = useTerminalPanelStore();
 const changes = useChangesStore();
+const timeline = useTimelineStore();
 
 // Badges Git na árvore (ClickLocal #51): letra no nó que mudou, ponto na pasta com mudança dentro.
 const GIT_STATUS_CLASS: Record<GitFileStatus, string> = {
@@ -136,6 +150,11 @@ const createMenuItems = computed<ContextMenuItem[]>(() => [
     separatorBefore: true,
     action: openImportIntoWorkspace,
   },
+  {
+    label: t("attachments.cleanup.menuItem"),
+    icon: "paperclip",
+    action: () => void attachments.openCleanup(),
+  },
 ]);
 
 const contextMenuItems = computed<ContextMenuItem[]>(() => {
@@ -166,6 +185,11 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
         icon: "list-checks",
         action: () => runner.configure(node.path, node.name),
       },
+      {
+        label: t("contextMenu.readDocs"),
+        icon: "book-open",
+        action: () => void docsReader.open(node.path),
+      },
     );
   }
   if (node.kind === "request") {
@@ -181,6 +205,13 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
       icon: "git-compare",
       action: () => void changes.open(node.path),
     });
+    if (node.kind === "request" || node.kind === "folder") {
+      items.push({
+        label: t("timeline.show"),
+        icon: "history",
+        action: () => void timeline.openForNode(node.path, node.kind, node.name),
+      });
+    }
   }
   items.push(
     {
@@ -222,6 +253,7 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
 
 let stopListeningToMenu: (() => void) | null = null;
 let stopListeningToUpdate: (() => void) | null = null;
+let stopListeningToTerminal: (() => void) | null = null;
 
 /**
  * Fechamento do app (EP-08.1-T01) — sem isso, a última mudança de sessão (aba aberta/
@@ -247,15 +279,19 @@ onMounted(() => {
     "git:changes": () => {
       if (git.repository) void changes.open();
     },
+    "terminal:open": () => void terminal.open(),
+    "terminal:toggle": () => void terminalPanel.toggle(),
     "preferences:open": () => (preferencesOpen.value = true),
   });
   stopListeningToUpdate = updateStore.listen();
+  stopListeningToTerminal = terminalPanel.listen();
   window.addEventListener("beforeunload", flushSessionOnUnload);
 });
 
 onUnmounted(() => {
   stopListeningToMenu?.();
   stopListeningToUpdate?.();
+  stopListeningToTerminal?.();
   window.removeEventListener("beforeunload", flushSessionOnUnload);
 });
 </script>
@@ -370,6 +406,22 @@ onUnmounted(() => {
             <RequestTabsBar />
             <ChangesPanel class="min-h-0 flex-1" />
           </main>
+          <!-- Timeline (#55): também coluna inteira. -->
+          <main
+            v-else-if="requestTabs.active?.kind === 'timeline'"
+            class="flex h-full flex-col bg-surface-1"
+          >
+            <RequestTabsBar />
+            <TimelinePanel class="min-h-0 flex-1" />
+          </main>
+          <!-- Docs (EP-12-T02): leitura da collection, coluna inteira como as demais abas singleton. -->
+          <main
+            v-else-if="requestTabs.active?.kind === 'docs'"
+            class="flex h-full flex-col bg-surface-1"
+          >
+            <RequestTabsBar />
+            <DocsReaderPanel class="min-h-0 flex-1" />
+          </main>
           <!-- Runner (EP-13-T01): mesma regra da aba de environments — coluna inteira. -->
           <main
             v-else-if="requestTabs.active?.kind === 'runner'"
@@ -425,6 +477,7 @@ onUnmounted(() => {
         </template>
       </WSplitPane>
     </div>
+    <TerminalPanel v-if="workspace.ready" />
     <StatusBar
       @open-environment-editor="requestTabs.openEnvironmentTab()"
       @open-preferences="preferencesOpen = true"
@@ -437,6 +490,7 @@ onUnmounted(() => {
     <ImportModal :open="importModalOpen" @close="onCloseImportModal" />
 
     <MoveCopyModal />
+    <UnusedAttachmentsModal />
     <GenerateCodeModal />
 
     <WToast />

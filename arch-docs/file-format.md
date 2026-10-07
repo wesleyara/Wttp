@@ -14,6 +14,8 @@ my-api/                        # raiz do workspace
 ├── environments/
 │   ├── dev.yaml
 │   └── prod.yaml
+├── attachments/               # imagens e vídeos referenciados pelo `docs` (versionados)
+│   └── tela-de-login-1a2b3c4d.png
 ├── .wttp/                     # gitignored — estado local da máquina
 │   ├── secrets.json           # fallback quando não há keychain
 │   ├── ui-state.json          # abas, pastas expandidas, filtro JSONPath e ignorados do diff por request
@@ -228,3 +230,23 @@ runtime (wttp.setVar) > environment > collection/pasta > workspace > dinâmicas
 A resolução é recursiva — uma variável pode referenciar outra — com detecção de ciclo. Variável não resolvida **não** vira string vazia: ela é destacada na UI e a requisição é bloqueada até o usuário decidir.
 
 O nível "collection/pasta" é o merge das `variables` de `folder.yaml` na cadeia de pastas da request até a raiz, pasta mais próxima da request vencendo sobre as mais distantes.
+
+---
+
+## 9. `attachments/` — anexos da documentação
+
+Imagens e vídeos que o markdown de `docs` (request, pasta, collection) referencia. Moram **no workspace**, ao lado dos YAMLs, e são versionados com eles — ao contrário de `.wttp/`, nunca são gitignorados.
+
+```md
+![tela de login](attachments/tela-de-login-1a2b3c4d.png)
+![demo do fluxo](attachments/demo-fluxo-9f8e7d6c.mp4)
+```
+
+- **Um diretório só, na raiz.** `attachments/` é reservado: nunca aparece como collection na árvore, e os arquivos ficam diretamente nele (sem subpastas). Todos os `docs` do workspace apontam para ele, então mover ou renomear uma request nunca quebra uma referência.
+- **Nome gravado: `<slug>-<8 hex do sha256>.<ext>`.** O hash do conteúdo torna anexar o mesmo arquivo duas vezes idempotente (um arquivo, nenhum diff) e impede que dois arquivos diferentes com o mesmo nome se sobrescrevam. O slug vem do nome original (minúsculas, sem acento, `-` no lugar de qualquer coisa fora de `a-z0-9`).
+- **Referência é um caminho relativo à raiz do workspace**, com `/`, escrito com a sintaxe de imagem do markdown. A extensão decide a renderização: `png`, `jpg`, `jpeg`, `gif`, `webp`, `svg` viram `<img>`; `mp4` e `webm` viram `<video controls>`. Nenhum outro tipo é aceito.
+- **Limite de 50 MB por arquivo.** Acima disso o Wttp recusa com uma mensagem que sugere Git LFS — vídeos grandes pesam no repositório de quem clona.
+- **Só `attachments/` é servido à prévia.** O protocolo interno `wttp-attachment:` recusa qualquer outro caminho do workspace (YAMLs, `.wttp/secrets.json`) e `../`.
+- **Export.** O HTML exportado embute as imagens como `data:` (arquivo único, abre offline) e os vídeos até 8 MB; acima disso o vídeo vira um aviso no lugar do player. O markdown exportado mantém os caminhos relativos — a pasta `attachments/` precisa acompanhar o arquivo.
+- **Remover uma referência nunca apaga o arquivo.** O mesmo anexo pode ser citado por vários `docs`, a edição é desfazível e o git já guarda o arquivo. Limpar é uma ação à parte — "Clean unused attachments…" no menu "+" da árvore e na busca rápida — que lista o que nenhum `docs` menciona e manda para a lixeira do SO só o que o usuário confirma. "Mencionar" é qualquer ocorrência do texto `attachments/<arquivo>` (imagem, link, bloco de código), no `docs` salvo de todo o workspace e no das abas abertas, ainda que não salvas. Sem lixeira na máquina (ex. Linux sem `gio`), o arquivo é apagado de vez e a UI avisa. Quando uma referência sai de um `docs` salvo e o anexo fica sem uso, o app mostra um aviso com atalho para a limpeza; órfãos que já existiam ao abrir o workspace ficam em silêncio.
+- **Não é schema novo.** Nenhum campo de YAML mudou, então `wttp: 1` continua valendo: um Wttp antigo mostra o texto `![...](attachments/...)` como está e preserva os arquivos.

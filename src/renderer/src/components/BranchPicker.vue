@@ -4,6 +4,7 @@ import type { GitRef } from "@shared";
 import { useBranchesStore } from "@renderer/stores/branches";
 import { useChangesStore } from "@renderer/stores/changes";
 import { useGitStore } from "@renderer/stores/git";
+import { useGitRemoteStore } from "@renderer/stores/gitRemote";
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
@@ -29,6 +30,7 @@ const { t } = useI18n();
 const branches = useBranchesStore();
 const git = useGitStore();
 const changes = useChangesStore();
+const remote = useGitRemoteStore();
 
 const menuRef = useTemplateRef<HTMLElement>("menu");
 const searchRef = useTemplateRef<HTMLInputElement>("search");
@@ -58,6 +60,18 @@ async function submitNewBranch(): Promise<void> {
     creating.value = false;
     emit("close");
   }
+}
+
+/** Comando para colar no terminal quando a branch divergiu — o Wttp nunca resolve isso. */
+const divergedCommand = computed(() => {
+  const upstream = remote.upstream ?? "origin/<branch>";
+  return `git pull --rebase ${upstream.replace("/", " ")}`;
+});
+
+const remoteBusyLabel = computed(() => (remote.busy ? t(`remote.busy.${remote.busy}`) : ""));
+
+async function copyDivergedCommand(): Promise<void> {
+  await navigator.clipboard.writeText(divergedCommand.value).catch(() => undefined);
 }
 
 function showChanges(): void {
@@ -175,6 +189,84 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onDocumentPoin
         </p>
       </div>
 
+      <div
+        v-if="git.repository?.branch && remote.hasRemote"
+        class="flex flex-col gap-1.5 border-t border-subtle p-2"
+        data-testid="remote-actions"
+      >
+        <p class="px-1 font-inter text-xs text-muted">
+          <template v-if="remote.upstream">
+            {{
+              t("remote.status", {
+                upstream: remote.upstream,
+                ahead: remote.ahead,
+                behind: remote.behind,
+              })
+            }}
+          </template>
+          <template v-else>{{
+            t("remote.noUpstream", { branch: git.repository.branch })
+          }}</template>
+        </p>
+        <div class="flex gap-1">
+          <WButton
+            size="sm"
+            variant="secondary"
+            class="flex-1"
+            :disabled="!!remote.busy || !remote.upstream"
+            data-testid="git-pull"
+            @click="remote.pull()"
+          >
+            {{ t("remote.pull") }}{{ remote.behind ? ` ↓${remote.behind}` : "" }}
+          </WButton>
+          <WButton
+            v-if="remote.needsUpstream"
+            size="sm"
+            variant="primary"
+            class="flex-1"
+            :disabled="!!remote.busy"
+            data-testid="git-publish"
+            @click="remote.push(true)"
+          >
+            {{ t("remote.publish") }}
+          </WButton>
+          <WButton
+            v-else
+            size="sm"
+            variant="primary"
+            class="flex-1"
+            :disabled="!!remote.busy || !remote.upstream"
+            data-testid="git-push"
+            @click="remote.push()"
+          >
+            {{ t("remote.push") }}{{ remote.ahead ? ` ↑${remote.ahead}` : "" }}
+          </WButton>
+        </div>
+        <div v-if="remote.busy" class="flex items-center gap-2 px-1 font-inter text-xs text-muted">
+          <WIcon name="loader-circle" size="3" class="animate-spin" />
+          <span class="flex-1">{{ remoteBusyLabel }}</span>
+          <button
+            type="button"
+            class="rounded px-1 text-1 hover:bg-surface-3"
+            data-testid="git-remote-cancel"
+            @click="remote.cancel()"
+          >
+            {{ t("common.cancel") }}
+          </button>
+        </div>
+        <div
+          v-if="remote.diverged"
+          class="flex flex-col gap-1 rounded-md border border-subtle bg-surface-1 p-2"
+          data-testid="git-diverged"
+        >
+          <p class="font-inter text-xs text-status-4xx">{{ t("remote.diverged") }}</p>
+          <code class="break-all font-mono text-[12px] text-1">{{ divergedCommand }}</code>
+          <WButton size="sm" variant="ghost" @click="copyDivergedCommand">
+            {{ t("remote.copyCommand") }}
+          </WButton>
+        </div>
+      </div>
+
       <div class="border-t border-subtle p-2">
         <form v-if="creating" class="flex gap-1" @submit.prevent="submitNewBranch">
           <input
@@ -226,6 +318,24 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onDocumentPoin
       <WButton variant="primary" @click="branches.blockedBy = null">{{
         t("common.close")
       }}</WButton>
+    </template>
+  </WModal>
+
+  <WModal
+    :open="remote.blockedBy !== null"
+    :title="t('remote.blockedTitle')"
+    @close="remote.blockedBy = null"
+  >
+    <div class="flex flex-col gap-2 font-inter text-sm text-1" data-testid="pull-blocked">
+      <p>{{ t("remote.blockedBody") }}</p>
+      <ul class="rounded-md border border-subtle bg-surface-2 px-2 py-1">
+        <li v-for="name in remote.blockedBy ?? []" :key="name" class="truncate text-muted">
+          {{ name }}
+        </li>
+      </ul>
+    </div>
+    <template #footer>
+      <WButton variant="primary" @click="remote.blockedBy = null">{{ t("common.close") }}</WButton>
     </template>
   </WModal>
 

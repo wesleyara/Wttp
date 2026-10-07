@@ -8,6 +8,7 @@
  */
 
 import type {
+  GitAheadBehind,
   GitBranches,
   GitChangesPayload,
   GitCheckoutPayload,
@@ -18,8 +19,13 @@ import type {
   GitFileVersions,
   GitFileVersionsPayload,
   GitInfo,
+  GitLog,
+  GitLogPayload,
   GitPathsPayload,
+  GitPushPayload,
   GitRef,
+  GitRemotePayload,
+  GitRestorePayload,
   GitRootPayload,
   GitStatus,
 } from "./git";
@@ -107,6 +113,52 @@ export interface AppSettings {
   language?: "system" | "en" | "pt-BR";
   /** Última linguagem escolhida no modal "Generate code" (ClickLocal #46) — id de `CODEGEN_LANGUAGES`; valor desconhecido cai no padrão. */
   codegenLanguage?: string;
+  /**
+   * Comando do terminal usado por "Open terminal" (ClickLocal #35). Vazio/ausente =
+   * detecta o do SO. Linha de comando sem shell; `{cwd}` vira a raiz do workspace.
+   */
+  terminalCommand?: string;
+  /** Shell do terminal embutido (#169); vazio/ausente = o do SO (`$SHELL`, `COMSPEC`). */
+  terminalShell?: string;
+  /**
+   * Intervalo do `git fetch` em segundo plano (ClickLocal #56), em minutos; `0` desliga.
+   * Ausente = 5. Sempre roda também ao abrir o workspace, a menos que seja `0`.
+   */
+  gitFetchIntervalMinutes?: number;
+}
+
+/** Payload de `terminal:open` — raiz do workspace onde o terminal do sistema abre. */
+export interface TerminalOpenPayload {
+  root: string;
+}
+
+/** Terminal embutido (#169): uma sessão por aba do painel, no diretório do workspace. */
+export interface TerminalSpawnPayload {
+  root: string;
+  cols: number;
+  rows: number;
+}
+
+export interface TerminalWritePayload {
+  id: number;
+  data: string;
+}
+
+export interface TerminalResizePayload {
+  id: number;
+  cols: number;
+  rows: number;
+}
+
+/** Eventos main → renderer (`terminal:data`/`terminal:exit`), fora do `IpcContract`. */
+export interface TerminalDataEvent {
+  id: number;
+  data: string;
+}
+
+export interface TerminalExitEvent {
+  id: number;
+  exitCode: number;
 }
 
 /**
@@ -139,6 +191,8 @@ export type MenuAction =
   | "search:focus"
   | "search:quickOpen"
   | "git:changes"
+  | "terminal:open"
+  | "terminal:toggle"
   | "tab:close"
   | "tab:next";
 
@@ -238,6 +292,64 @@ export interface PickFileResult {
   canceled: boolean;
   path?: string;
   content?: string;
+}
+
+/** Tipo de um anexo da documentação (EP-12) — define se o markdown o renderiza como imagem ou vídeo. */
+export type AttachmentKind = "image" | "video";
+
+/** Um arquivo em `attachments/` (arch-docs/file-format.md §9). `path` é relativo à raiz do workspace, com `/`, e é o que vai no markdown. */
+export interface AttachmentInfo {
+  path: string;
+  kind: AttachmentKind;
+  bytes: number;
+}
+
+/** Payload de `attachment:save` — bytes colados/arrastados no editor. */
+export interface SaveAttachmentPayload {
+  root: string;
+  /** Nome original, só para derivar o slug e o tipo (pela extensão). */
+  name: string;
+  data: Uint8Array;
+}
+
+/** Payload de `attachment:pick` — abre o diálogo nativo e já copia a seleção para `attachments/`. */
+export interface PickAttachmentsPayload {
+  root: string;
+}
+
+export interface PickAttachmentsResult {
+  canceled: boolean;
+  files: AttachmentInfo[];
+}
+
+/** Payload de `attachment:read` — bytes de um anexo (export HTML autocontido). */
+export interface ReadAttachmentPayload {
+  root: string;
+  path: string;
+}
+
+export interface ReadAttachmentResult {
+  data: Uint8Array;
+  mime: string;
+}
+
+/** Payload de `attachment:list` — todos os anexos de `attachments/`, para achar os não usados. */
+export interface ListAttachmentsPayload {
+  root: string;
+}
+
+/** Payload de `attachment:trash` — anexos a mandar para a lixeira do SO. */
+export interface TrashAttachmentsPayload {
+  root: string;
+  paths: string[];
+}
+
+export interface TrashAttachmentsResult {
+  /** Foram para a lixeira do SO — recuperáveis por ela. */
+  trashed: string[];
+  /** A lixeira não existe nesta máquina (ex. Linux sem `gio`): apagados de vez. O git ainda os guarda, se já commitados. */
+  deleted: string[];
+  failed: string[];
 }
 
 /** Payload de `workspace:removeRecent` (EP-05-T01). */
@@ -443,6 +555,17 @@ export interface IpcContract {
   "app:ping": { payload: void; result: AppInfo };
   "app:openExternal": { payload: AppOpenExternalPayload; result: void };
   "app:openDocs": { payload: AppOpenDocsPayload; result: void };
+  /** Abre o terminal do sistema (configurável em `AppSettings.terminalCommand`) na raiz do workspace. */
+  "terminal:open": { payload: TerminalOpenPayload; result: void };
+  /** Abre uma sessão de shell interativo (pty) no workspace; a saída chega por `terminal:data` e o fim por `terminal:exit`. */
+  "terminal:spawn": {
+    payload: TerminalSpawnPayload;
+    /** `shell` = nome do shell iniciado (`zsh`, `bash`, `cmd`…), usado como título da aba. */
+    result: { id: number; shell: string };
+  };
+  "terminal:write": { payload: TerminalWritePayload; result: void };
+  "terminal:resize": { payload: TerminalResizePayload; result: void };
+  "terminal:kill": { payload: number; result: void };
   "ui:getState": { payload: void; result: UiState };
   "ui:setState": { payload: Partial<UiState>; result: UiState };
   "settings:get": { payload: void; result: AppSettings };
@@ -470,6 +593,11 @@ export interface IpcContract {
   "dialog:saveFile": { payload: SaveFilePayload; result: SaveFileResult };
   "dialog:pickFolder": { payload: PickFolderPayload; result: PickFolderResult };
   "dialog:pickFile": { payload: PickFilePayload; result: PickFileResult };
+  "attachment:save": { payload: SaveAttachmentPayload; result: AttachmentInfo };
+  "attachment:pick": { payload: PickAttachmentsPayload; result: PickAttachmentsResult };
+  "attachment:read": { payload: ReadAttachmentPayload; result: ReadAttachmentResult };
+  "attachment:list": { payload: ListAttachmentsPayload; result: AttachmentInfo[] };
+  "attachment:trash": { payload: TrashAttachmentsPayload; result: TrashAttachmentsResult };
   "workspace:open": { payload: OpenWorkspacePayload; result: WorkspaceTree | null };
   "workspace:create": { payload: CreateWorkspacePayload; result: WorkspaceTree };
   "workspace:recent": { payload: void; result: RecentWorkspace[] };
@@ -544,6 +672,10 @@ export interface IpcContract {
   /** Os dois lados de um arquivo (base e disco), já parseados pelo storage. */
   "git:fileVersions": { payload: GitFileVersionsPayload; result: GitFileVersions };
   /** Escritas da aba Changes (#53) — sempre com caminhos de dentro do workspace. */
+  /** Timeline de um arquivo (#55): `git log --follow`, só leitura. */
+  "git:log": { payload: GitLogPayload; result: GitLog };
+  /** Regrava o arquivo com o conteúdo de um commit, pelo storage — não é um comando git de escrita. */
+  "git:restore": { payload: GitRestorePayload; result: void };
   "git:stage": { payload: GitPathsPayload; result: void };
   "git:unstage": { payload: GitPathsPayload; result: void };
   /** Volta ao último commit (index e disco); o que não existe no commit é apagado. */
@@ -556,6 +688,16 @@ export interface IpcContract {
   /** `git switch` sem `--force` — a recusa do git chega como `GIT_FAILED` com a mensagem dele. */
   "git:checkout": { payload: GitCheckoutPayload; result: void };
   "git:createBranch": { payload: GitCreateBranchPayload; result: void };
+  /** ahead/behind contra o upstream, só leitura local (#56) — o que o último fetch trouxe. */
+  "git:aheadBehind": { payload: GitRootPayload; result: GitAheadBehind };
+  /** `git fetch --prune` — cancelável por `git:cancel`, com timeout (#56). */
+  "git:fetch": { payload: GitRemotePayload; result: GitAheadBehind };
+  /** Fetch + `merge --ff-only`; divergiu → `GIT_DIVERGED` sem tocar em nada (#56). */
+  "git:pull": { payload: GitRemotePayload; result: GitAheadBehind };
+  /** `git push` — nunca `--force`; rejeitado → `GIT_PUSH_REJECTED`, sem upstream → `GIT_NO_UPSTREAM` (#56). */
+  "git:push": { payload: GitPushPayload; result: GitAheadBehind };
+  /** Aborta a operação de rede `operationId`. No-op se já acabou. */
+  "git:cancel": { payload: string; result: void };
 }
 
 export type IpcChannel = keyof IpcContract;
@@ -575,6 +717,10 @@ export type WttpErrorCode =
   | "SCHEMA_INVALID"
   | "SCHEMA_VERSION_UNSUPPORTED"
   | "PATH_ESCAPES_ROOT"
+  | "ATTACHMENT_TYPE"
+  | "ATTACHMENT_EMPTY"
+  | "ATTACHMENT_TOO_LARGE"
+  | "ATTACHMENT_PATH"
   | "CONFLICT"
   | "SCRIPT_TIMEOUT"
   | "REQUEST_FAILED"
@@ -587,6 +733,10 @@ export type WttpErrorCode =
   | "GIT_FAILED"
   | "GIT_IDENTITY_MISSING"
   | "GIT_OUTSIDE_WORKSPACE"
+  | "GIT_DIVERGED"
+  | "GIT_PUSH_REJECTED"
+  | "GIT_NO_UPSTREAM"
+  | "GIT_AUTH_FAILED"
   | "UNKNOWN";
 
 /**

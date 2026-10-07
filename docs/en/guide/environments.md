@@ -5,7 +5,8 @@ switch with one click in the status bar — dev, staging, production.
 
 ## Create and edit
 
-In the status bar, **Manage** opens the environment editor in its own tab. There you
+In the status bar, the gear icon (**Manage environments**) opens the environment editor
+in its own tab. There you
 create, rename, duplicate and delete environments and edit each one's variables: name,
 value, description and whether it's enabled.
 

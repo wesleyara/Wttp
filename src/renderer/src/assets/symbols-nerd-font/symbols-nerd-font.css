@@ -1,0 +1,12 @@
+/*
+ * Symbols Nerd Font Mono (Nerd Fonts, MIT — ver LICENSE ao lado), convertida para woff2.
+ * Só os glifos de Powerline/ícones que oh-my-zsh, p10k e afins desenham no terminal
+ * embutido; o texto continua em JetBrains Mono.
+ */
+@font-face {
+  font-family: "Symbols Nerd Font Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("./SymbolsNerdFontMono-Regular.woff2") format("woff2");
+}

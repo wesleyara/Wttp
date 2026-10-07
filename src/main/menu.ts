@@ -26,6 +26,8 @@ export const DEFAULT_ACCELERATORS: Record<MenuAction, string> = {
   "search:focus": "CmdOrCtrl+F",
   "search:quickOpen": "CmdOrCtrl+P",
   "git:changes": "CmdOrCtrl+Shift+G",
+  "terminal:open": "CmdOrCtrl+Alt+T",
+  "terminal:toggle": "Ctrl+`",
 };
 
 /**
@@ -127,13 +129,17 @@ export function buildMenu(
     {
       label: "Edit",
       submenu: [
-        { role: "undo" },
-        { role: "redo" },
+        // `registerAccelerator: false` mostra o atalho mas não o registra no menu: um
+        // `Ctrl+C` registrado aqui seria consumido como "Copy" antes de chegar ao terminal
+        // embutido (onde é SIGINT). Campos de texto continuam copiando/colando — esses
+        // atalhos são nativos do Chromium, não dependem do menu.
+        { role: "undo", registerAccelerator: false },
+        { role: "redo", registerAccelerator: false },
         { type: "separator" },
-        { role: "cut" },
-        { role: "copy" },
-        { role: "paste" },
-        { role: "selectAll" },
+        { role: "cut", registerAccelerator: false },
+        { role: "copy", registerAccelerator: false },
+        { role: "paste", registerAccelerator: false },
+        { role: "selectAll", registerAccelerator: false },
         { type: "separator" },
         {
           label: "Find",
@@ -154,6 +160,16 @@ export function buildMenu(
           label: "Changes",
           accelerator: accel("git:changes"),
           click: () => send(win, "git:changes"),
+        },
+        {
+          label: "Toggle Terminal",
+          accelerator: accel("terminal:toggle"),
+          click: () => send(win, "terminal:toggle"),
+        },
+        {
+          label: "Open System Terminal",
+          accelerator: accel("terminal:open"),
+          click: () => send(win, "terminal:open"),
         },
         { type: "separator" },
         { role: "reload" },

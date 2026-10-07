@@ -333,6 +333,66 @@ arquivos novos em LF; duplicar herda a do original. Cobre o checkout do Windows 
 (arch-docs/file-format.md §6.2). O parser já normalizava CRLF na leitura. Não cria
 `.gitattributes` nos workspaces do usuário (opção 2 do card, fora de escopo).
 
+**EP-12** (Documentação de APIs, v0.2, card #31) também está pronto, com pendências. T01: o
+campo `docs` (request, pasta, collection) ganhou o `MarkdownEditor` do repositório
+`wesleyara/markdown-editor-poc` (wrapper de `md-editor-v3`), copiado para
+`src/renderer/src/components/MarkdownEditor/` — toolbar própria, abas Editor/Preview (não
+lado a lado, como o backlog previa: o wrapper é a escolha explícita do usuário), tela cheia,
+tokens `--mde-*` ligados aos `--w-*` do design system (dark mode de graça), textos via
+`vue-i18n`; os plugins de exemplo e a demo do repositório de origem ficaram de fora.
+mermaid/katex/highlight.js vêm empacotados por `import()` dinâmico (`utils/setup.ts`) — a
+CSP só aceita `script-src 'self'`, então nada vai a uma CDN. `{{variáveis}}` aparecem na
+prévia com o valor do environment ativo (segredo mascarado, `lib/markdownVars.ts`).
+`electron.vite.config.ts` precisou de `resolve.dedupe` para o CodeMirror: o `md-editor-v3`
+traz o dele em versão diferente e duas cópias de `@codemirror/state` quebram o editor
+("Unrecognized extension value"). `lib/docsText.ts` tira a linha só de espaços que o
+auto-indent deixa no fim — sem isso o YAML cai para string entre aspas em vez do bloco
+literal `docs: |`. T02: aba singleton `docs` (`DocsReaderPanel.vue`, `useDocsReaderStore`,
+"Read docs" no menu de pasta/collection): índice, doc da pasta seguida das requests,
+assinatura mínima mesmo sem `docs`, exemplo de request (cURL/fetch/axios) e a última
+resposta vinda do histórico. T03: export HTML de arquivo único (sem CDN, busca, dark/light)
+e markdown (`lib/docs/export*.ts`, `dialog:saveFile`, sem canal IPC novo); `{{variáveis}}`
+nunca são substituídas, valores literais de auth/headers sensíveis saem como `****` e
+nenhuma resposta entra no arquivo — testado em `lib/docs/docs.spec.ts`, junto com 100
+requests em milissegundos. `e2e/api-docs.spec.ts` cobre editor, YAML, prévia
+(highlight/mermaid offline) e painel de leitura, com screenshots nos dois temas
+conferidos. Depois: os sete plugins de toolbar do wrapper (callouts, data/hora, emoji,
+modelos, maiúsculas/minúsculas, blocos extras, copiar markdown) no menu "More tools",
+todos traduzidos (`t` injetado em cada fábrica, recriados quando o idioma muda) — e
+**anexos de imagem e vídeo** versionados: `attachments/` na raiz do workspace
+(arch-docs/file-format.md §9, sem campo novo de YAML), arquivo gravado como
+`<slug>-<8 hex do sha256>.<ext>` (idempotente), limite de 50 MB, só png/jpg/gif/webp/svg/
+mp4/webm. Canais `attachment:save`/`pick`/`read` (`src/main/storage/attachments.ts`,
+`ipc/attachment.ts`); a prévia carrega pelo protocolo `wttp-attachment:`
+(`src/main/attachments/protocol.ts`, streaming com `Range`, só serve `attachments/` do
+workspace ativo — YAML, `.wttp/secrets.json` e `../` dão 404; esquema registrado na mesma
+chamada de `registerSchemesAsPrivileged` do `wttp-docs`, que vale uma vez só; CSP ganhou
+`img-src`/`media-src wttp-attachment:`). Colar/arrastar imagem e o botão de anexar (único
+caminho para vídeo, via diálogo nativo) inserem `![](attachments/…)`; a extensão decide
+`<img>` ou `<video controls>` (`lib/markdownAttachments.ts`, gancho `sanitize` único em
+`lib/markdownPostProcess.ts`). O export HTML embute imagens como `data:` e vídeo até 8 MB
+(acima, um aviso no lugar); o markdown exportado mantém o caminho relativo. `attachments/`
+nunca vira collection na árvore. Na barra de status, o "Manage" de environments virou só
+ícone (engrenagem), e o terminal e o botão de anexos não usados ficam à direita, só ícones.
+Documentação de usuário nova: `docs/guia/documentando-apis.md` e `docs/en/guide/documenting-apis.md`
+(editor, anexos, limpeza, leitura e export), mais a seção de anexos em versionamento e a da
+barra de status em primeiro workspace; engenharia em `arch-docs/architecture.md` ("Anexos da
+documentação e o editor de markdown") e `arch-docs/conventions.md` (código *vendored*).
+Remover a referência nunca apaga o arquivo: "Clean unused
+attachments…" (menu "+" e busca rápida; `UnusedAttachmentsModal.vue`, canais
+`attachment:list`/`trash`, varredura pura em `lib/unusedAttachments.ts`) lista o que
+nenhum `docs` menciona — salvo ou numa aba aberta, qualquer ocorrência do texto
+`attachments/<arquivo>` conta — e manda só o confirmado para a lixeira do SO (sem lixeira,
+apaga de vez e avisa); um toast com atalho aparece quando um anexo *passa a* ficar sem uso
+depois de salvar, e órfãos pré-existentes ficam em silêncio. **Pendências reais:** a lixeira
+real do SO nunca foi exercitada (este sandbox não tem; o e2e cobriu o fallback de apagar
+de vez); o diálogo nativo de salvar do export
+nunca foi dirigido num app de verdade (só o gerador é testado), nem o de "Anexar" (o e2e
+salva por IPC); o vídeo foi testado só como elemento `<video>` com bytes de mentira, nunca
+tocando um mp4 real; macOS/Windows e `build:linux` com mermaid/katex dentro do asar não
+verificados; `terminal.spec.ts` (trabalho de terminal
+embutido, fora deste épico) falhava na suíte e2e nesta sessão.
+
 Com isso o **MVP (v0.1) está funcionalmente completo** — EP-01 a EP-11 prontos, com as
 pendências de verificação (visual multi-tema numa janela de verdade, multi-SO, e a
 primeira release real) explicitamente registradas em cada épico, não escondidas.

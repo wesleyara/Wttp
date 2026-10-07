@@ -5,6 +5,7 @@ import type {
   AppOpenDocsPayload,
   AppOpenExternalPayload,
   AppSettings,
+  AttachmentInfo,
   CopyNodeIntoPayload,
   CreateNodePayload,
   CreateWorkspacePayload,
@@ -13,6 +14,7 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  GitAheadBehind,
   GitBranches,
   GitChangesPayload,
   GitCheckoutPayload,
@@ -23,8 +25,13 @@ import type {
   GitFileVersions,
   GitFileVersionsPayload,
   GitInfo,
+  GitLog,
+  GitLogPayload,
   GitPathsPayload,
+  GitPushPayload,
   GitRef,
+  GitRemotePayload,
+  GitRestorePayload,
   GitRootPayload,
   GitStatus,
   HistoryEntry,
@@ -34,6 +41,7 @@ import type {
   ImportFormat,
   ImportPreview,
   ImportReport,
+  ListAttachmentsPayload,
   ListWorkspacesInDirPayload,
   MenuAction,
   MoveNodeIntoPayload,
@@ -42,11 +50,15 @@ import type {
   OpenWorkspacePayload,
   ParseCurlPayload,
   ParsedCurlRequest,
+  PickAttachmentsPayload,
+  PickAttachmentsResult,
   PickFilePayload,
   PickFileResult,
   PickFolderPayload,
   PickFolderResult,
   PreviewImportPayload,
+  ReadAttachmentPayload,
+  ReadAttachmentResult,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
@@ -62,6 +74,7 @@ import type {
   RunImportPayload,
   RunStartPayload,
   RunStartResult,
+  SaveAttachmentPayload,
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
@@ -71,6 +84,14 @@ import type {
   SetWorkspaceDraftsPayload,
   SetWorkspaceUiStatePayload,
   SetWorkspaceVariablesPayload,
+  TerminalDataEvent,
+  TerminalExitEvent,
+  TerminalOpenPayload,
+  TerminalResizePayload,
+  TerminalSpawnPayload,
+  TerminalWritePayload,
+  TrashAttachmentsPayload,
+  TrashAttachmentsResult,
   UiState,
   UpdateStatus,
   WorkspaceChangedEvent,
@@ -105,6 +126,13 @@ interface WttpApi {
     saveFile: (payload: SaveFilePayload) => Promise<SaveFileResult>;
     pickFolder: (payload?: PickFolderPayload) => Promise<PickFolderResult>;
     pickFile: (payload?: PickFilePayload) => Promise<PickFileResult>;
+  };
+  attachment: {
+    save: (payload: SaveAttachmentPayload) => Promise<AttachmentInfo>;
+    pick: (payload: PickAttachmentsPayload) => Promise<PickAttachmentsResult>;
+    read: (payload: ReadAttachmentPayload) => Promise<ReadAttachmentResult>;
+    list: (payload: ListAttachmentsPayload) => Promise<AttachmentInfo[]>;
+    trash: (payload: TrashAttachmentsPayload) => Promise<TrashAttachmentsResult>;
   };
   workspace: {
     open: (payload?: OpenWorkspacePayload) => Promise<WorkspaceTree | null>;
@@ -160,6 +188,15 @@ interface WttpApi {
     parseCurl: (payload: ParseCurlPayload) => Promise<ParsedCurlRequest | null>;
     preview: (payload: PreviewImportPayload) => Promise<ImportPreview>;
   };
+  terminal: {
+    open: (payload: TerminalOpenPayload) => Promise<void>;
+    spawn: (payload: TerminalSpawnPayload) => Promise<{ id: number; shell: string }>;
+    write: (payload: TerminalWritePayload) => Promise<void>;
+    resize: (payload: TerminalResizePayload) => Promise<void>;
+    kill: (id: number) => Promise<void>;
+    onData: (callback: (event: TerminalDataEvent) => void) => () => void;
+    onExit: (callback: (event: TerminalExitEvent) => void) => () => void;
+  };
   script: {
     run: (payload: ScriptRunSpec) => Promise<ScriptRunResult>;
   };
@@ -169,6 +206,8 @@ interface WttpApi {
     refs: (payload: GitRootPayload) => Promise<GitRef[]>;
     changes: (payload: GitChangesPayload) => Promise<GitFileChange[]>;
     fileVersions: (payload: GitFileVersionsPayload) => Promise<GitFileVersions>;
+    log: (payload: GitLogPayload) => Promise<GitLog>;
+    restore: (payload: GitRestorePayload) => Promise<void>;
     stage: (payload: GitPathsPayload) => Promise<void>;
     unstage: (payload: GitPathsPayload) => Promise<void>;
     discard: (payload: GitPathsPayload) => Promise<void>;
@@ -177,6 +216,11 @@ interface WttpApi {
     branches: (payload: GitRootPayload) => Promise<GitBranches>;
     checkout: (payload: GitCheckoutPayload) => Promise<void>;
     createBranch: (payload: GitCreateBranchPayload) => Promise<void>;
+    aheadBehind: (payload: GitRootPayload) => Promise<GitAheadBehind>;
+    fetch: (payload: GitRemotePayload) => Promise<GitAheadBehind>;
+    pull: (payload: GitRemotePayload) => Promise<GitAheadBehind>;
+    push: (payload: GitPushPayload) => Promise<GitAheadBehind>;
+    cancel: (operationId: string) => Promise<void>;
   };
   runner: {
     start: (payload: RunStartPayload) => Promise<RunStartResult>;

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useCodegenStore } from "@renderer/stores/codegen";
+import { useGitStore } from "@renderer/stores/git";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
+import { useTimelineStore } from "@renderer/stores/timeline";
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
@@ -10,6 +12,8 @@ import WMethodBadge from "./WMethodBadge.vue";
 
 const tabs = useRequestTabsStore();
 const codegen = useCodegenStore();
+const git = useGitStore();
+const timeline = useTimelineStore();
 const { t } = useI18n();
 
 const DRAG_START_THRESHOLD_PX = 4;
@@ -73,6 +77,13 @@ const tabContextMenuItems = computed<ContextMenuItem[]>(() => {
       separatorBefore: true,
       action: () => codegen.open(tab.path),
     });
+    if (git.repository) {
+      items.push({
+        label: t("timeline.show"),
+        icon: "history",
+        action: () => void timeline.openForNode(tab.path, "request", tab.title),
+      });
+    }
   }
   return items;
 });
@@ -160,7 +171,11 @@ function onDoubleClick(id: string): void {
               ? 'list-checks'
               : tab.kind === 'changes'
                 ? 'git-compare'
-                : 'folder'
+                : tab.kind === 'timeline'
+                  ? 'history'
+                  : tab.kind === 'docs'
+                    ? 'book-open'
+                    : 'folder'
         "
         size="3.5"
         class="shrink-0 text-faint"

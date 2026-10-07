@@ -24,6 +24,7 @@ import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { DomainError } from "../ipc/errors";
+import { ATTACHMENTS_DIR } from "./attachments";
 import { writeYamlAtomic } from "./eol";
 import { ensureGitignore } from "./gitignore";
 import { CURRENT_SCHEMA_VERSION } from "./migrations/registry";
@@ -162,7 +163,12 @@ async function scanChildren(root: string, relDir: string): Promise<WorkspaceNode
   const nodes = await Promise.all(
     entries.map(async (entry): Promise<WorkspaceNode | null> => {
       if (entry.name === LOCAL_DIR) return null;
-      if (relDir === "" && (entry.name === ENVIRONMENTS_DIR || entry.name === WORKSPACE_FILE)) {
+      if (
+        relDir === "" &&
+        (entry.name === ENVIRONMENTS_DIR ||
+          entry.name === ATTACHMENTS_DIR ||
+          entry.name === WORKSPACE_FILE)
+      ) {
         return null;
       }
 

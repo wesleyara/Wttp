@@ -34,6 +34,20 @@ export default defineConfig({
         "@renderer": resolve("src/renderer/src"),
         "@shared": shared,
       },
+      // `md-editor-v3` (EP-12) traz o próprio CodeMirror aninhado em `node_modules`, em
+      // versão diferente da do app. Duas cópias de `@codemirror/state` quebram os
+      // `instanceof` internos ("Unrecognized extension value") e o editor nem monta —
+      // `dedupe` força uma única instância no bundle para os dois consumidores.
+      dedupe: [
+        "@codemirror/state",
+        "@codemirror/view",
+        "@codemirror/language",
+        "@codemirror/commands",
+        "@codemirror/search",
+        "@lezer/common",
+        "@lezer/highlight",
+        "@lezer/lr",
+      ],
     },
     plugins: [vue()],
   },

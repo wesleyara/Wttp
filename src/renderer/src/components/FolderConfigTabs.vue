@@ -21,6 +21,7 @@ import AuthConfigEditor from "./AuthConfigEditor.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WIcon from "./WIcon.vue";
 import WKeyValueTable from "./WKeyValueTable.vue";
+import WMarkdownEditor from "./WMarkdownEditor.vue";
 import WTabs from "./WTabs.vue";
 
 const { t } = useI18n();
@@ -47,7 +48,7 @@ const docs = computed<string>({
     tabsStore.markActiveDirty();
   },
 });
-const { unresolved: docsUnresolved, tooltips: docsTooltips } = useVariablePreview(docs, path);
+const { values: docsValues } = useVariablePreview(docs, path);
 
 const auth = computed<AuthConfig>({
   get: () => tab.value?.auth ?? { type: "inherit" },
@@ -128,15 +129,10 @@ const tabs = computed(() => [
     <WTabs v-model="activeTab" :tabs="tabs" />
 
     <div v-if="activeTab === 'overview'" class="min-h-48 pt-2">
-      <WCodeEditor
+      <WMarkdownEditor
         v-model="docs"
-        language="text"
         :placeholder="t('folder.docsPlaceholder')"
-        :unresolved-variables="docsUnresolved"
-        :variable-tooltips="docsTooltips"
-        :variable-names="variableNames"
-        auto-grow
-        max-height="24rem"
+        :variable-values="docsValues"
       />
     </div>
 

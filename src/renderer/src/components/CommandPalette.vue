@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import type { WorkspaceNode } from "@shared";
+import type { FolderNode, WorkspaceNode } from "@shared";
 
 import WIcon from "@renderer/components/WIcon.vue";
 import WInput from "@renderer/components/WInput.vue";
 import WMethodBadge from "@renderer/components/WMethodBadge.vue";
 import WModal from "@renderer/components/WModal.vue";
 import { fuzzySearch } from "@renderer/lib/fuzzyMatch";
+import { useAttachmentsStore } from "@renderer/stores/attachments";
 import { useChangesStore } from "@renderer/stores/changes";
 import { useCodegenStore } from "@renderer/stores/codegen";
+import { useDocsReaderStore } from "@renderer/stores/docsReader";
 import { useGitStore } from "@renderer/stores/git";
 import { isRequestTab, useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useRunnerStore } from "@renderer/stores/runner";
@@ -27,7 +29,9 @@ const { t } = useI18n();
 const workspace = useWorkspaceStore();
 const tabs = useRequestTabsStore();
 const codegen = useCodegenStore();
+const docsReader = useDocsReaderStore();
 const runner = useRunnerStore();
+const attachmentsStore = useAttachmentsStore();
 const git = useGitStore();
 const changesStore = useChangesStore();
 
@@ -73,14 +77,44 @@ const allRequests = computed<RequestEntry[]>(() => {
   return out;
 });
 
+function collectFolders(nodes: WorkspaceNode[] | undefined, out: FolderNode[]): void {
+  if (!nodes) return;
+  for (const node of nodes) {
+    if (node.kind !== "folder") continue;
+    out.push(node);
+    collectFolders(node.children, out);
+  }
+}
+
+/** "Read docs" por collection/pasta (#176) — o mesmo atalho do menu de contexto da árvore. */
+const readDocsCommands = computed<CommandEntry[]>(() => {
+  const folders: FolderNode[] = [];
+  collectFolders(workspace.tree?.children, folders);
+  return folders.map(folder => ({
+    kind: "command" as const,
+    id: `read-docs:${folder.path}`,
+    name: t("command.readDocs", { name: folder.data?.name || folder.name }),
+    icon: "book-open",
+    run: () => void docsReader.open(folder.path),
+  }));
+});
+
 const commands = computed<CommandEntry[]>(() => {
   const always: CommandEntry[] = [
+    ...readDocsCommands.value,
     {
       kind: "command",
       id: "run-workspace",
       name: t("command.runWorkspace"),
       icon: "list-checks",
       run: () => runner.configure("", ""),
+    },
+    {
+      kind: "command",
+      id: "clean-attachments",
+      name: t("attachments.cleanup.menuItem"),
+      icon: "paperclip",
+      run: () => void attachmentsStore.openCleanup(),
     },
     ...(git.repository
       ? [

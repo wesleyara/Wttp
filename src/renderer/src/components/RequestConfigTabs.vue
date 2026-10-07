@@ -19,6 +19,7 @@ import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
 import WInput from "./WInput.vue";
 import WKeyValueTable from "./WKeyValueTable.vue";
+import WMarkdownEditor from "./WMarkdownEditor.vue";
 import WSelect from "./WSelect.vue";
 import WTabs from "./WTabs.vue";
 
@@ -80,7 +81,7 @@ const { unresolved: multipartUnresolved, tooltips: multipartTooltips } = useVari
   path,
 );
 
-const { unresolved: docsUnresolved, tooltips: docsTooltips } = useVariablePreview(docs, path);
+const { values: docsValues } = useVariablePreview(docs, path);
 
 // --- Scripts (EP-09-T04) ------------------------------------------------------------
 const { scripts } = storeToRefs(store);
@@ -564,15 +565,10 @@ useAutoContentType(body, headers);
     </div>
 
     <div v-else-if="activeTab === 'docs'" class="min-h-40 pt-2">
-      <WCodeEditor
+      <WMarkdownEditor
         v-model="docs"
-        language="text"
         :placeholder="t('request.docsPlaceholder')"
-        :unresolved-variables="docsUnresolved"
-        :variable-tooltips="docsTooltips"
-        :variable-names="variableNames"
-        auto-grow
-        max-height="24rem"
+        :variable-values="docsValues"
       />
     </div>
   </div>

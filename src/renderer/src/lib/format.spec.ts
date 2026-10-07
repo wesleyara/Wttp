@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatBytes, formatDuration } from "./format";
+import { formatBytes, formatDuration, formatRelativeTime } from "./format";
 
 describe("formatBytes", () => {
   it("keeps small values in bytes", () => {
@@ -29,5 +29,19 @@ describe("formatDuration", () => {
   it("switches to seconds at 1000ms", () => {
     expect(formatDuration(1000)).toBe("1.00 s");
     expect(formatDuration(2345)).toBe("2.35 s");
+  });
+});
+
+describe("formatRelativeTime", () => {
+  const now = Date.parse("2026-10-07T12:00:00Z");
+  const ago = (seconds: number): number => now - seconds * 1000;
+
+  it("uses the largest whole unit, in the given locale", () => {
+    expect(formatRelativeTime(ago(30), "en", now)).toBe("now");
+    expect(formatRelativeTime(ago(5 * 60), "en", now)).toBe("5 minutes ago");
+    expect(formatRelativeTime(ago(3 * 3600), "en", now)).toBe("3 hours ago");
+    expect(formatRelativeTime(ago(2 * 86400), "en", now)).toBe("2 days ago");
+    expect(formatRelativeTime(ago(3 * 86400), "pt-BR", now)).toBe("há 3 dias");
+    expect(formatRelativeTime(ago(400 * 86400), "en", now)).toBe("last year");
   });
 });

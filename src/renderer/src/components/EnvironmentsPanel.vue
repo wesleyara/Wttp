@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useVariablePreview } from "@renderer/composables/useVariablePreview";
 import { type SaveVariableInput, useEnvironmentStore } from "@renderer/stores/environment";
+import { useGitStore } from "@renderer/stores/git";
+import { useTimelineStore } from "@renderer/stores/timeline";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { computed, onMounted, ref, watch } from "vue";
@@ -23,6 +25,8 @@ const { t } = useI18n();
 const environment = useEnvironmentStore();
 const workspace = useWorkspaceStore();
 const variablesStore = useVariablesStore();
+const git = useGitStore();
+const timeline = useTimelineStore();
 
 const WORKSPACE_SELECTION = "__workspace__";
 
@@ -151,6 +155,11 @@ async function removeEnvironment(): Promise<void> {
   selected.value = WORKSPACE_SELECTION;
 }
 
+function openTimeline(): void {
+  const item = selectedEnvironment.value;
+  if (item) void timeline.open({ file: `environments/${item.path}`, label: item.data.name });
+}
+
 async function duplicateEnvironment(): Promise<void> {
   const item = selectedEnvironment.value;
   if (!item) return;
@@ -226,6 +235,15 @@ async function duplicateEnvironment(): Promise<void> {
         <h2 v-else class="flex-1 font-barlow text-base font-semibold text-1">
           {{ t("environments.workspaceVariables") }}
         </h2>
+        <WButton
+          v-if="selected !== WORKSPACE_SELECTION && git.repository"
+          size="sm"
+          variant="ghost"
+          data-testid="env-timeline"
+          @click="openTimeline"
+        >
+          {{ t("timeline.show") }}
+        </WButton>
         <WButton
           v-if="selected !== WORKSPACE_SELECTION"
           size="sm"

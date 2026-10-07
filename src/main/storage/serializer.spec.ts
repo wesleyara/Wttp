@@ -104,3 +104,18 @@ describe("parser", () => {
     expect(parsed.auth).toBeUndefined();
   });
 });
+
+describe("docs (EP-12-T01)", () => {
+  const markdown =
+    '# Login\n\nReturns a token for `{{user}}`.\n\n| field | type |\n| ----- | ---- |\n| user  | string |\n\n```json\n{ "ok": true }\n```\n';
+
+  it("grava o markdown como bloco literal legível e faz round-trip exato", () => {
+    const yaml = serializeRequest({ ...baseRequest, docs: markdown });
+
+    expect(yaml).toContain("docs: |\n  # Login\n");
+    expect(yaml).toContain("  | field | type |\n");
+    expect(yaml).toContain('  { "ok": true }\n');
+    expect(parseRequest(yaml).docs).toBe(markdown);
+    expect(serializeRequest(parseRequest(yaml))).toBe(yaml);
+  });
+});

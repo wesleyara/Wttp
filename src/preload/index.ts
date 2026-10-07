@@ -4,6 +4,7 @@ import type {
   AppOpenDocsPayload,
   AppOpenExternalPayload,
   AppSettings,
+  AttachmentInfo,
   CopyNodeIntoPayload,
   CreateNodePayload,
   CreateWorkspacePayload,
@@ -12,6 +13,7 @@ import type {
   EnvironmentListItem,
   EnvironmentPathPayload,
   FolderNode,
+  GitAheadBehind,
   GitBranches,
   GitChangesPayload,
   GitCheckoutPayload,
@@ -22,8 +24,13 @@ import type {
   GitFileVersions,
   GitFileVersionsPayload,
   GitInfo,
+  GitLog,
+  GitLogPayload,
   GitPathsPayload,
+  GitPushPayload,
   GitRef,
+  GitRemotePayload,
+  GitRestorePayload,
   GitRootPayload,
   GitStatus,
   HistoryEntry,
@@ -33,6 +40,7 @@ import type {
   ImportFormat,
   ImportPreview,
   ImportReport,
+  ListAttachmentsPayload,
   ListWorkspacesInDirPayload,
   MenuAction,
   MoveNodeIntoPayload,
@@ -41,11 +49,15 @@ import type {
   OpenWorkspacePayload,
   ParseCurlPayload,
   ParsedCurlRequest,
+  PickAttachmentsPayload,
+  PickAttachmentsResult,
   PickFilePayload,
   PickFileResult,
   PickFolderPayload,
   PickFolderResult,
   PreviewImportPayload,
+  ReadAttachmentPayload,
+  ReadAttachmentResult,
   RecentWorkspace,
   RemoveRecentWorkspacePayload,
   RenameNodePayload,
@@ -61,6 +73,7 @@ import type {
   RunImportPayload,
   RunStartPayload,
   RunStartResult,
+  SaveAttachmentPayload,
   SaveEnvironmentPayload,
   SaveFilePayload,
   SaveFileResult,
@@ -70,6 +83,14 @@ import type {
   SetWorkspaceDraftsPayload,
   SetWorkspaceUiStatePayload,
   SetWorkspaceVariablesPayload,
+  TerminalDataEvent,
+  TerminalExitEvent,
+  TerminalOpenPayload,
+  TerminalResizePayload,
+  TerminalSpawnPayload,
+  TerminalWritePayload,
+  TrashAttachmentsPayload,
+  TrashAttachmentsResult,
   UiState,
   UpdateStatus,
   WorkspaceChangedEvent,
@@ -122,6 +143,18 @@ const wttp = {
       invoke("dialog:pickFolder", payload),
     pickFile: (payload: PickFilePayload = {}): Promise<PickFileResult> =>
       invoke("dialog:pickFile", payload),
+  },
+  attachment: {
+    save: (payload: SaveAttachmentPayload): Promise<AttachmentInfo> =>
+      invoke("attachment:save", payload),
+    pick: (payload: PickAttachmentsPayload): Promise<PickAttachmentsResult> =>
+      invoke("attachment:pick", payload),
+    read: (payload: ReadAttachmentPayload): Promise<ReadAttachmentResult> =>
+      invoke("attachment:read", payload),
+    list: (payload: ListAttachmentsPayload): Promise<AttachmentInfo[]> =>
+      invoke("attachment:list", payload),
+    trash: (payload: TrashAttachmentsPayload): Promise<TrashAttachmentsResult> =>
+      invoke("attachment:trash", payload),
   },
   workspace: {
     open: (payload: OpenWorkspacePayload = {}): Promise<WorkspaceTree | null> =>
@@ -216,6 +249,27 @@ const wttp = {
     preview: (payload: PreviewImportPayload): Promise<ImportPreview> =>
       invoke("import:preview", payload),
   },
+  terminal: {
+    open: (payload: TerminalOpenPayload): Promise<void> => invoke("terminal:open", payload),
+    spawn: (payload: TerminalSpawnPayload): Promise<{ id: number; shell: string }> =>
+      invoke("terminal:spawn", payload),
+    write: (payload: TerminalWritePayload): Promise<void> => invoke("terminal:write", payload),
+    resize: (payload: TerminalResizePayload): Promise<void> => invoke("terminal:resize", payload),
+    kill: (id: number): Promise<void> => invoke("terminal:kill", id),
+    // Eventos main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
+    onData: (callback: (event: TerminalDataEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, data: TerminalDataEvent): void =>
+        callback(data);
+      ipcRenderer.on("terminal:data", listener);
+      return () => ipcRenderer.off("terminal:data", listener);
+    },
+    onExit: (callback: (event: TerminalExitEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, data: TerminalExitEvent): void =>
+        callback(data);
+      ipcRenderer.on("terminal:exit", listener);
+      return () => ipcRenderer.off("terminal:exit", listener);
+    },
+  },
   script: {
     run: (payload: ScriptRunSpec): Promise<ScriptRunResult> => invoke("script:run", payload),
   },
@@ -227,6 +281,8 @@ const wttp = {
       invoke("git:changes", payload),
     fileVersions: (payload: GitFileVersionsPayload): Promise<GitFileVersions> =>
       invoke("git:fileVersions", payload),
+    log: (payload: GitLogPayload): Promise<GitLog> => invoke("git:log", payload),
+    restore: (payload: GitRestorePayload): Promise<void> => invoke("git:restore", payload),
     stage: (payload: GitPathsPayload): Promise<void> => invoke("git:stage", payload),
     unstage: (payload: GitPathsPayload): Promise<void> => invoke("git:unstage", payload),
     discard: (payload: GitPathsPayload): Promise<void> => invoke("git:discard", payload),
@@ -236,6 +292,12 @@ const wttp = {
     checkout: (payload: GitCheckoutPayload): Promise<void> => invoke("git:checkout", payload),
     createBranch: (payload: GitCreateBranchPayload): Promise<void> =>
       invoke("git:createBranch", payload),
+    aheadBehind: (payload: GitRootPayload): Promise<GitAheadBehind> =>
+      invoke("git:aheadBehind", payload),
+    fetch: (payload: GitRemotePayload): Promise<GitAheadBehind> => invoke("git:fetch", payload),
+    pull: (payload: GitRemotePayload): Promise<GitAheadBehind> => invoke("git:pull", payload),
+    push: (payload: GitPushPayload): Promise<GitAheadBehind> => invoke("git:push", payload),
+    cancel: (operationId: string): Promise<void> => invoke("git:cancel", operationId),
   },
   runner: {
     start: (payload: RunStartPayload): Promise<RunStartResult> => invoke("runner:start", payload),
