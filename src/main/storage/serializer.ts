@@ -18,6 +18,9 @@ import {
   REQUEST_FIELD_ORDER,
   REQUEST_SETTINGS_FIELD_ORDER,
   SCRIPTS_FIELD_ORDER,
+  WEBSOCKET_FIELD_ORDER,
+  WEBSOCKET_MESSAGE_FIELD_ORDER,
+  WEBSOCKET_RECONNECT_FIELD_ORDER,
   WORKSPACE_FIELD_ORDER,
   WORKSPACE_SETTINGS_FIELD_ORDER,
 } from "./fieldOrder";
@@ -103,6 +106,28 @@ export function serializeFolder(folder: FolderFile): string {
   return stringifyDocument(doc);
 }
 
+function orderWebSocket(websocket: RequestFile["websocket"]): Record<string, unknown> | undefined {
+  if (!websocket) return undefined;
+  return orderFields(
+    {
+      ...websocket,
+      reconnect: websocket.reconnect
+        ? orderFields(
+            websocket.reconnect as unknown as Record<string, unknown>,
+            WEBSOCKET_RECONNECT_FIELD_ORDER,
+          )
+        : undefined,
+      message: websocket.message
+        ? orderFields(
+            websocket.message as unknown as Record<string, unknown>,
+            WEBSOCKET_MESSAGE_FIELD_ORDER,
+          )
+        : undefined,
+    },
+    WEBSOCKET_FIELD_ORDER,
+  );
+}
+
 export function serializeRequest(request: RequestFile): string {
   const settings = request.settings
     ? orderFields(request.settings as Record<string, unknown>, REQUEST_SETTINGS_FIELD_ORDER)
@@ -120,6 +145,7 @@ export function serializeRequest(request: RequestFile): string {
       headers: orderEntries(request.headers, KEY_VALUE_ENTRY_FIELD_ORDER),
       auth: orderAuth(request.auth),
       body: orderBody(request.body),
+      websocket: orderWebSocket(request.websocket),
       settings,
       scripts,
     },

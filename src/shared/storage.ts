@@ -60,11 +60,35 @@ export interface FolderFile extends UnknownFields {
   docs?: string;
 }
 
+/** Bloco `websocket:` de uma request `protocol: websocket` — arch-docs/file-format.md §10. */
+export interface WebSocketReconnectConfig {
+  enabled?: boolean;
+  /** Tentativas seguidas sem sucesso antes de desistir; 0 = sem limite. */
+  maxAttempts?: number;
+  delayMs?: number;
+}
+
+export interface WebSocketMessageDraft {
+  format?: "text" | "json";
+  content?: string;
+}
+
+export interface WebSocketConfig {
+  subprotocols?: string[];
+  reconnect?: WebSocketReconnectConfig;
+  message?: WebSocketMessageDraft;
+}
+
+export type RequestProtocol = "http" | "websocket";
+
 /** `*.req.yaml` — uma request. */
 export interface RequestFile extends UnknownFields {
   wttp: SchemaVersion;
   name: string;
   seq: number;
+  /** Ausente = `http` (arquivos de antes do campo). `websocket` troca a UI de Send por uma conexão persistente (§10). */
+  protocol?: RequestProtocol;
+  /** Em `protocol: websocket` é o método do handshake de upgrade — sempre `GET`. */
   method: HttpMethod;
   url: string;
   /** Valor de cada segmento `:nome` na URL — substituídos antes da resolução de `{{var}}` (EP-06.1). */
@@ -73,6 +97,7 @@ export interface RequestFile extends UnknownFields {
   headers?: KeyValueEntry[];
   auth?: AuthConfig;
   body?: RequestBody;
+  websocket?: WebSocketConfig;
   settings?: HttpRequestSettings;
   scripts?: RequestScripts;
   docs?: string;

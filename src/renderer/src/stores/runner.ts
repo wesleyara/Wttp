@@ -29,7 +29,7 @@ export function requestsUnder(nodes: WorkspaceNode[], targetPath: string): Runne
   const walk = (list: WorkspaceNode[], inside: boolean): void => {
     for (const node of list) {
       if (node.kind === "request") {
-        if (inside && node.data) {
+        if (inside && node.data && node.data.protocol !== "websocket") {
           out.push({ path: node.path, name: node.name, method: node.data.method, selected: true });
         }
       } else if (inside || node.path === targetPath || targetPath.startsWith(`${node.path}/`)) {

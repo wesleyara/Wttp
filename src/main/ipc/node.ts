@@ -29,7 +29,7 @@ export function registerNodeHandlers(): void {
   });
 
   registerHandler("node:create", payload =>
-    createNode(payload.root, payload.parentPath, payload.kind, payload.name),
+    createNode(payload.root, payload.parentPath, payload.kind, payload.name, payload.protocol),
   );
   registerHandler("node:rename", async payload => {
     const node = await renameNode(payload.root, payload.path, payload.name);

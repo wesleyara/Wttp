@@ -209,3 +209,62 @@ describe("workspace / folder / environment", () => {
     expect(result.issues.some(i => i.path === "variables.0.enabled")).toBe(true);
   });
 });
+
+describe("request WebSocket (#476)", () => {
+  const WS = (extra: string): string =>
+    [
+      "wttp: 1",
+      "name: Chat",
+      "seq: 1",
+      "protocol: websocket",
+      "method: GET",
+      "url: wss://x",
+      extra,
+      "",
+    ].join("\n");
+
+  it("aceita protocol: websocket com o bloco completo", () => {
+    const result = validateRequest(
+      WS(
+        [
+          "websocket:",
+          "  subprotocols: [chat]",
+          "  reconnect: { enabled: true, maxAttempts: 3, delayMs: 500 }",
+          "  message: { format: json, content: '{}' }",
+        ].join("\n"),
+      ),
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  it("aceita websocket ausente", () => {
+    expect(validateRequest(WS("")).valid).toBe(true);
+  });
+
+  it("recusa protocol desconhecido", () => {
+    const result = validateRequest(WS("").replace("websocket\n", "grpc\n"));
+    expect(result.valid).toBe(false);
+    if (result.valid) return;
+    expect(result.issues[0]).toMatchObject({ path: "protocol" });
+  });
+
+  it("aponta campo com tipo errado dentro de websocket", () => {
+    const result = validateRequest(
+      WS(
+        [
+          "websocket:",
+          "  subprotocols: chat",
+          "  reconnect: { maxAttempts: many }",
+          "  message: { format: xml }",
+        ].join("\n"),
+      ),
+    );
+    expect(result.valid).toBe(false);
+    if (result.valid) return;
+    expect(result.issues.map(issue => issue.path).sort()).toEqual([
+      "websocket.message.format",
+      "websocket.reconnect.maxAttempts",
+      "websocket.subprotocols",
+    ]);
+  });
+});

@@ -204,6 +204,26 @@ class Checker {
     if (type === "binary") this.required([...path, "binary"], "string");
   }
 
+  /** Bloco `websocket:` — arch-docs/file-format.md §10. Tudo opcional. */
+  webSocketBlock(path: Path): void {
+    if (this.get(path) === undefined) return;
+    const subprotocols = this.get([...path, "subprotocols"]);
+    if (subprotocols !== undefined) {
+      if (!Array.isArray(subprotocols) || subprotocols.some(item => typeof item !== "string")) {
+        this.fail([...path, "subprotocols"], `"subprotocols" deve ser uma lista de strings`);
+      }
+    }
+    if (this.get([...path, "reconnect"]) !== undefined) {
+      this.optional([...path, "reconnect", "enabled"], "boolean");
+      this.optional([...path, "reconnect", "maxAttempts"], "number");
+      this.optional([...path, "reconnect", "delayMs"], "number");
+    }
+    if (this.get([...path, "message"]) !== undefined) {
+      this.enumField([...path, "message", "format"], ["text", "json"], false);
+      this.optional([...path, "message", "content"], "string");
+    }
+  }
+
   settingsBlock(path: Path, withScriptTimeout: boolean): void {
     if (this.get(path) === undefined) return;
     this.optional([...path, "timeout"], "number");
@@ -303,6 +323,7 @@ export function validateRequest(raw: string): ValidationResult<RequestFile> {
     checker => {
       checker.required(["name"], "string");
       checker.required(["seq"], "number");
+      checker.enumField(["protocol"], ["http", "websocket"], false);
       checker.enumField(["method"], HTTP_METHODS, true, "um método HTTP válido");
       checker.required(["url"], "string");
       checker.keyValueArray(["pathParams"]);
@@ -310,6 +331,7 @@ export function validateRequest(raw: string): ValidationResult<RequestFile> {
       checker.keyValueArray(["headers"]);
       checker.authConfig(["auth"]);
       checker.body(["body"]);
+      checker.webSocketBlock(["websocket"]);
       checker.settingsBlock(["settings"], false);
       if (checker.get(["scripts"]) !== undefined) {
         checker.optional(["scripts", "preRequest"], "string");

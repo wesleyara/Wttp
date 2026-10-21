@@ -4,6 +4,7 @@ import { modalsPtBR } from "./areas/modals.ptBR";
 import { requestPtBR } from "./areas/request.ptBR";
 import { responsePtBR } from "./areas/response.ptBR";
 import { storesPtBR } from "./areas/stores.ptBR";
+import { websocketPtBR } from "./areas/websocket.ptBR";
 
 /**
  * Chaves em português (EP-08.1-T06) — mesma estrutura de `en.ts`, chave a chave;
@@ -11,6 +12,7 @@ import { storesPtBR } from "./areas/stores.ptBR";
  */
 export const ptBR: MessageSchema = {
   ...requestPtBR,
+  ...websocketPtBR,
   ...responsePtBR,
   ...modalsPtBR,
   ...storesPtBR,

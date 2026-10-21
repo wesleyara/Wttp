@@ -35,6 +35,7 @@ export const REQUEST_FIELD_ORDER = [
   "wttp",
   "name",
   "seq",
+  "protocol",
   "method",
   "url",
   "pathParams",
@@ -42,6 +43,7 @@ export const REQUEST_FIELD_ORDER = [
   "headers",
   "auth",
   "body",
+  "websocket",
   "settings",
   "scripts",
   "docs",
@@ -53,6 +55,11 @@ export const REQUEST_SETTINGS_FIELD_ORDER = [
   "maxRedirects",
   "validateTls",
 ] as const;
+
+/** Bloco `websocket:` de uma request com `protocol: websocket` — arch-docs/file-format.md §10. */
+export const WEBSOCKET_FIELD_ORDER = ["subprotocols", "reconnect", "message"] as const;
+export const WEBSOCKET_RECONNECT_FIELD_ORDER = ["enabled", "maxAttempts", "delayMs"] as const;
+export const WEBSOCKET_MESSAGE_FIELD_ORDER = ["format", "content"] as const;
 
 export const SCRIPTS_FIELD_ORDER = ["preRequest", "tests"] as const;
 

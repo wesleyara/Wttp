@@ -93,6 +93,8 @@ import type {
   TrashAttachmentsResult,
   UiState,
   UpdateStatus,
+  WebSocketConnectSpec,
+  WebSocketEvent,
   WorkspaceChangedEvent,
   WorkspaceDrafts,
   WorkspaceRootPayload,
@@ -248,6 +250,19 @@ const wttp = {
       invoke("import:parseCurl", payload),
     preview: (payload: PreviewImportPayload): Promise<ImportPreview> =>
       invoke("import:preview", payload),
+  },
+  ws: {
+    connect: (spec: WebSocketConnectSpec): Promise<void> => invoke("ws:connect", spec),
+    send: (sessionId: string, data: string): Promise<void> =>
+      invoke("ws:send", { sessionId, data }),
+    close: (sessionId: string): Promise<void> => invoke("ws:close", sessionId),
+    // Evento main → renderer, fora do `IpcContract` de invoke/result (ver @shared).
+    onEvent: (callback: (event: WebSocketEvent) => void): (() => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, data: WebSocketEvent): void =>
+        callback(data);
+      ipcRenderer.on("ws:event", listener);
+      return () => ipcRenderer.off("ws:event", listener);
+    },
   },
   terminal: {
     open: (payload: TerminalOpenPayload): Promise<void> => invoke("terminal:open", payload),

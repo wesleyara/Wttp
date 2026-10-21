@@ -393,6 +393,21 @@ tocando um mp4 real; macOS/Windows e `build:linux` com mermaid/katex dentro do a
 verificados; `terminal.spec.ts` (trabalho de terminal
 embutido, fora deste épico) falhava na suíte e2e nesta sessão.
 
+**Card #476** (WebSocket, parte do EP-15) também está pronto: request com `protocol:
+websocket` no mesmo `*.req.yaml` (arch-docs/file-format.md §10, campos aditivos — sem bump de
+`wttp: 1`), criada por "New WebSocket" na árvore, rótulo `WS` no lugar do método. Conexão
+persistente no main (`src/main/websocket/session.ts` sobre o `WebSocket` global do Node/undici;
+canais `ws:connect`/`ws:send`/`ws:close` + evento `ws:event`), reconexão automática só para
+queda inesperada, auth/headers/query/`{{variáveis}}` pelo mesmo caminho de resolução do Send
+(`prepareConnection` reusa `applyAuth`). UI: `WebSocketUrlBar`, aba Connection
+(`WebSocketSettings`: subprotocolos e reconexão) e `WebSocketPanel` (histórico com filtro por
+direção/texto, compositor texto/JSON), histórico só em memória (5000 linhas) via
+`useWebSocketStore`. Runner e CLI pulam essas requests. `e2e/websocket.spec.ts` roda o fluxo
+inteiro no Electron contra um servidor local (`src/main/testing/webSocketServer.ts`).
+**Pendências reais:** `validateTls` não se aplica ao socket; mensagens binárias só são
+exibidas (texto ou hex), não enviadas; macOS/Windows não verificados. Doc de usuário em
+`docs/guia/websocket.md`.
+
 Com isso o **MVP (v0.1) está funcionalmente completo** — EP-01 a EP-11 prontos, com as
 pendências de verificação (visual multi-tema numa janela de verdade, multi-SO, e a
 primeira release real) explicitamente registradas em cada épico, não escondidas.

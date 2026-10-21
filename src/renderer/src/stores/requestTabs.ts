@@ -10,11 +10,13 @@ import type {
   RequestBody,
   RequestFile,
   RequestNode,
+  RequestProtocol,
   RequestScripts,
   ResolveRequestResultPayload,
   SaveFileResult,
   ScriptAssertion,
   ScriptConsoleEntry,
+  WebSocketConfig,
   WorkspaceDrafts,
   WttpError,
 } from "@shared";
@@ -26,6 +28,7 @@ import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/sc
 import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useToastStore } from "@renderer/stores/toast";
 import { useVariablesStore } from "@renderer/stores/variables";
+import { useWebSocketStore } from "@renderer/stores/websocket";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
 import { computed, ref, toRaw, watch } from "vue";
@@ -60,6 +63,21 @@ function cleanScripts(scripts: RequestScripts): RequestScripts | undefined {
   return { preRequest, tests };
 }
 
+/** Bloco `websocket:` sem os campos vazios — `undefined` quando não sobra nada (não polui o YAML). */
+function cleanWebSocket(config: WebSocketConfig): WebSocketConfig | undefined {
+  const subprotocols = (config.subprotocols ?? []).map(item => item.trim()).filter(Boolean);
+  const message =
+    config.message && (config.message.content?.trim() || config.message.format === "json")
+      ? config.message
+      : undefined;
+  const cleaned: WebSocketConfig = {
+    ...(subprotocols.length > 0 ? { subprotocols } : {}),
+    ...(config.reconnect ? { reconnect: config.reconnect } : {}),
+    ...(message ? { message } : {}),
+  };
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
 /** Uma asserção ou linha de console já com de qual elo da cadeia (request/pasta/collection) ela veio (EP-09-T05). */
 export type ScriptAssertionWithSource = ScriptAssertion & { source: string };
 export type ScriptConsoleEntryWithSource = ScriptConsoleEntry & { source: string };
@@ -88,6 +106,10 @@ export interface RequestTabState {
   /** `false` = aba de preview (itálico), substituída pela próxima aberta em preview. */
   pinned: boolean;
   dirty: boolean;
+  /** `websocket` troca a barra de Send por uma conexão persistente (ClickLocal #476) — arch-docs/file-format.md §10. */
+  protocol: RequestProtocol;
+  /** Só tem efeito com `protocol: "websocket"`. */
+  websocket: WebSocketConfig;
   method: HttpMethod;
   url: string;
   pathParams: KeyValueEntry[];
@@ -256,6 +278,8 @@ function buildTab(node: RequestNode, pinned: boolean): RequestTabState {
     title: node.name,
     pinned,
     dirty: false,
+    protocol: data.protocol ?? "http",
+    websocket: structuredClone(data.websocket ?? {}),
     method: data.method,
     url: data.url,
     pathParams: data.pathParams ?? [],
@@ -311,8 +335,10 @@ function buildRequestFileData(tab: RequestTabState): RequestFile {
     query: unwrap(tab.query),
     headers: unwrap(tab.headers),
     auth: unwrap(tab.auth),
-    body: unwrap(tab.body),
-    scripts: cleanScripts(tab.scripts),
+    // WebSocket não tem body nem scripts de pre-request/tests (arch-docs/file-format.md §10).
+    body: tab.protocol === "websocket" ? undefined : unwrap(tab.body),
+    websocket: tab.protocol === "websocket" ? cleanWebSocket(deepToRaw(tab.websocket)) : undefined,
+    scripts: tab.protocol === "websocket" ? undefined : cleanScripts(tab.scripts),
     docs: normalizeDocs(tab.docs) || undefined,
   };
 }
@@ -330,6 +356,8 @@ function buildFolderFileData(tab: FolderTabState): FolderFile {
 
 /** Aplica um rascunho gravado sobre a aba recém-reconstruída do YAML salvo (EP-08.1-T01) — a aba volta já suja, com o que estava sendo digitado. */
 function applyRequestDraft(tab: RequestTabState, data: RequestFile): void {
+  tab.protocol = data.protocol ?? "http";
+  tab.websocket = structuredClone(data.websocket ?? {});
   tab.method = data.method;
   tab.url = data.url;
   tab.pathParams = data.pathParams ?? [];
@@ -591,6 +619,11 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     const index = tabs.value.findIndex(tab => tab.id === id);
     if (index === -1) return;
 
+    // Fechar a aba derruba a conexão WebSocket e descarta o histórico (#476).
+    const closing = tabs.value[index];
+    if (isRequestTab(closing) && closing.protocol === "websocket") {
+      useWebSocketStore().dispose(id);
+    }
     tabs.value.splice(index, 1);
     if (activeId.value === id) {
       activeId.value = tabs.value[Math.min(index, tabs.value.length - 1)]?.id ?? null;
@@ -717,6 +750,8 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     if (matching.length === 0) return;
     for (const tab of matching) {
       const oldId = tab.id;
+      // A sessão WebSocket é chaveada pelo id da aba; renomear a desconecta em vez de deixá-la órfã.
+      if (isRequestTab(tab) && tab.protocol === "websocket") useWebSocketStore().dispose(oldId);
       tab.path = newPath;
       tab.id = isDocsTab(tab) ? docsTabId(newPath) : newPath;
       tab.title = newName;
@@ -1235,6 +1270,11 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   async function send(): Promise<void> {
     const tab = active.value;
     if (!isRequestTab(tab) || tab.sending) return;
+    // Ctrl+Enter numa request WebSocket conecta/desconecta em vez de "enviar" (#476).
+    if (tab.protocol === "websocket") {
+      useWebSocketStore().toggle(tab.id);
+      return;
+    }
 
     const resolved = await resolveTabRequest(tab);
 
@@ -1476,6 +1516,7 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     cancelSendUnresolved,
     lastEdit,
     requestTabById,
+    resolveTabRequest,
     sendForWatch,
     recordWatchIteration,
     preRequestScriptCount,

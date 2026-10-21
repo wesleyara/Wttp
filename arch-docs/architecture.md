@@ -235,6 +235,25 @@ Pontos que a ordem torna obrigatórios:
 
 ---
 
+### Conexões WebSocket
+
+Uma request `protocol: websocket` (arch-docs/file-format.md §10) não passa por `http:send`. O ciclo
+de vida da conexão mora no main (`src/main/websocket/session.ts`, uma sessão por aba, dona do
+`webContents` que a abriu); o renderer comanda por três canais — `ws:connect`/`ws:send`/`ws:close` — e
+acompanha pelo evento `ws:event` (`state`/`open`/`message`/`sent`/`close`/`error`), que `useWebSocketStore`
+acumula como histórico em memória (teto de 5000 linhas, nunca versionado).
+
+- **Resolução igual à do Send.** O renderer resolve `{{var}}` e a herança de auth
+  (`useRequestTabsStore.resolveTabRequest`) e manda o spec pronto; o main só aplica `auth` e `query`
+  (`prepareConnection`, reusando `applyAuth` do HTTP) antes de abrir o socket.
+- **Cliente.** O `WebSocket` global do Node/Electron (undici), que aceita `headers` num segundo
+  argumento fora do padrão do browser — sem dependência nova. Não aplica `validateTls`.
+- **Reconexão** é decidida no main (`finish`): só para queda inesperada, com `maxAttempts` e `delayMs`
+  de `websocket.reconnect`; `ws:close` marca `manualClose` e nunca reconecta. Fechar a janela
+  derruba as sessões dela.
+- **Fora de escopo de propósito:** o Collection Runner e o CLI pulam essas requests
+  (`planFolder`), e não há scripts nem body.
+
 ## 5. Modelo de execução dos scripts
 
 Scripts de usuário (pre-request e tests) rodam num `utilityProcess` do Electron, separado do main, com `node:vm` e timeout.
