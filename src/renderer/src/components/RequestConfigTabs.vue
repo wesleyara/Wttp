@@ -5,7 +5,9 @@ import { useAutoContentType } from "@renderer/composables/useAutoContentType";
 import { useEffectiveAuth } from "@renderer/composables/useEffectiveAuth";
 import { useKeyValueRows } from "@renderer/composables/useKeyValueRows";
 import { useVariablePreview } from "@renderer/composables/useVariablePreview";
+import { schemaFromIntrospection } from "@renderer/lib/graphqlSchema";
 import { useRequestStore } from "@renderer/stores/request";
+import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
@@ -14,6 +16,7 @@ import { useI18n } from "vue-i18n";
 import type { KeyValueRow } from "./WKeyValueTable.vue";
 
 import AuthConfigEditor from "./AuthConfigEditor.vue";
+import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
@@ -27,6 +30,19 @@ const { t } = useI18n();
 const store = useRequestStore();
 const { pathParams, query, headers, body, auth, docs, path } = storeToRefs(store);
 const variablesStore = useVariablesStore();
+const tabsStore = useRequestTabsStore();
+const { graphqlIntrospections, graphqlSchemaLoading, graphqlSchemaError } = storeToRefs(tabsStore);
+
+// Schema da introspecção desta request (autocomplete da query) — só em memória.
+const graphqlSchema = computed(() => {
+  const introspection = graphqlIntrospections.value[path.value];
+  if (!introspection) return null;
+  try {
+    return schemaFromIntrospection(introspection);
+  } catch {
+    return null;
+  }
+});
 
 const activeTab = ref("params");
 
@@ -445,6 +461,25 @@ useAutoContentType(body, headers);
             monospace
           />
         </div>
+        <div v-if="bodyType === 'graphql'" class="flex flex-1 items-center gap-2">
+          <WButton
+            size="sm"
+            :disabled="graphqlSchemaLoading"
+            data-testid="graphql-fetch-schema"
+            @click="tabsStore.fetchGraphqlSchema()"
+          >
+            <WIcon name="refresh-cw" :class="{ 'animate-spin': graphqlSchemaLoading }" />
+            {{
+              graphqlSchema ? t("request.graphqlRefreshSchema") : t("request.graphqlFetchSchema")
+            }}
+          </WButton>
+          <span v-if="graphqlSchema" class="font-inter text-xs text-muted">
+            {{ t("request.graphqlSchemaLoaded") }}
+          </span>
+          <span v-else-if="graphqlSchemaError" class="truncate font-inter text-xs text-status-4xx">
+            {{ graphqlSchemaError }}
+          </span>
+        </div>
         <div v-if="bodyType === 'binary'" class="flex-1">
           <WInput v-model="binaryPath" :placeholder="t('request.filePathPlaceholder')" monospace />
         </div>
@@ -475,7 +510,8 @@ useAutoContentType(body, headers);
           <WCodeEditor
             v-model="graphqlQuery"
             data-testid="body-graphql-query-editor"
-            language="text"
+            language="graphql"
+            :graphql-schema="graphqlSchema"
             :placeholder="t('request.graphqlQueryPlaceholder')"
             :unresolved-variables="bodyUnresolved"
             :variable-tooltips="bodyTooltips"

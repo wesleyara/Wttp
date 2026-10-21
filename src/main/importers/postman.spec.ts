@@ -239,7 +239,7 @@ describe("postmanImporter.normalize — body", () => {
     });
   });
 
-  it("graphql não tem equivalente — vira raw JSON e entra no relatório", () => {
+  it("graphql vira body graphql, sem nada no relatório", () => {
     const parsed = collection({
       item: [
         {
@@ -247,7 +247,13 @@ describe("postmanImporter.normalize — body", () => {
           request: {
             method: "POST",
             url: "https://api.example.com/graphql",
-            body: { mode: "graphql", graphql: { query: "{ me }", variables: "{}" } },
+            body: {
+              mode: "graphql",
+              graphql: {
+                query: "query($id: ID!) { user(id: $id) }",
+                variables: '{"id":"{{uid}}"}',
+              },
+            },
           },
         },
       ],
@@ -255,14 +261,10 @@ describe("postmanImporter.normalize — body", () => {
     const normalized = postmanImporter.normalize(parsed);
     const [request] = normalized.children as NormalizedRequest[];
     expect(request.body).toEqual({
-      type: "raw",
-      raw: JSON.stringify({ query: "{ me }", variables: {} }, null, 2),
-      contentType: "application/json",
+      type: "graphql",
+      graphql: { query: "query($id: ID!) { user(id: $id) }", variables: '{"id":"{{uid}}"}' },
     });
-    expect(normalized.notConverted).toContainEqual({
-      path: 'body de "GraphQL req"',
-      reason: "GraphQL não tem tipo de body equivalente — convertido para JSON bruto",
-    });
+    expect(normalized.notConverted).toEqual([]);
   });
 });
 

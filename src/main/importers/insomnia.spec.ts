@@ -269,6 +269,58 @@ describe("insomniaImporter.normalize — body", () => {
     });
   });
 
+  describe("application/graphql", () => {
+    function graphqlImport(text: string): ReturnType<typeof insomniaImporter.normalize> {
+      const doc = exportDoc([
+        workspace,
+        {
+          _id: "req_g",
+          _type: "request",
+          parentId: "wrk_1",
+          name: "GQL",
+          method: "POST",
+          url: "https://api.example.com/graphql",
+          body: { mimeType: "application/graphql", text },
+        },
+      ]);
+      return insomniaImporter.normalize(insomniaImporter.parse(JSON.stringify(doc)));
+    }
+
+    it("vira body graphql, com variables em JSON legível", () => {
+      const normalized = graphqlImport(
+        JSON.stringify({ query: "query($id: ID!) { user(id: $id) }", variables: { id: 1 } }),
+      );
+      const [request] = normalized.children as NormalizedRequest[];
+      expect(request.body).toEqual({
+        type: "graphql",
+        graphql: { query: "query($id: ID!) { user(id: $id) }", variables: '{\n  "id": 1\n}' },
+      });
+      expect(normalized.notConverted).toEqual([]);
+    });
+
+    it("descarta operationName e avisa no relatório", () => {
+      const normalized = graphqlImport(JSON.stringify({ query: "{ me }", operationName: "Me" }));
+      const [request] = normalized.children as NormalizedRequest[];
+      expect(request.body).toEqual({
+        type: "graphql",
+        graphql: { query: "{ me }", variables: "" },
+      });
+      expect(normalized.notConverted).toHaveLength(1);
+      expect(normalized.notConverted[0].reason).toContain("operationName");
+    });
+
+    it("formato inesperado cai para raw JSON e entra no relatório", () => {
+      const normalized = graphqlImport("não é json");
+      const [request] = normalized.children as NormalizedRequest[];
+      expect(request.body).toEqual({
+        type: "raw",
+        raw: "não é json",
+        contentType: "application/json",
+      });
+      expect(normalized.notConverted).toHaveLength(1);
+    });
+  });
+
   it("mimeType arbitrário vira raw com o content-type original", () => {
     const request = bodyOf({ mimeType: "application/xml", text: "<a/>" });
     expect(request.body).toEqual({ type: "raw", raw: "<a/>", contentType: "application/xml" });

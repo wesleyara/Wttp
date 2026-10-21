@@ -18,17 +18,19 @@ import type {
   WorkspaceDrafts,
   WttpError,
 } from "@shared";
+import type { IntrospectionQuery } from "graphql";
 
 import { i18n } from "@renderer/i18n";
 import { suggestedFileName } from "@renderer/lib/content-type";
 import { normalizeDocs } from "@renderer/lib/docsText";
+import { introspectionPayload, parseIntrospectionResponse } from "@renderer/lib/graphqlSchema";
 import { buildScriptChain, linksWithCode, orderForPhase } from "@renderer/lib/scriptChain";
 import { useEnvironmentStore } from "@renderer/stores/environment";
 import { useToastStore } from "@renderer/stores/toast";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { useWorkspaceStore } from "@renderer/stores/workspace";
 import { defineStore } from "pinia";
-import { computed, ref, toRaw, watch } from "vue";
+import { computed, ref, shallowRef, toRaw, watch } from "vue";
 
 /** Tira a reatividade do Pinia antes de cruzar a ponte de IPC — Proxy reativo não é clonável pelo Electron. */
 function unwrap<T>(value: T): T {
@@ -372,6 +374,13 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
   const closeQueue = ref<string[]>([]);
   /** Aba com variável não resolvida a confirmar antes de enviar (EP-06-T05) — `null` = nenhuma pergunta pendente. */
   const unresolvedSendId = ref<string | null>(null);
+
+  // --- Schema GraphQL (autocomplete) ---------------------------------------------------
+  // Só em memória, por arquivo de request: o resultado da introspecção pode revelar um
+  // schema privado e nunca vai para o YAML nem para `.wttp/`. Some ao fechar o app.
+  const graphqlIntrospections = shallowRef<Record<string, IntrospectionQuery>>({});
+  const graphqlSchemaLoading = ref(false);
+  const graphqlSchemaError = ref<string | null>(null);
   const unresolvedSendNames = ref<string[]>([]);
 
   /** Debounce do rascunho em `.wttp/drafts.json` (EP-08.1-T01) — mais curto que o de `patchUiState` porque cobre texto digitado, não só a lista de abas. */
@@ -1231,6 +1240,50 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     );
   }
 
+  /**
+   * Busca o schema da request ativa por introspecção, com a mesma resolução de auth,
+   * headers e `{{var}}` do Send — mas sem tocar na resposta, nos testes nem no histórico
+   * da aba. O resultado fica em `graphqlIntrospections[path]`.
+   */
+  async function fetchGraphqlSchema(): Promise<void> {
+    const tab = active.value;
+    if (!isRequestTab(tab) || graphqlSchemaLoading.value) return;
+    graphqlSchemaLoading.value = true;
+    graphqlSchemaError.value = null;
+    try {
+      const resolved = await resolveTabRequest(tab);
+      if (resolved.unresolved.length > 0) {
+        throw new Error(
+          i18n.global.t("request.graphqlSchemaUnresolved", {
+            names: resolved.unresolved.join(", "),
+          }),
+        );
+      }
+      const result = await window.wttp.http.send({
+        requestId: crypto.randomUUID(),
+        method: "POST",
+        url: resolved.url,
+        query: resolved.query,
+        headers: [
+          ...resolved.headers.filter(header => header.name.toLowerCase() !== "content-type"),
+          { name: "Content-Type", value: "application/json", enabled: true },
+        ],
+        auth: resolved.auth,
+        body: { type: "raw", raw: introspectionPayload(), contentType: "application/json" },
+      });
+      if (!result.ok) throw new Error(result.error.message);
+      const text = new TextDecoder().decode(result.body);
+      graphqlIntrospections.value = {
+        ...graphqlIntrospections.value,
+        [tab.path]: parseIntrospectionResponse(text),
+      };
+    } catch (error) {
+      graphqlSchemaError.value = error instanceof Error ? error.message : String(error);
+    } finally {
+      graphqlSchemaLoading.value = false;
+    }
+  }
+
   /** Resolve `{{var}}` (EP-06-T01) antes de enviar; variável não resolvida pausa e pede confirmação em vez de mandar a request quebrada. */
   async function send(): Promise<void> {
     const tab = active.value;
@@ -1469,6 +1522,10 @@ export const useRequestTabsStore = defineStore("requestTabs", () => {
     cancelClose,
     reorder,
     send,
+    fetchGraphqlSchema,
+    graphqlIntrospections,
+    graphqlSchemaLoading,
+    graphqlSchemaError,
     unresolvedSendId,
     unresolvedSendTab,
     unresolvedSendNames,

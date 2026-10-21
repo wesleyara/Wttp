@@ -38,7 +38,10 @@ export default defineConfig({
       // versão diferente da do app. Duas cópias de `@codemirror/state` quebram os
       // `instanceof` internos ("Unrecognized extension value") e o editor nem monta —
       // `dedupe` força uma única instância no bundle para os dois consumidores.
+      // O mesmo vale para `graphql` (cm6-graphql/graphql-language-service): duas cópias
+      // falham com "Cannot use GraphQLObjectType from another module or realm".
       dedupe: [
+        "graphql",
         "@codemirror/state",
         "@codemirror/view",
         "@codemirror/language",

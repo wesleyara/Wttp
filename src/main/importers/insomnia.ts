@@ -202,6 +202,43 @@ function mapAuth(
   }
 }
 
+/** O Insomnia guarda o body GraphQL como um JSON `{ query, variables?, operationName? }` em texto. */
+function mapGraphqlBody(
+  text: string | undefined,
+  contextName: string,
+  notConverted: ImportReportItem[],
+): RequestBody | undefined {
+  if (!text) return undefined;
+  reportTemplateTag(text, `body de "${contextName}"`, notConverted);
+  try {
+    const parsed = JSON.parse(text) as {
+      query?: string;
+      variables?: unknown;
+      operationName?: string;
+    };
+    if (typeof parsed.query !== "string") throw new Error("no query");
+    if (parsed.operationName) {
+      notConverted.push({
+        path: `body de "${contextName}"`,
+        reason: `operationName "${parsed.operationName}" não tem equivalente no body GraphQL — descartado`,
+      });
+    }
+    const variables =
+      typeof parsed.variables === "string"
+        ? parsed.variables
+        : parsed.variables === undefined
+          ? ""
+          : JSON.stringify(parsed.variables, null, 2);
+    return { type: "graphql", graphql: { query: parsed.query, variables } };
+  } catch {
+    notConverted.push({
+      path: `body de "${contextName}"`,
+      reason: "body GraphQL com formato inesperado — mantido como JSON bruto",
+    });
+    return { type: "raw", raw: text, contentType: "application/json" };
+  }
+}
+
 function mapBody(
   body: InsomniaBody | undefined,
   contextName: string,
@@ -236,6 +273,8 @@ function mapBody(
       });
       return { type: "multipart", multipart };
     }
+    case "application/graphql":
+      return mapGraphqlBody(body.text, contextName, notConverted);
     default:
       reportTemplateTag(body.text, `body de "${contextName}"`, notConverted);
       return body.text ? { type: "raw", raw: body.text, contentType: body.mimeType } : undefined;
