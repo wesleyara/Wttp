@@ -127,14 +127,16 @@ export const useChangesStore = defineStore("changes", () => {
 
   let versionsRequest = 0;
 
-  async function select(path: string | null): Promise<void> {
+  async function select(path: string | null, silent = false): Promise<void> {
+    // Recarga em segundo plano da mesma seleção: mantém o diff atual na tela até o novo chegar.
+    const keepCurrent = silent && path !== null && path === selectedPath.value;
     selectedPath.value = path;
-    versions.value = null;
+    if (!keepCurrent) versions.value = null;
     const root = workspace.root;
     const change = changes.value.find(item => item.path === path);
     if (!root || !change) return;
     const requestId = ++versionsRequest;
-    loadingDiff.value = true;
+    if (!keepCurrent) loadingDiff.value = true;
     try {
       const result = await window.wttp.git.fileVersions({
         root,
@@ -142,7 +144,12 @@ export const useChangesStore = defineStore("changes", () => {
         from: change.from,
         base: base.value,
       });
-      if (requestId === versionsRequest) versions.value = result;
+      if (
+        requestId === versionsRequest &&
+        JSON.stringify(result) !== JSON.stringify(versions.value)
+      ) {
+        versions.value = result;
+      }
     } catch (caught) {
       if (requestId === versionsRequest) error.value = caught as WttpError;
     } finally {
@@ -150,27 +157,33 @@ export const useChangesStore = defineStore("changes", () => {
     }
   }
 
-  async function load(): Promise<void> {
+  /**
+   * `silent` é a recarga automática (foco da janela, save, watcher): sem spinner, sem limpar
+   * o erro nem o diff aberto — alt-tab não pode fazer a tela piscar.
+   */
+  async function load(silent = false): Promise<void> {
     const root = workspace.root;
     if (!root || !git.repository) {
       changes.value = [];
       return;
     }
-    loading.value = true;
-    error.value = null;
+    if (!silent) {
+      loading.value = true;
+      error.value = null;
+    }
     try {
       const [nextChanges, nextRefs] = await Promise.all([
         window.wttp.git.changes({ root, base: base.value }),
         window.wttp.git.refs({ root }),
       ]);
-      changes.value = nextChanges;
-      refs.value = nextRefs;
+      if (JSON.stringify(nextChanges) !== JSON.stringify(changes.value)) changes.value = nextChanges;
+      if (JSON.stringify(nextRefs) !== JSON.stringify(refs.value)) refs.value = nextRefs;
       const keep = nextChanges.some(change => change.path === selectedPath.value);
-      await select(keep ? selectedPath.value : (nextChanges[0]?.path ?? null));
+      await select(keep ? selectedPath.value : (nextChanges[0]?.path ?? null), silent);
     } catch (caught) {
-      error.value = caught as WttpError;
+      if (!silent) error.value = caught as WttpError;
     } finally {
-      loading.value = false;
+      if (!silent) loading.value = false;
     }
   }
 
@@ -276,7 +289,7 @@ export const useChangesStore = defineStore("changes", () => {
   watch(
     () => git.files,
     () => {
-      if (tabs.tabs.some(isChangesTab)) void load();
+      if (tabs.tabs.some(isChangesTab)) void load(true);
     },
   );
 
