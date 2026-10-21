@@ -33,7 +33,7 @@ export type ValidationResult<T> =
   { valid: true; value: T; warnings?: string[] } | { valid: false; issues: SchemaIssue[] };
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const;
-const BODY_TYPES = ["none", "json", "urlencoded", "raw", "multipart", "binary"] as const;
+const BODY_TYPES = ["none", "json", "urlencoded", "raw", "multipart", "binary", "graphql"] as const;
 const AUTH_TYPES = ["none", "inherit", "bearer", "basic", "apikey"] as const;
 
 /** Formata um `SchemaIssue` no layout de arch-docs/file-format.md §7. */
@@ -202,6 +202,10 @@ class Checker {
       }
     }
     if (type === "binary") this.required([...path, "binary"], "string");
+    if (type === "graphql") {
+      this.required([...path, "graphql", "query"], "string");
+      this.required([...path, "graphql", "variables"], "string");
+    }
   }
 
   settingsBlock(path: Path, withScriptTimeout: boolean): void {

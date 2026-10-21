@@ -5,6 +5,7 @@ import { computed, ref, watch } from "vue";
 
 const AUTO_CONTENT_TYPE: Partial<Record<RequestBody["type"], string>> = {
   json: "application/json",
+  graphql: "application/json",
   urlencoded: "application/x-www-form-urlencoded",
   binary: "application/octet-stream",
 };

@@ -35,6 +35,8 @@ export type RequestBody =
   | { type: "urlencoded"; urlencoded: KeyValueEntry[] }
   | { type: "raw"; raw: string; contentType: string }
   | { type: "multipart"; multipart: MultipartEntry[] }
+  /** `variables` é JSON em texto (vazio = sem variáveis); vai como `application/json` no formato do GraphQL sobre HTTP. */
+  | { type: "graphql"; graphql: { query: string; variables: string } }
   /** Caminho relativo à raiz do workspace — nunca absoluto. */
   | { type: "binary"; binary: string };
 

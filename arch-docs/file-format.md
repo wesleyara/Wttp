@@ -99,7 +99,7 @@ auth:
   type: inherit # none | inherit | bearer | basic | apikey
 
 body:
-  type: json # none | json | urlencoded | raw | multipart | binary
+  type: json # none | json | urlencoded | raw | multipart | binary | graphql
   json: |
     {
       "email": "{{user_email}}",
@@ -146,7 +146,17 @@ body:
 body:
   type: binary
   binary: ./fixtures/payload.bin
+
+body:
+  type: graphql
+  graphql:
+    query: |
+      query User($id: ID!) { user(id: $id) { name } }
+    variables: |
+      { "id": "{{user_id}}" }
 ```
+
+`graphql` é enviado como JSON `{ "query": …, "variables": … }` (`Content-Type: application/json`); o método continua sendo o da request. `variables` é JSON em texto — vazio significa sem variáveis; JSON inválido aborta o envio com erro. Ambos os campos aceitam `{{variável}}`. Os dois campos são obrigatórios no arquivo (`variables: ""` quando vazio).
 
 Caminhos de arquivo são **relativos à raiz do workspace** — nunca absolutos, senão a collection quebra na máquina do colega.
 

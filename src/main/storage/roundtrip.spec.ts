@@ -81,3 +81,23 @@ describe("body multilinha", () => {
     expect(yaml).not.toContain("\\n");
   });
 });
+
+describe("body graphql", () => {
+  it("round-trip byte a byte", () => {
+    const original = [
+      "wttp: 1",
+      "name: Q",
+      "method: POST",
+      "url: https://api.example.com/graphql",
+      "body:",
+      "  type: graphql",
+      "  graphql:",
+      "    query: |",
+      "      query { viewer { id } }",
+      "    variables: |",
+      '      { "id": "{{user_id}}" }',
+      "",
+    ].join("\n");
+    expect(serializeRequest(parseRequest(original))).toBe(original);
+  });
+});

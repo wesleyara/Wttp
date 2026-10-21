@@ -68,6 +68,19 @@ function normalizeBody(body: ReturnType<typeof maskBody>): NormalizedBody {
       };
     case "binary":
       return { type: "binary", path: body.binary };
+    case "graphql": {
+      // Os mesmos bytes que `main/http/body.ts` manda; variáveis inválidas viram `{}` aqui
+      // porque gerar código não deve falhar por causa de um rascunho.
+      const payload: { query: string; variables?: unknown } = { query: body.graphql.query };
+      if (body.graphql.variables.trim() !== "") {
+        try {
+          payload.variables = JSON.parse(body.graphql.variables);
+        } catch {
+          payload.variables = {};
+        }
+      }
+      return { type: "text", text: JSON.stringify(payload) };
+    }
   }
 }
 

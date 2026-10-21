@@ -197,6 +197,19 @@ function formFilePath(path: string): string {
   return /[;,"]/.test(path) ? `"${path.replace(/(["\\])/g, "\\$1")}"` : path;
 }
 
+/** Mesmos bytes que a engine manda; variáveis inválidas viram `{}` (gerar código não falha por rascunho). */
+function graphqlJson(graphql: { query: string; variables: string }): string {
+  const payload: { query: string; variables?: unknown } = { query: graphql.query };
+  if (graphql.variables.trim() !== "") {
+    try {
+      payload.variables = JSON.parse(graphql.variables);
+    } catch {
+      payload.variables = {};
+    }
+  }
+  return JSON.stringify(payload);
+}
+
 function bodyArgs(body: RequestBody): CurlArg[] {
   switch (body.type) {
     case "none":
@@ -213,6 +226,8 @@ function bodyArgs(body: RequestBody): CurlArg[] {
     }
     case "binary":
       return [["--data-binary", `@${body.binary}`]];
+    case "graphql":
+      return [["--data-raw", graphqlJson(body.graphql)]];
     case "multipart":
       // `--form-string` para texto: com `--form`, um valor começando por `@`/`<` viraria
       // leitura de arquivo e `;type=` seria interpretado — nada disso existe na engine.
