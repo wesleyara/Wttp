@@ -144,7 +144,7 @@ const selectedContentType = computed(() => {
               :code="entry.response.ok ? entry.response.status : null"
               class="w-10 shrink-0"
             />
-            <WMethodBadge :method="entry.request.method" class="w-10 shrink-0" />
+            <WMethodBadge :method="entry.request.method" class="min-w-10 shrink-0" />
             <span class="flex-1 truncate text-muted">{{ entry.request.url }}</span>
             <span v-if="entry.response.ok" class="w-16 shrink-0 text-right text-faint">
               {{ formatDuration(entry.response.timing.total) }}

@@ -213,7 +213,7 @@ function onKeydown(event: KeyboardEvent): void {
           @mouseenter="activeIndex = index"
         >
           <template v-if="entry.kind === 'request'">
-            <WMethodBadge :method="entry.method" class="w-10 shrink-0 text-[11px]" />
+            <WMethodBadge :method="entry.method" class="min-w-10 shrink-0 text-[11px]" />
             <span class="truncate font-inter text-sm">{{ entry.name }}</span>
             <span class="ml-auto truncate font-mono text-[11px] text-faint">{{ entry.path }}</span>
           </template>

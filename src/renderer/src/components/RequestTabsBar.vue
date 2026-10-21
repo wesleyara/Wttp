@@ -160,7 +160,7 @@ function onDoubleClick(id: string): void {
       <WMethodBadge
         v-if="tab.kind === 'request'"
         :method="tab.method"
-        class="w-8 shrink-0 text-[10px]"
+        class="min-w-8 shrink-0 text-[10px]"
       />
       <WIcon
         v-else
