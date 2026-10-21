@@ -35,6 +35,7 @@ type WebSocketCtor = new (
   options: { protocols: string[]; headers: Record<string, string> },
 ) => Socket;
 
+const CONNECTING = 0;
 const OPEN = 1;
 /** Acima disso o texto vai truncado para o renderer — evita travar a UI com um frame gigante. */
 const MAX_PAYLOAD_CHARS = 1_000_000;
@@ -141,6 +142,13 @@ function open(id: string, session: Session): void {
     const { text, size } = describePayload(event.data);
     emit({ sessionId: id, type: "message", data: text, size, at: Date.now() });
   };
+  /** Encerra este socket uma vez só (idempotente): emite `close` e decide entre reconectar e fechar a sessão. */
+  const settle = (code: number, reason: string, wasClean: boolean): void => {
+    if (session.socket !== socket) return;
+    session.socket = null;
+    emit({ sessionId: id, type: "close", code, reason, wasClean, at: Date.now() });
+    finish(id, session);
+  };
   socket.onerror = event => {
     if (session.socket !== socket) return;
     emit({
@@ -149,20 +157,20 @@ function open(id: string, session: Session): void {
       message: event.message || "Connection failed.",
       at: Date.now(),
     });
+    // No Node 22 (o do Electron 39) um handshake recusado dispara só `error`: o socket fica
+    // em CONNECTING e nunca emite `close`. Sem isto a sessão travaria em "connecting" e a
+    // reconexão não rodaria. No Node 24 o `close` chega logo depois e `settle` ignora o segundo.
+    setTimeout(() => {
+      if (session.socket !== socket || socket.readyState !== CONNECTING) return;
+      try {
+        socket.close();
+      } catch {
+        // já encerrado
+      }
+      settle(1006, "", false);
+    }, 0);
   };
-  socket.onclose = event => {
-    if (session.socket !== socket) return;
-    session.socket = null;
-    emit({
-      sessionId: id,
-      type: "close",
-      code: event.code,
-      reason: event.reason,
-      wasClean: event.wasClean,
-      at: Date.now(),
-    });
-    finish(id, session);
-  };
+  socket.onclose = event => settle(event.code, event.reason, event.wasClean);
 }
 
 /** Decide, depois de uma queda, entre reconectar e encerrar a sessão. */
