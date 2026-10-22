@@ -94,6 +94,8 @@ import type {
   TrashAttachmentsResult,
   UiState,
   UpdateStatus,
+  WebSocketConnectSpec,
+  WebSocketEvent,
   WorkspaceChangedEvent,
   WorkspaceDrafts,
   WorkspaceRootPayload,
@@ -187,6 +189,12 @@ interface WttpApi {
     run: (payload: RunImportPayload) => Promise<ImportReport>;
     parseCurl: (payload: ParseCurlPayload) => Promise<ParsedCurlRequest | null>;
     preview: (payload: PreviewImportPayload) => Promise<ImportPreview>;
+  };
+  ws: {
+    connect: (spec: WebSocketConnectSpec) => Promise<void>;
+    send: (sessionId: string, data: string) => Promise<void>;
+    close: (sessionId: string) => Promise<void>;
+    onEvent: (callback: (event: WebSocketEvent) => void) => () => void;
   };
   terminal: {
     open: (payload: TerminalOpenPayload) => Promise<void>;

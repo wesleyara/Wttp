@@ -260,3 +260,48 @@ Imagens e vídeos que o markdown de `docs` (request, pasta, collection) referenc
 - **Export.** O HTML exportado embute as imagens como `data:` (arquivo único, abre offline) e os vídeos até 8 MB; acima disso o vídeo vira um aviso no lugar do player. O markdown exportado mantém os caminhos relativos — a pasta `attachments/` precisa acompanhar o arquivo.
 - **Remover uma referência nunca apaga o arquivo.** O mesmo anexo pode ser citado por vários `docs`, a edição é desfazível e o git já guarda o arquivo. Limpar é uma ação à parte — "Clean unused attachments…" no menu "+" da árvore e na busca rápida — que lista o que nenhum `docs` menciona e manda para a lixeira do SO só o que o usuário confirma. "Mencionar" é qualquer ocorrência do texto `attachments/<arquivo>` (imagem, link, bloco de código), no `docs` salvo de todo o workspace e no das abas abertas, ainda que não salvas. Sem lixeira na máquina (ex. Linux sem `gio`), o arquivo é apagado de vez e a UI avisa. Quando uma referência sai de um `docs` salvo e o anexo fica sem uso, o app mostra um aviso com atalho para a limpeza; órfãos que já existiam ao abrir o workspace ficam em silêncio.
 - **Não é schema novo.** Nenhum campo de YAML mudou, então `wttp: 1` continua valendo: um Wttp antigo mostra o texto `![...](attachments/...)` como está e preserva os arquivos.
+
+---
+
+## 10. Request WebSocket
+
+Uma conexão WebSocket é uma `*.req.yaml` como qualquer outra, marcada com `protocol: websocket`. Reaproveita `url`, `query`, `headers`, `auth`, `docs` e `{{variáveis}}` da request HTTP — o handshake de upgrade é um `GET`, então `method` fica `GET`. Sem `protocol` (arquivos de antes do campo), a request é HTTP.
+
+```yaml
+wttp: 1
+name: Chat
+seq: 3
+protocol: websocket # http (padrão, omitido) | websocket
+method: GET # o handshake de upgrade; não editável na UI
+url: "wss://{{host}}/chat"
+
+query:
+  - { name: room, value: general, enabled: true }
+
+headers:
+  - { name: X-Client, value: wttp, enabled: true }
+
+auth:
+  type: bearer
+  bearer: { token: "{{access_token}}" }
+
+websocket:
+  subprotocols: [chat, superchat] # Sec-WebSocket-Protocol, na ordem de preferência
+  reconnect:
+    enabled: true
+    maxAttempts: 5 # 0 = sem limite
+    delayMs: 1000 # espera entre tentativas
+  message: # rascunho do compositor de mensagens
+    format: json # text | json
+    content: |
+      { "type": "ping" }
+
+docs: |
+  Canal de chat em tempo real.
+```
+
+- **`websocket` e todos os campos dele são opcionais.** Ausente, vale: sem subprotocolos, `reconnect.enabled: false`, mensagem vazia em `text`.
+- **O histórico de mensagens não é versionado.** Mensagens enviadas e recebidas vivem só na sessão (memória do app); fechar a aba ou o app as descarta. Só o rascunho do compositor (`message`) vai para o arquivo.
+- **`reconnect` só vale para quedas inesperadas.** Fechar a conexão pelo botão "Disconnect" nunca reconecta. `maxAttempts` conta tentativas seguidas sem sucesso; uma conexão estabelecida zera o contador.
+- **Segredos seguem a regra de sempre** (§6, regra 5): `auth` e `headers` guardam `{{variáveis}}`, nunca o valor de uma variável `secret`.
+- **Não é schema novo.** Os campos são aditivos e opcionais, então `wttp: 1` continua valendo: um Wttp antigo preserva `protocol` e `websocket` como campos desconhecidos (regra 7) e mostra a request como um `GET` comum.

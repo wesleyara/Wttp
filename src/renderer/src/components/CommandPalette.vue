@@ -62,7 +62,7 @@ function collectRequests(nodes: WorkspaceNode[] | undefined, out: RequestEntry[]
         kind: "request",
         path: node.path,
         name: node.name,
-        method: node.data.method,
+        method: node.data.protocol === "websocket" ? "WS" : node.data.method,
         url: node.data.url,
       });
     } else if (node.kind === "folder") {

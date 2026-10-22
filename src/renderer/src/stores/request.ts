@@ -4,8 +4,10 @@ import type {
   HttpResponseResult,
   KeyValueEntry,
   RequestBody,
+  RequestProtocol,
   RequestScripts,
   SaveFileResult,
+  WebSocketConfig,
 } from "@shared";
 
 import { i18n } from "@renderer/i18n";
@@ -79,6 +81,17 @@ export const useRequestStore = defineStore("request", () => {
 
   /** Id da aba de request ativa — o modo watch (#50) guarda a sessão por aba. */
   const tabId = computed<string>(() => active.value?.id ?? "");
+
+  const protocol = computed<RequestProtocol>(() => active.value?.protocol ?? "http");
+
+  const websocket = computed<WebSocketConfig>({
+    get: () => active.value?.websocket ?? {},
+    set: value => {
+      if (!active.value) return;
+      active.value.websocket = value;
+      tabs.markActiveDirty();
+    },
+  });
 
   const method = computed<HttpMethod>({
     get: () => active.value?.method ?? "GET",
@@ -237,6 +250,8 @@ export const useRequestStore = defineStore("request", () => {
   return {
     path,
     tabId,
+    protocol,
+    websocket,
     method,
     url,
     pathParams,

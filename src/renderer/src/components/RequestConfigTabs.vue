@@ -10,7 +10,7 @@ import { useRequestStore } from "@renderer/stores/request";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { storeToRefs } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import type { KeyValueRow } from "./WKeyValueTable.vue";
@@ -18,6 +18,7 @@ import type { KeyValueRow } from "./WKeyValueTable.vue";
 import AuthConfigEditor from "./AuthConfigEditor.vue";
 import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
+import WebSocketSettings from "./WebSocketSettings.vue";
 import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
 import WInput from "./WInput.vue";
@@ -28,7 +29,8 @@ import WTabs from "./WTabs.vue";
 
 const { t } = useI18n();
 const store = useRequestStore();
-const { pathParams, query, headers, body, auth, docs, path } = storeToRefs(store);
+const { pathParams, query, headers, body, auth, docs, path, protocol } = storeToRefs(store);
+const isWebSocket = computed(() => protocol.value === "websocket");
 const variablesStore = useVariablesStore();
 const tabsStore = useRequestTabsStore();
 const { graphqlIntrospections, graphqlSchemaLoading, graphqlSchemaError } = storeToRefs(tabsStore);
@@ -190,28 +192,55 @@ const bodyCount = computed(() => {
   return 0;
 });
 
-const tabs = computed(() => [
-  {
+const tabs = computed(() => {
+  const paramsTab = {
     value: "params",
     label: t("request.tabs.params"),
     count: countActive(query.value) + countActive(pathParams.value),
-  },
-  { value: "headers", label: t("request.tabs.headers"), count: countActive(headers.value) },
-  { value: "body", label: t("request.tabs.body"), count: bodyCount.value },
-  {
+  };
+  const headersTab = {
+    value: "headers",
+    label: t("request.tabs.headers"),
+    count: countActive(headers.value),
+  };
+  const authTab = {
     value: "auth",
     label: t("request.tabs.auth"),
     badge: authBadge.value,
     warning: authUnresolved.value.length > 0,
-  },
-  {
-    value: "scripts",
-    label: t("request.tabs.scripts"),
-    badge: hasScripts.value ? "●" : undefined,
-    warning: Boolean(store.scriptRun?.preRequestError),
-  },
-  { value: "docs", label: t("request.tabs.docs") },
-]);
+  };
+  const docsTab = { value: "docs", label: t("request.tabs.docs") };
+
+  // WebSocket não tem body nem scripts (arch-docs/file-format.md §10); ganha a aba Connection.
+  if (isWebSocket.value) {
+    return [
+      paramsTab,
+      headersTab,
+      { value: "connection", label: t("websocket.tabs.connection") },
+      authTab,
+      docsTab,
+    ];
+  }
+
+  return [
+    paramsTab,
+    headersTab,
+    { value: "body", label: t("request.tabs.body"), count: bodyCount.value },
+    authTab,
+    {
+      value: "scripts",
+      label: t("request.tabs.scripts"),
+      badge: hasScripts.value ? "●" : undefined,
+      warning: Boolean(store.scriptRun?.preRequestError),
+    },
+    docsTab,
+  ];
+});
+
+// Trocar de uma aba HTTP (body/scripts) para uma WebSocket não pode deixar a aba ativa órfã.
+watch(tabs, current => {
+  if (!current.some(tab => tab.value === activeTab.value)) activeTab.value = "params";
+});
 
 const pathParamRows = useKeyValueRows(pathParams);
 const queryRows = useKeyValueRows(query);
@@ -416,7 +445,7 @@ useAutoContentType(body, headers);
         :variable-tooltips="headersTooltips"
         :variable-names="variableNames"
       />
-      <div v-if="visibleAutoHeaders.length > 0" class="border-t border-subtle">
+      <div v-if="!isWebSocket && visibleAutoHeaders.length > 0" class="border-t border-subtle">
         <button
           type="button"
           class="flex h-8 w-full items-center gap-1.5 px-2 font-inter text-xs font-medium text-faint hover:text-1"
@@ -632,6 +661,8 @@ useAutoContentType(body, headers);
         {{ t("request.binaryHint") }}
       </div>
     </div>
+
+    <WebSocketSettings v-else-if="activeTab === 'connection'" />
 
     <div v-else-if="activeTab === 'auth'">
       <AuthConfigEditor v-model="auth" :path="path" :headers="headers" />

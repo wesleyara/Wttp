@@ -1,4 +1,4 @@
-import type { WorkspaceNode } from "@shared";
+import type { RequestProtocol, WorkspaceNode } from "@shared";
 
 import { i18n } from "@renderer/i18n";
 import { useRequestTabsStore } from "@renderer/stores/requestTabs";
@@ -116,7 +116,7 @@ export const useTreeStore = defineStore("tree", () => {
    */
   async function createRequest(
     parentPath?: string,
-    options: { rename?: boolean; notify?: boolean } = {},
+    options: { rename?: boolean; notify?: boolean; protocol?: RequestProtocol } = {},
   ): Promise<string | null> {
     if (!workspace.root) return null;
     const target = parentPath ?? defaultParentPath();
@@ -124,7 +124,8 @@ export const useTreeStore = defineStore("tree", () => {
       root: workspace.root,
       parentPath: target,
       kind: "request",
-      name: "New request",
+      name: options.protocol === "websocket" ? "New WebSocket" : "New request",
+      ...(options.protocol ? { protocol: options.protocol } : {}),
     });
     ensureExpanded(target);
     await workspace.refreshTree();
@@ -132,6 +133,11 @@ export const useTreeStore = defineStore("tree", () => {
     if (options.rename ?? true) editingPath.value = node.path;
     if (options.notify ?? true) toast.push(i18n.global.t("toast.requestCreated"), "success");
     return node.path;
+  }
+
+  /** Request `protocol: websocket` (ClickLocal #476) — mesma criação de uma request, marcada no arquivo. */
+  function createWebSocket(parentPath?: string): Promise<string | null> {
+    return createRequest(parentPath, { protocol: "websocket" });
   }
 
   async function createFolder(parentPath?: string): Promise<void> {
@@ -346,6 +352,7 @@ export const useTreeStore = defineStore("tree", () => {
     setExpandedPaths,
     toggleExpanded,
     createRequest,
+    createWebSocket,
     createFolder,
     createCollection,
     startRename,

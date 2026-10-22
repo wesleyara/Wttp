@@ -16,6 +16,7 @@ import { registerTerminalHandlers } from "./terminal";
 import { registerUiHandlers } from "./ui";
 import { registerUpdateHandlers } from "./update";
 import { registerVariableHandlers } from "./variables";
+import { registerWebSocketHandlers } from "./websocket";
 import { registerWorkspaceHandlers } from "./workspace";
 
 /** Um `register*Handlers` por domínio, chamado uma vez no bootstrap do main. */
@@ -39,4 +40,5 @@ export function registerIpcHandlers(): void {
   registerGitHandlers();
   registerTerminalHandlers();
   registerUpdateHandlers();
+  registerWebSocketHandlers();
 }

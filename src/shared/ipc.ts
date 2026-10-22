@@ -54,10 +54,12 @@ import type {
   FolderNode,
   RecentWorkspace,
   RequestNode,
+  RequestProtocol,
   WorkspaceDrafts,
   WorkspaceTree,
   WorkspaceUiState,
 } from "./storage";
+import type { WebSocketConnectSpec, WebSocketSendPayload } from "./websocket";
 
 export interface AppInfo {
   version: string;
@@ -246,6 +248,8 @@ export interface CreateNodePayload {
   parentPath: string;
   kind: "folder" | "request";
   name: string;
+  /** Só para `kind: "request"` — `websocket` cria já com `protocol: websocket` (arch-docs/file-format.md §10). */
+  protocol?: RequestProtocol;
 }
 
 /** Payload de `node:rename` (EP-05-T03). */
@@ -590,6 +594,11 @@ export interface IpcContract {
    */
   "http:send": { payload: HttpRequestSpec; result: HttpResponseResult };
   "http:cancel": { payload: string; result: void };
+  /** Abre (ou reabre) a conexão de uma sessão; o progresso chega por `ws:event` (event ↓) — falha de handshake não rejeita, vira evento `error`/`close` (#476). */
+  "ws:connect": { payload: WebSocketConnectSpec; result: void };
+  "ws:send": { payload: WebSocketSendPayload; result: void };
+  /** Fecha pelo usuário (nunca reconecta); payload é o `sessionId`. */
+  "ws:close": { payload: string; result: void };
   "dialog:saveFile": { payload: SaveFilePayload; result: SaveFileResult };
   "dialog:pickFolder": { payload: PickFolderPayload; result: PickFolderResult };
   "dialog:pickFile": { payload: PickFilePayload; result: PickFileResult };

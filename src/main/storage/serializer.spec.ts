@@ -119,3 +119,58 @@ describe("docs (EP-12-T01)", () => {
     expect(serializeRequest(parseRequest(yaml))).toBe(yaml);
   });
 });
+
+describe("request WebSocket (#476)", () => {
+  const wsRequest = {
+    ...baseRequest,
+    protocol: "websocket" as const,
+    url: "wss://{{host}}/chat",
+    websocket: {
+      // Ordem de entrada propositalmente fora da canônica: a saída segue o fieldOrder.
+      message: { content: '{ "type": "ping" }\n', format: "json" as const },
+      reconnect: { delayMs: 1000, maxAttempts: 5, enabled: true },
+      subprotocols: ["chat", "superchat"],
+    },
+  };
+
+  it("grava protocol e o bloco websocket na ordem canônica, e faz round-trip exato", () => {
+    const yaml = serializeRequest(wsRequest);
+
+    expect(yaml).toBe(
+      [
+        "wttp: 1",
+        "name: Req",
+        "seq: 1",
+        "protocol: websocket",
+        "method: GET",
+        "url: wss://{{host}}/chat",
+        "websocket:",
+        "  subprotocols:",
+        "    - chat",
+        "    - superchat",
+        "  reconnect:",
+        "    enabled: true",
+        "    maxAttempts: 5",
+        "    delayMs: 1000",
+        "  message:",
+        "    format: json",
+        "    content: |",
+        '      { "type": "ping" }',
+        "",
+      ].join("\n"),
+    );
+    expect(parseRequest(yaml).websocket).toEqual(wsRequest.websocket);
+    expect(serializeRequest(parseRequest(yaml))).toBe(yaml);
+  });
+
+  it("request HTTP continua sem protocol nem websocket no arquivo", () => {
+    const yaml = serializeRequest(baseRequest);
+    expect(yaml).not.toContain("protocol");
+    expect(yaml).not.toContain("websocket");
+  });
+
+  it("preserva campos desconhecidos dentro do arquivo", () => {
+    const yaml = `${serializeRequest(wsRequest)}future: 1\n`;
+    expect(serializeRequest(parseRequest(yaml))).toBe(yaml);
+  });
+});
