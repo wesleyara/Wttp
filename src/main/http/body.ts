@@ -22,6 +22,8 @@ export async function buildRequestBody(body: RequestBody): Promise<BuiltBody | u
       return undefined;
     case "json":
       return { buffer: Buffer.from(body.json, "utf-8"), contentType: "application/json" };
+    case "graphql":
+      return buildGraphqlBody(body.graphql);
     case "raw":
       return { buffer: Buffer.from(body.raw, "utf-8"), contentType: body.contentType };
     case "urlencoded":
@@ -31,6 +33,19 @@ export async function buildRequestBody(body: RequestBody): Promise<BuiltBody | u
     case "multipart":
       return buildMultipartBody(body.multipart);
   }
+}
+
+/** Formato padrão do GraphQL sobre HTTP: `{ query, variables }` em JSON. */
+function buildGraphqlBody(graphql: { query: string; variables: string }): BuiltBody {
+  const payload: { query: string; variables?: unknown } = { query: graphql.query };
+  if (graphql.variables.trim() !== "") {
+    try {
+      payload.variables = JSON.parse(graphql.variables);
+    } catch {
+      throw new Error("GraphQL variables are not valid JSON");
+    }
+  }
+  return { buffer: Buffer.from(JSON.stringify(payload), "utf-8"), contentType: "application/json" };
 }
 
 function buildUrlencodedBody(entries: KeyValueEntry[]): BuiltBody {

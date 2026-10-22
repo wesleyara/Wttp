@@ -18,6 +18,23 @@ console.log(response.status, response.data);
 "
 `;
 
+exports[`snapshots: language × body type > axios · graphql 1`] = `
+"import axios from "axios";
+
+const response = await axios({
+  method: "post",
+  url: "https://api.example.com/users?page=2",
+  headers: {
+    "X-Trace": "abc",
+    "Content-Type": "application/json",
+  },
+  data: "{\\"query\\":\\"query User($id: ID!) {\\\\n  user(id: $id) { name note(text: \\\\\\"olá 'x'\\\\\\") }\\\\n}\\",\\"variables\\":{\\"id\\":\\"42\\"}}",
+});
+
+console.log(response.status, response.data);
+"
+`;
+
 exports[`snapshots: language × body type > axios · json 1`] = `
 "import axios from "axios";
 
@@ -110,6 +127,12 @@ exports[`snapshots: language × body type > curl · binary 1`] = `
   --data-binary '@/tmp/data.bin'"
 `;
 
+exports[`snapshots: language × body type > curl · graphql 1`] = `
+"curl --location --request POST 'https://api.example.com/users?page=2' \\
+  --header 'X-Trace: abc' \\
+  --data-raw '{"query":"query User($id: ID!) {\\n  user(id: $id) { name note(text: \\"olá '\\''x'\\''\\") }\\n}","variables":{"id":"42"}}'"
+`;
+
 exports[`snapshots: language × body type > curl · json 1`] = `
 "curl --location --request POST 'https://api.example.com/users?page=2' \\
   --header 'X-Trace: abc' \\
@@ -153,6 +176,20 @@ const response = await fetch("https://api.example.com/users?page=2", {
     "Content-Type": "application/octet-stream",
   },
   body: readFileSync("/tmp/data.bin"),
+});
+
+console.log(response.status, await response.text());
+"
+`;
+
+exports[`snapshots: language × body type > fetch · graphql 1`] = `
+"const response = await fetch("https://api.example.com/users?page=2", {
+  method: "POST",
+  headers: {
+    "X-Trace": "abc",
+    "Content-Type": "application/json",
+  },
+  body: "{\\"query\\":\\"query User($id: ID!) {\\\\n  user(id: $id) { name note(text: \\\\\\"olá 'x'\\\\\\") }\\\\n}\\",\\"variables\\":{\\"id\\":\\"42\\"}}",
 });
 
 console.log(response.status, await response.text());
@@ -251,6 +288,37 @@ func main() {
 	}
 	req.Header.Add("X-Trace", "abc")
 	req.Header.Add("Content-Type", "application/octet-stream")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	data, _ := io.ReadAll(resp.Body)
+	fmt.Println(resp.Status, string(data))
+}
+"
+`;
+
+exports[`snapshots: language × body type > go · graphql 1`] = `
+"package main
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+)
+
+func main() {
+	body := strings.NewReader("{\\"query\\":\\"query User($id: ID!) {\\\\n  user(id: $id) { name note(text: \\\\\\"olá 'x'\\\\\\") }\\\\n}\\",\\"variables\\":{\\"id\\":\\"42\\"}}")
+	req, err := http.NewRequest("POST", "https://api.example.com/users?page=2", body)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("X-Trace", "abc")
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -442,6 +510,18 @@ exports[`snapshots: language × body type > httpie · binary 1`] = `
 "
 `;
 
+exports[`snapshots: language × body type > httpie · graphql 1`] = `
+"http \\
+  --follow \\
+  --raw \\
+  '{"query":"query User($id: ID!) {\\n  user(id: $id) { name note(text: \\"olá '\\''x'\\''\\") }\\n}","variables":{"id":"42"}}' \\
+  POST \\
+  'https://api.example.com/users?page=2' \\
+  'X-Trace:abc' \\
+  'Content-Type:application/json'
+"
+`;
+
 exports[`snapshots: language × body type > httpie · json 1`] = `
 "http \\
   --follow \\
@@ -510,6 +590,23 @@ response = requests.request(
         "Content-Type": "application/octet-stream",
     },
     data=open("/tmp/data.bin", "rb"),
+)
+
+print(response.status_code, response.text)
+"
+`;
+
+exports[`snapshots: language × body type > python · graphql 1`] = `
+"import requests
+
+response = requests.request(
+    "POST",
+    "https://api.example.com/users?page=2",
+    headers={
+        "X-Trace": "abc",
+        "Content-Type": "application/json",
+    },
+    data="{\\"query\\":\\"query User($id: ID!) {\\\\n  user(id: $id) { name note(text: \\\\\\"olá 'x'\\\\\\") }\\\\n}\\",\\"variables\\":{\\"id\\":\\"42\\"}}".encode("utf-8"),
 )
 
 print(response.status_code, response.text)

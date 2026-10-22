@@ -289,25 +289,12 @@ function mapBody(
         reason: "body de arquivo sem src — não convertido",
       });
       return undefined;
-    case "graphql": {
-      const query = body.graphql?.query ?? "";
-      const rawVariables = body.graphql?.variables ?? "";
-      let variables: unknown = rawVariables;
-      try {
-        variables = rawVariables ? JSON.parse(rawVariables) : undefined;
-      } catch {
-        // mantém a string bruta se não for JSON válido
-      }
-      notConverted.push({
-        path: `body de "${contextName}"`,
-        reason: "GraphQL não tem tipo de body equivalente — convertido para JSON bruto",
-      });
+    case "graphql":
+      // `variables` fica como texto do jeito que veio (já é JSON em string no Postman).
       return {
-        type: "raw",
-        raw: JSON.stringify({ query, variables }, null, 2),
-        contentType: "application/json",
+        type: "graphql",
+        graphql: { query: body.graphql?.query ?? "", variables: body.graphql?.variables ?? "" },
       };
-    }
     default:
       notConverted.push({
         path: `body de "${contextName}"`,

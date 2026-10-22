@@ -244,6 +244,15 @@ export function describeBody(
           }
         : null;
     }
+    case "graphql":
+      return body.graphql.query.trim()
+        ? {
+            language: "text",
+            text: body.graphql.variables.trim()
+              ? `${body.graphql.query}\n\n# variables\n${body.graphql.variables}`
+              : body.graphql.query,
+          }
+        : null;
     case "binary":
       return body.binary ? { language: "text", text: body.binary } : null;
   }

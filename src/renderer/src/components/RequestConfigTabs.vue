@@ -5,7 +5,9 @@ import { useAutoContentType } from "@renderer/composables/useAutoContentType";
 import { useEffectiveAuth } from "@renderer/composables/useEffectiveAuth";
 import { useKeyValueRows } from "@renderer/composables/useKeyValueRows";
 import { useVariablePreview } from "@renderer/composables/useVariablePreview";
+import { schemaFromIntrospection } from "@renderer/lib/graphqlSchema";
 import { useRequestStore } from "@renderer/stores/request";
+import { useRequestTabsStore } from "@renderer/stores/requestTabs";
 import { useVariablesStore } from "@renderer/stores/variables";
 import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
@@ -14,6 +16,7 @@ import { useI18n } from "vue-i18n";
 import type { KeyValueRow } from "./WKeyValueTable.vue";
 
 import AuthConfigEditor from "./AuthConfigEditor.vue";
+import WButton from "./WButton.vue";
 import WCodeEditor from "./WCodeEditor.vue";
 import WEmptyState from "./WEmptyState.vue";
 import WIcon from "./WIcon.vue";
@@ -27,6 +30,19 @@ const { t } = useI18n();
 const store = useRequestStore();
 const { pathParams, query, headers, body, auth, docs, path } = storeToRefs(store);
 const variablesStore = useVariablesStore();
+const tabsStore = useRequestTabsStore();
+const { graphqlIntrospections, graphqlSchemaLoading, graphqlSchemaError } = storeToRefs(tabsStore);
+
+// Schema da introspecção desta request (autocomplete da query) — só em memória.
+const graphqlSchema = computed(() => {
+  const introspection = graphqlIntrospections.value[path.value];
+  if (!introspection) return null;
+  try {
+    return schemaFromIntrospection(introspection);
+  } catch {
+    return null;
+  }
+});
 
 const activeTab = ref("params");
 
@@ -37,6 +53,7 @@ const bodyText = computed(() => {
   const b = body.value;
   if (b.type === "json") return b.json;
   if (b.type === "raw") return b.raw;
+  if (b.type === "graphql") return `${b.graphql.query}\n${b.graphql.variables}`;
   return "";
 });
 const { unresolved: bodyUnresolved, tooltips: bodyTooltips } = useVariablePreview(bodyText, path);
@@ -169,6 +186,7 @@ const bodyCount = computed(() => {
   if (b.type === "json") return b.json.trim() === "" ? 0 : 1;
   if (b.type === "raw") return b.raw.trim() === "" ? 0 : 1;
   if (b.type === "binary") return b.binary.trim() === "" ? 0 : 1;
+  if (b.type === "graphql") return b.graphql.query.trim() === "" ? 0 : 1;
   return 0;
 });
 
@@ -228,6 +246,7 @@ const BODY_TYPE_OPTIONS = computed(() => [
   { value: "raw", label: t("request.bodyTypes.raw") },
   { value: "multipart", label: t("request.bodyTypes.multipart") },
   { value: "binary", label: t("request.bodyTypes.binary") },
+  { value: "graphql", label: t("request.bodyTypes.graphql") },
 ]);
 
 function defaultBodyFor(type: RequestBody["type"]): RequestBody {
@@ -244,6 +263,8 @@ function defaultBodyFor(type: RequestBody["type"]): RequestBody {
       return { type: "multipart", multipart: [] };
     case "binary":
       return { type: "binary", binary: "" };
+    case "graphql":
+      return { type: "graphql", graphql: { query: "", variables: "" } };
   }
 }
 
@@ -264,6 +285,33 @@ const jsonContent = computed<string>({
   set: value => {
     body.value = { type: "json", json: value };
   },
+});
+
+const graphqlQuery = computed<string>({
+  get: () => (body.value.type === "graphql" ? body.value.graphql.query : ""),
+  set: value => {
+    if (body.value.type !== "graphql") return;
+    body.value = { type: "graphql", graphql: { ...body.value.graphql, query: value } };
+  },
+});
+
+const graphqlVariables = computed<string>({
+  get: () => (body.value.type === "graphql" ? body.value.graphql.variables : ""),
+  set: value => {
+    if (body.value.type !== "graphql") return;
+    body.value = { type: "graphql", graphql: { ...body.value.graphql, variables: value } };
+  },
+});
+
+const graphqlVariablesInvalid = computed(() => {
+  const text = graphqlVariables.value.trim();
+  if (text === "") return false;
+  try {
+    JSON.parse(text);
+    return false;
+  } catch {
+    return true;
+  }
 });
 
 const rawContent = computed<string>({
@@ -413,6 +461,25 @@ useAutoContentType(body, headers);
             monospace
           />
         </div>
+        <div v-if="bodyType === 'graphql'" class="flex flex-1 items-center gap-2">
+          <WButton
+            size="sm"
+            :disabled="graphqlSchemaLoading"
+            data-testid="graphql-fetch-schema"
+            @click="tabsStore.fetchGraphqlSchema()"
+          >
+            <WIcon name="refresh-cw" :class="{ 'animate-spin': graphqlSchemaLoading }" />
+            {{
+              graphqlSchema ? t("request.graphqlRefreshSchema") : t("request.graphqlFetchSchema")
+            }}
+          </WButton>
+          <span v-if="graphqlSchema" class="font-inter text-xs text-muted">
+            {{ t("request.graphqlSchemaLoaded") }}
+          </span>
+          <span v-else-if="graphqlSchemaError" class="truncate font-inter text-xs text-status-4xx">
+            {{ graphqlSchemaError }}
+          </span>
+        </div>
         <div v-if="bodyType === 'binary'" class="flex-1">
           <WInput v-model="binaryPath" :placeholder="t('request.filePathPlaceholder')" monospace />
         </div>
@@ -436,6 +503,40 @@ useAutoContentType(body, headers);
           auto-grow
           max-height="24rem"
         />
+      </div>
+
+      <div v-else-if="bodyType === 'graphql'" class="flex flex-col gap-2">
+        <div class="min-h-48">
+          <WCodeEditor
+            v-model="graphqlQuery"
+            data-testid="body-graphql-query-editor"
+            language="graphql"
+            :graphql-schema="graphqlSchema"
+            :placeholder="t('request.graphqlQueryPlaceholder')"
+            :unresolved-variables="bodyUnresolved"
+            :variable-tooltips="bodyTooltips"
+            :variable-names="variableNames"
+            auto-grow
+            max-height="24rem"
+          />
+        </div>
+        <span class="font-inter text-xs text-muted">{{ t("request.graphqlVariables") }}</span>
+        <div class="min-h-24">
+          <WCodeEditor
+            v-model="graphqlVariables"
+            data-testid="body-graphql-variables-editor"
+            language="json"
+            placeholder='{"id": 1}'
+            :unresolved-variables="bodyUnresolved"
+            :variable-tooltips="bodyTooltips"
+            :variable-names="variableNames"
+            auto-grow
+            max-height="12rem"
+          />
+        </div>
+        <p v-if="graphqlVariablesInvalid" class="font-inter text-xs text-status-4xx">
+          {{ t("request.graphqlVariablesInvalid") }}
+        </p>
       </div>
 
       <div v-else-if="bodyType === 'raw'" class="min-h-48">

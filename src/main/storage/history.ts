@@ -47,6 +47,14 @@ function maskBody(body: RequestBody, secrets: string[]): RequestBody {
       return { ...body, json: maskText(body.json, secrets) };
     case "raw":
       return { ...body, raw: maskText(body.raw, secrets) };
+    case "graphql":
+      return {
+        ...body,
+        graphql: {
+          query: maskText(body.graphql.query, secrets),
+          variables: maskText(body.graphql.variables, secrets),
+        },
+      };
     case "urlencoded":
       return {
         ...body,

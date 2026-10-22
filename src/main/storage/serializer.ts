@@ -46,6 +46,12 @@ function orderBody(body: RequestBody | undefined): Record<string, unknown> | und
   if (body.type === "urlencoded") {
     ordered.urlencoded = orderEntries(body.urlencoded, KEY_VALUE_ENTRY_FIELD_ORDER);
   }
+  if (body.type === "graphql") {
+    ordered.graphql = orderFields(body.graphql as unknown as Record<string, unknown>, [
+      "query",
+      "variables",
+    ]);
+  }
   if (body.type === "multipart") {
     ordered.multipart = orderEntries(body.multipart, MULTIPART_ENTRY_FIELD_ORDER);
   }

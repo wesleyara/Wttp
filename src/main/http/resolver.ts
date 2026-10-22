@@ -260,6 +260,14 @@ function resolveBody(
       return { ...body, multipart: resolveMultipart(body.multipart, map, ctx) };
     case "binary":
       return { ...body, binary: substitute(body.binary, map, ctx) };
+    case "graphql":
+      return {
+        ...body,
+        graphql: {
+          query: substitute(body.graphql.query, map, ctx),
+          variables: substitute(body.graphql.variables, map, ctx),
+        },
+      };
   }
 }
 

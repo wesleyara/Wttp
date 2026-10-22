@@ -23,6 +23,11 @@ function request(overrides: Partial<CurlRequest> = {}): CurlRequest {
   };
 }
 
+const GRAPHQL = {
+  query: "query User($id: ID!) {\n  user(id: $id) { name note(text: \"olá 'x'\") }\n}",
+  variables: '{ "id": "42" }',
+};
+
 const BODIES: Record<string, Partial<CurlRequest>> = {
   none: { method: "GET" },
   json: { body: { type: "json", json: '{"name":"Ada","tags":["a","b"]}' } },
@@ -47,6 +52,7 @@ const BODIES: Record<string, Partial<CurlRequest>> = {
     },
   },
   binary: { body: { type: "binary", binary: "/tmp/data.bin" } },
+  graphql: { body: { type: "graphql", graphql: GRAPHQL } },
 };
 
 describe("snapshots: language × body type", () => {
@@ -57,6 +63,23 @@ describe("snapshots: language × body type", () => {
       });
     }
   }
+});
+
+describe("graphql body", () => {
+  it.each(CODEGEN_LANGUAGES)("%s: variáveis vazias são omitidas, inválidas viram {}", language => {
+    const empty = generateCode(
+      language,
+      request({ body: { type: "graphql", graphql: { query: "{ me }", variables: "" } } }),
+    );
+    expect(empty).toContain("{ me }");
+    expect(empty).not.toContain("variables");
+
+    const invalid = generateCode(
+      language,
+      request({ body: { type: "graphql", graphql: { query: "{ me }", variables: "{oops" } } }),
+    );
+    expect(invalid).not.toContain("oops");
+  });
 });
 
 describe("auth and secrets", () => {
@@ -176,6 +199,15 @@ describe("fetch snippet, executed for real", () => {
     });
     expect(got.headers["content-type"]).toBe("text/plain");
     expect(got.body).toBe("olá 'mundo' $x");
+  });
+
+  it("reproduces a graphql body as { query, variables } JSON", async () => {
+    const got = await run("fetch", BODIES.graphql);
+    expect(got.headers["content-type"]).toBe("application/json");
+    expect(JSON.parse(got.body)).toEqual({
+      query: GRAPHQL.query,
+      variables: { id: "42" },
+    });
   });
 
   it("reproduces a urlencoded body", async () => {

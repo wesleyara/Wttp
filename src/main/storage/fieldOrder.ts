@@ -66,6 +66,7 @@ export const BODY_FIELD_ORDER: Record<string, readonly string[]> = {
   raw: ["type", "contentType", "raw"],
   multipart: ["type", "multipart"],
   binary: ["type", "binary"],
+  graphql: ["type", "graphql"],
 };
 
 /** Ordem por variante de `auth.type` — arch-docs/file-format.md §4 "Variantes de auth". */

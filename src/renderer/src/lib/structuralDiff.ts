@@ -238,6 +238,20 @@ function diffBody(before: RequestBody | undefined, after: RequestBody | undefine
         : undefined;
     items.push(...diffEntries(asEntries(a), asEntries(b)));
   }
+  if (a.type === "graphql" || b.type === "graphql") {
+    for (const [label, key] of [
+      ["Query", "query"],
+      ["Variables", "variables"],
+    ] as const) {
+      pushText(
+        textItem(
+          label,
+          a.type === "graphql" ? a.graphql[key] : undefined,
+          b.type === "graphql" ? b.graphql[key] : undefined,
+        ),
+      );
+    }
+  }
   if (a.type === "binary" || b.type === "binary") {
     const item = scalarItem(
       "File",

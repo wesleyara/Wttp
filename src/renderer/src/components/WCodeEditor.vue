@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import type {
+  CompletionContext,
+  CompletionResult,
+  CompletionSource,
+} from "@codemirror/autocomplete";
 import type { Extension } from "@codemirror/state";
 import type { ViewUpdate } from "@codemirror/view";
 import type { ScriptPhase } from "@shared";
+import type { GraphQLSchema } from "graphql";
 
 import { autocompletion, completionKeymap, completionStatus } from "@codemirror/autocomplete";
 import { html } from "@codemirror/lang-html";
@@ -17,15 +22,23 @@ import { placeholder as placeholderExtension } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { i18n } from "@renderer/i18n";
 import { scriptApiCompletionSource } from "@renderer/lib/scriptCompletions";
+import {
+  completion as graphqlCompletion,
+  graphqlLanguageSupport,
+  stateExtensions,
+  updateSchema,
+} from "cm6-graphql";
 import { basicSetup, minimalSetup } from "codemirror";
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from "vue";
 
-type WCodeEditorLanguage = "json" | "javascript" | "xml" | "html" | "text";
+type WCodeEditorLanguage = "json" | "javascript" | "xml" | "html" | "graphql" | "text";
 
 const props = withDefaults(
   defineProps<{
     modelValue: string;
     language?: WCodeEditorLanguage;
+    /** Schema para autocomplete de campos/tipos/argumentos — só com `language="graphql"`. */
+    graphqlSchema?: GraphQLSchema | null;
     readOnly?: boolean;
     placeholder?: string;
     /** Debounce, em ms, para `update:modelValue` — não emite a cada tecla. */
@@ -222,8 +235,23 @@ function variableCompletionSource(names: string[]) {
   };
 }
 
+/**
+ * `override` do `autocompletion` desliga as fontes registradas pela linguagem — esta as
+ * devolve (hoje só o GraphQL registra uma, quando há schema).
+ */
+const languageDataSource: CompletionSource = async context => {
+  for (const source of context.state.languageDataAt<CompletionSource>(
+    "autocomplete",
+    context.pos,
+  )) {
+    const result = await source(context);
+    if (result) return result;
+  }
+  return null;
+};
+
 function autocompleteExtension(names: string[], scriptPhase?: ScriptPhase): Extension {
-  const sources = [variableCompletionSource(names)];
+  const sources: CompletionSource[] = [variableCompletionSource(names), languageDataSource];
   if (scriptPhase) sources.push(scriptApiCompletionSource(scriptPhase));
   return autocompletion({ override: sources });
 }
@@ -261,6 +289,8 @@ function languageExtension(language: WCodeEditorLanguage): Extension {
       return xml();
     case "html":
       return html();
+    case "graphql":
+      return graphqlLanguageSupport();
     case "text":
       return [];
   }
@@ -397,7 +427,8 @@ const syntaxTheme = syntaxHighlighting(
     { tag: [tags.number, tags.bool, tags.null], color: "rgb(var(--w-method-patch))" },
     { tag: [tags.keyword, tags.controlKeyword], color: "rgb(var(--w-accent))" },
     { tag: [tags.propertyName, tags.attributeName], color: "rgb(var(--w-method-get))" },
-    { tag: tags.tagName, color: "rgb(var(--w-method-post))" },
+    { tag: [tags.tagName, tags.typeName], color: "rgb(var(--w-method-post))" },
+    { tag: tags.variableName, color: "rgb(var(--w-text-1))" },
     { tag: tags.invalid, color: "rgb(var(--w-status-5xx))" },
   ]),
 );
@@ -426,6 +457,11 @@ onMounted(() => {
     extensions: [
       props.singleLine ? singleLineExtensions(props.lineWrap) : basicSetup,
       languageCompartment.of(languageExtension(props.language)),
+      // Sem o `lint` do cm6-graphql: `{{variável}}` não é GraphQL válido e acenderia erro.
+      // O schema vive num StateField — trocar de schema é `updateSchema`, não reconfigurar
+      // (o `init` do campo só roda na primeira vez que ele entra no estado).
+      graphqlCompletion,
+      stateExtensions(props.graphqlSchema ?? undefined),
       readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
       placeholderCompartment.of(props.placeholder ? placeholderExtension(props.placeholder) : []),
       variableHighlightCompartment.of(variableHighlightExtension(props.unresolvedVariables)),
@@ -469,6 +505,13 @@ watch(
   () => props.language,
   next => {
     view.value?.dispatch({ effects: languageCompartment.reconfigure(languageExtension(next)) });
+  },
+);
+
+watch(
+  () => props.graphqlSchema,
+  next => {
+    if (view.value) updateSchema(view.value, next ?? undefined);
   },
 );
 
