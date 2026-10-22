@@ -2,6 +2,7 @@ import { modalsEn } from "./areas/modals.en";
 import { requestEn } from "./areas/request.en";
 import { responseEn } from "./areas/response.en";
 import { storesEn } from "./areas/stores.en";
+import { websocketEn } from "./areas/websocket.en";
 
 /**
  * Chaves em inglês (EP-08.1-T06) — fallback de qualquer chave ausente em outro locale
@@ -13,6 +14,7 @@ export const en = {
   ...responseEn,
   ...modalsEn,
   ...storesEn,
+  ...websocketEn,
   common: {
     cancel: "Cancel",
     close: "Close",

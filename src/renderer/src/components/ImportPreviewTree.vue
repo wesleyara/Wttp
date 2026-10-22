@@ -14,7 +14,7 @@ defineProps<{
     <li v-for="(node, index) in nodes" :key="`${node.kind}-${node.name}-${index}`">
       <div class="flex items-center gap-1.5 py-0.5 font-inter text-sm text-1">
         <WIcon v-if="node.kind === 'folder'" name="folder" size="3.5" class="shrink-0 text-faint" />
-        <WMethodBadge v-else :method="node.method ?? '?'" class="w-10 shrink-0 text-[11px]" />
+        <WMethodBadge v-else :method="node.method ?? '?'" class="min-w-10 shrink-0 text-[11px]" />
         <span class="truncate">{{ node.name }}</span>
       </div>
       <div

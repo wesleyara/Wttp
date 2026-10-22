@@ -235,7 +235,7 @@ function resultIconClass(result: RunRequestResult): string {
               :disabled="running"
               :aria-label="t('runner.include', { name: item.name })"
             />
-            <WMethodBadge :method="item.method" class="w-12 shrink-0 text-[11px]" />
+            <WMethodBadge :method="item.method" class="min-w-12 shrink-0 text-[11px]" />
             <span class="min-w-0 flex-1 truncate font-inter text-xs text-1">{{ item.name }}</span>
             <span class="hidden min-w-0 truncate font-mono text-[11px] text-faint xl:inline">
               {{ item.path }}
@@ -355,7 +355,7 @@ function resultIconClass(result: RunRequestResult): string {
                 <span v-if="multipleIterations" class="shrink-0 font-mono text-[11px] text-faint">
                   #{{ result.iteration }}
                 </span>
-                <WMethodBadge :method="result.method" class="w-12 shrink-0 text-[11px]" />
+                <WMethodBadge :method="result.method" class="min-w-12 shrink-0 text-[11px]" />
                 <span class="min-w-0 flex-1 truncate font-inter text-xs text-1">{{
                   result.name
                 }}</span>

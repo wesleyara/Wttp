@@ -141,6 +141,18 @@ function finishedResults(events: RunEvent[]): RunRequestResult[] {
 }
 
 describe("runCollection (EP-13-T01)", () => {
+  it("leaves WebSocket requests out of the plan (#476)", async () => {
+    const api = await folder("", "API");
+    await request(api, "Plain", { url: `${baseUrl}/one` });
+    await request(api, "Socket", { protocol: "websocket", url: "ws://127.0.0.1:1/never" });
+
+    const { events, summary } = await run({ targetPath: api });
+
+    const started = events[0];
+    expect(started.type === "started" && started.plan.map(item => item.name)).toEqual(["Plain"]);
+    expect(summary).toMatchObject({ total: 1, passed: 1, failed: 0 });
+  });
+
   it("runs the folder's requests in tree order, for every iteration", async () => {
     const api = await folder("", "API");
     await request(api, "First", { url: `${baseUrl}/one` });

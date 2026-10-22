@@ -1,0 +1,66 @@
+/** Chaves da request WebSocket (ClickLocal #476). */
+export const websocketEn = {
+  websocket: {
+    badge: "WS",
+    urlPlaceholder: "wss://echo.example.com/socket",
+    connect: "Connect",
+    disconnect: "Disconnect",
+    state: {
+      connecting: "Connecting…",
+      open: "Connected",
+      reconnecting: "Reconnecting (attempt {attempt})…",
+      closed: "Disconnected",
+    },
+    tabs: {
+      connection: "Connection",
+    },
+    settings: {
+      subprotocols: "Subprotocols",
+      subprotocolsPlaceholder: "chat, superchat",
+      subprotocolsHint:
+        "Comma-separated, in order of preference (Sec-WebSocket-Protocol). Applied on the next connect.",
+      reconnect: "Reconnect automatically",
+      reconnectHint: "Only after an unexpected drop — Disconnect never reconnects.",
+      maxAttempts: "Max attempts",
+      maxAttemptsHint: "Failed attempts in a row before giving up. 0 = no limit.",
+      delay: "Delay between attempts (ms)",
+    },
+    messages: {
+      title: "Messages",
+      filterPlaceholder: "Filter messages…",
+      all: "All",
+      sent: "Sent",
+      received: "Received",
+      clear: "Clear",
+      count: "{shown} of {total}",
+      emptyTitle: "No messages yet",
+      emptyDescription: "Connect and send a message to see the conversation here.",
+      noMatches: "No message matches the filter.",
+      composerPlaceholder: "Message to send",
+      format: "Format",
+      formatText: "Text",
+      formatJson: "JSON",
+      send: "Send",
+      invalidJson: "Not valid JSON",
+      sizeBytes: "{size} B",
+      out: "Sent",
+      in: "Received",
+      copy: "Copy",
+    },
+    log: {
+      connected: "Connected",
+      connectedWith: "Connected (subprotocol: {protocol})",
+      reconnecting: "Connection lost — reconnecting (attempt {attempt})",
+      closed: "Closed ({code}) {reason}",
+      noReason: "no reason given",
+      error: "Error: {message}",
+    },
+    toast: {
+      urlRequired: "Enter a ws:// or wss:// URL first.",
+      unresolved: "Unresolved variables: {names}",
+    },
+  },
+  websocketMenu: {
+    newWebSocket: "New WebSocket",
+  },
+};

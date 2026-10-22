@@ -159,8 +159,8 @@ function onDoubleClick(id: string): void {
       <span v-if="tab.dirty" class="size-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
       <WMethodBadge
         v-if="tab.kind === 'request'"
-        :method="tab.method"
-        class="w-8 shrink-0 text-[10px]"
+        :method="tab.protocol === 'websocket' ? 'WS' : tab.method"
+        class="min-w-8 shrink-0 text-[10px]"
       />
       <WIcon
         v-else

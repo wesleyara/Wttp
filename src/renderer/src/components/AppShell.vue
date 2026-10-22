@@ -21,6 +21,8 @@ import TimelinePanel from "@renderer/components/TimelinePanel.vue";
 import UnusedAttachmentsModal from "@renderer/components/UnusedAttachmentsModal.vue";
 import WButton from "@renderer/components/WButton.vue";
 import WContextMenu, { type ContextMenuItem } from "@renderer/components/WContextMenu.vue";
+import WebSocketPanel from "@renderer/components/WebSocketPanel.vue";
+import WebSocketUrlBar from "@renderer/components/WebSocketUrlBar.vue";
 import WEmptyState from "@renderer/components/WEmptyState.vue";
 import WIcon from "@renderer/components/WIcon.vue";
 import WInput from "@renderer/components/WInput.vue";
@@ -145,6 +147,11 @@ const createMenuItems = computed<ContextMenuItem[]>(() => [
   { label: t("createMenu.newFolder"), icon: "folder-plus", action: () => void tree.createFolder() },
   { label: t("createMenu.newRequest"), icon: "file-plus", action: () => void tree.createRequest() },
   {
+    label: t("websocketMenu.newWebSocket"),
+    icon: "plug",
+    action: () => void tree.createWebSocket(),
+  },
+  {
     label: t("createMenu.import"),
     icon: "import",
     separatorBefore: true,
@@ -169,6 +176,11 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
         label: t("contextMenu.newRequest"),
         icon: "file-plus",
         action: () => void tree.createRequest(node.path),
+      },
+      {
+        label: t("websocketMenu.newWebSocket"),
+        icon: "plug",
+        action: () => void tree.createWebSocket(node.path),
       },
       {
         label: t("contextMenu.newFolder"),
@@ -452,7 +464,8 @@ onUnmounted(() => {
                     >
                       <WIcon name="triangle-alert" size="3.5" /> {{ t("branches.deletedBanner") }}
                     </p>
-                    <RequestUrlBar />
+                    <WebSocketUrlBar v-if="requestTabs.active.protocol === 'websocket'" />
+                    <RequestUrlBar v-else />
                     <RequestConfigTabs class="mt-3" />
                   </template>
                   <FolderConfigTabs v-else-if="requestTabs.active?.kind === 'folder'" />
@@ -461,7 +474,13 @@ onUnmounted(() => {
             </template>
             <template #second>
               <section class="flex h-full flex-col bg-surface-2">
-                <ResponsePanel v-if="requestTabs.active?.kind === 'request'" />
+                <WebSocketPanel
+                  v-if="
+                    requestTabs.active?.kind === 'request' &&
+                    requestTabs.active.protocol === 'websocket'
+                  "
+                />
+                <ResponsePanel v-else-if="requestTabs.active?.kind === 'request'" />
                 <WEmptyState
                   v-else
                   :title="t('shell.emptyResponse.title')"

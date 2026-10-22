@@ -29,6 +29,9 @@ export function methodToken(method: string): string {
       return "text-method-patch";
     case "DELETE":
       return "text-method-delete";
+    // Não é um método HTTP: o rótulo das requests `protocol: websocket` (ClickLocal #476).
+    case "WS":
+      return "text-method-patch";
     default:
       return "text-method-neutral";
   }

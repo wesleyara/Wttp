@@ -14,6 +14,7 @@ import type {
   EnvironmentListItem,
   FolderFile,
   RequestFile,
+  RequestProtocol,
   WorkspaceFile,
   WorkspaceNode,
   WorkspaceNodeIssue,
@@ -553,6 +554,7 @@ export async function createNode(
   parentPath: string,
   kind: WorkspaceNode["kind"],
   name: string,
+  protocol?: RequestProtocol,
 ): Promise<WorkspaceNode> {
   const absParent = resolveWorkspacePath(root, parentPath);
   await fs.mkdir(absParent, { recursive: true });
@@ -572,7 +574,14 @@ export async function createNode(
     return { kind: "folder", path: relPath, name, seq, data, children: [] };
   }
 
-  const data: RequestFile = { wttp: CURRENT_SCHEMA_VERSION, name, seq, method: "GET", url: "" };
+  const data: RequestFile = {
+    wttp: CURRENT_SCHEMA_VERSION,
+    name,
+    seq,
+    ...(protocol === "websocket" ? { protocol } : {}),
+    method: "GET",
+    url: "",
+  };
   await writeYamlAtomic(join(absParent, slug), serializeRequest(data));
   return { kind: "request", path: relPath, name, seq, data };
 }

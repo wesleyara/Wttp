@@ -535,8 +535,10 @@ function onKeydown(event: KeyboardEvent): void {
 
           <WMethodBadge
             v-if="row.node.kind === 'request'"
-            :method="row.node.data?.method ?? '?'"
-            class="w-10 shrink-0 text-[11px]"
+            :method="
+              row.node.data?.protocol === 'websocket' ? 'WS' : (row.node.data?.method ?? '?')
+            "
+            class="min-w-10 shrink-0 text-[11px]"
           />
 
           <WInput

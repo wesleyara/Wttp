@@ -13,3 +13,4 @@ export type * from "./import";
 export type * from "./runner";
 export type * from "./scripting";
 export type * from "./storage";
+export type * from "./websocket";

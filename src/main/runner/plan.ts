@@ -49,8 +49,9 @@ function collect(nodes: WorkspaceNode[], chain: FolderNode[], out: PlannedReques
   for (const node of nodes) {
     if (node.kind === "request") {
       // Request com YAML inválido (sem `data`) não tem o que rodar — fica de fora, como a
-      // árvore já a mostra com aviso.
-      if (node.data)
+      // árvore já a mostra com aviso. WebSocket também: é uma conexão persistente, não um
+      // par pedido/resposta que um run em lote consiga repetir ou testar (#476).
+      if (node.data && node.data.protocol !== "websocket")
         out.push({ node: node as PlannedRequest["node"], folders: [...chain].reverse() });
     } else {
       collect(node.children, [...chain, node], out);
