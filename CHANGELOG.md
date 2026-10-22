@@ -10,6 +10,21 @@ by `yarn release <version>`; versions up to 0.3.0 were written by hand from the 
 
 ## [Unreleased]
 
+## [0.3.5](https://github.com/wesleyara/Wttp/compare/v0.3.4...v0.3.5) - 2026-10-22
+
+### Added
+
+- GraphQL request body with query and variables editors
+- GraphQL syntax highlighting, schema autocomplete via introspection and Postman/Insomnia import
+- WebSocket requests with persistent connection, message history and auto-reconnect
+
+### Fixed
+
+- Changes tab no longer flickers when the window regains focus
+- HTTP method badge no longer overlaps the request name for DELETE and OPTIONS
+- Refresh yarn.lock so CI installs with --frozen-lockfile
+- WebSocket stuck on Connecting when the server rejects the handshake on Node 22
+
 ## [0.3.4](https://github.com/wesleyara/Wttp/compare/v0.3.3...v0.3.4) - 2026-10-07
 
 ### Added
